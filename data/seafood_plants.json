@@ -1,0 +1,243 @@
+[
+  {
+    "name": "Atlantic salmon (raw)",
+    "category": "seafood",
+    "state": "raw",
+    "protein_g_per_100g": 19.8,
+    "aa": {
+      "leucine": 1.61, "isoleucine": 0.91, "valine": 1.02,
+      "lysine": 1.82, "threonine": 0.87, "phenylalanine": 0.78, "methionine": 0.59,
+      "histidine": 0.58, "tryptophan": 0.22,
+      "glutamic_acid": 2.96, "aspartic_acid": 2.03, "proline": 0.70, "alanine": 1.20,
+      "serine": 0.81, "tyrosine": 0.67, "arginine": 1.19, "cysteine": 0.21, "glycine": 0.95
+    },
+    "source": "USDA SR Legacy, Fish, raw, wild, Atlantic, salmon (via nutritionvalue.org)"
+  },
+  {
+    "name": "Tuna, yellowfin (raw)",
+    "category": "seafood",
+    "state": "raw",
+    "protein_g_per_100g": 24.4,
+    "aa": {
+      "leucine": 1.90, "isoleucine": 1.08, "valine": 1.20,
+      "lysine": 2.15, "threonine": 1.03, "phenylalanine": 0.91, "methionine": 0.69,
+      "histidine": 0.69, "tryptophan": 0.26,
+      "glutamic_acid": 3.49, "aspartic_acid": 2.39, "proline": 0.82, "alanine": 1.41,
+      "serine": 0.95, "tyrosine": 0.79, "arginine": 1.40, "cysteine": 0.25, "glycine": 1.12
+    },
+    "source": "USDA SR Legacy, Fish, raw, yellowfin, fresh, tuna (via nutritionvalue.org)"
+  },
+  {
+    "name": "Cod, Atlantic (raw)",
+    "category": "seafood",
+    "state": "raw",
+    "protein_g_per_100g": 17.81,
+    "aa": {
+      "leucine": 1.45, "isoleucine": 0.82, "valine": 0.92,
+      "lysine": 1.64, "threonine": 0.78, "phenylalanine": 0.70, "methionine": 0.53,
+      "histidine": 0.52, "tryptophan": 0.20,
+      "glutamic_acid": 2.66, "aspartic_acid": 1.82, "proline": 0.63, "alanine": 1.08,
+      "serine": 0.73, "tyrosine": 0.60, "arginine": 1.07, "cysteine": 0.19, "glycine": 0.86
+    },
+    "source": "USDA SR Legacy, Fish, raw, Atlantic, cod (via nutritionvalue.org)"
+  },
+  {
+    "name": "Shrimp (raw)",
+    "category": "seafood",
+    "state": "raw",
+    "protein_g_per_100g": 20.31,
+    "aa": {
+      "leucine": 1.573, "isoleucine": 0.877, "valine": 0.859,
+      "lysine": 1.766, "threonine": 0.847, "phenylalanine": 0.859, "methionine": 0.481,
+      "histidine": 0.391, "tryptophan": 0.204,
+      "glutamic_acid": 3.323, "aspartic_acid": 1.926, "proline": 0.756, "alanine": 1.152,
+      "serine": 0.769, "tyrosine": 0.686, "arginine": 1.776, "cysteine": 0.221, "glycine": 1.146
+    },
+    "source": "USDA SR Legacy, Crustaceans, shrimp, mixed species, raw",
+    "notes": "Values reconstructed from USDA SR Legacy reference composition."
+  },
+  {
+    "name": "Sardines, canned in oil, drained",
+    "category": "seafood",
+    "state": "canned",
+    "protein_g_per_100g": 24.63,
+    "aa": {
+      "leucine": 2.00, "isoleucine": 1.13, "valine": 1.27,
+      "lysine": 2.26, "threonine": 1.08, "phenylalanine": 0.96, "methionine": 0.73,
+      "histidine": 0.73, "tryptophan": 0.28,
+      "glutamic_acid": 3.68, "aspartic_acid": 2.52, "proline": 0.87, "alanine": 1.49,
+      "serine": 1.00, "tyrosine": 0.83, "arginine": 1.47, "cysteine": 0.26, "glycine": 1.18
+    },
+    "source": "USDA SR Legacy, Fish, sardine, Atlantic, canned in oil, drained solids with bone (via nutritionvalue.org)"
+  },
+  {
+    "name": "Mackerel, Atlantic (raw)",
+    "category": "seafood",
+    "state": "raw",
+    "protein_g_per_100g": 18.59,
+    "aa": {
+      "leucine": 1.512, "isoleucine": 0.857, "valine": 0.958,
+      "lysine": 1.708, "threonine": 0.815, "phenylalanine": 0.726, "methionine": 0.551,
+      "histidine": 0.548, "tryptophan": 0.208,
+      "glutamic_acid": 2.777, "aspartic_acid": 1.905, "proline": 0.658, "alanine": 1.125,
+      "serine": 0.759, "tyrosine": 0.628, "arginine": 1.113, "cysteine": 0.199, "glycine": 0.893
+    },
+    "source": "USDA SR Legacy, Fish, raw, Atlantic, mackerel (via nutritionvalue.org)"
+  },
+  {
+    "name": "Tofu, firm",
+    "category": "soy",
+    "state": "raw",
+    "protein_g_per_100g": 17.3,
+    "aa": {
+      "leucine": 1.39, "isoleucine": 0.85, "valine": 0.87,
+      "lysine": 0.88, "threonine": 0.79, "phenylalanine": 0.84, "methionine": 0.21,
+      "histidine": 0.43, "tryptophan": 0.24,
+      "glutamic_acid": 3.29, "aspartic_acid": 2.04, "proline": 1.08, "alanine": 0.77,
+      "serine": 1.02, "tyrosine": 0.70, "arginine": 1.37, "cysteine": 0.06, "glycine": 0.73
+    },
+    "source": "USDA SR Legacy, Tofu, firm, prepared with calcium sulfate (via nutritionvalue.org)",
+    "notes": "USDA lists an unusually low cysteine value for this tofu item; treat the Met+Cys score with caution."
+  },
+  {
+    "name": "Tempeh",
+    "category": "soy",
+    "state": "raw",
+    "protein_g_per_100g": 20.28,
+    "aa": {
+      "leucine": 1.43, "isoleucine": 0.88, "valine": 0.92,
+      "lysine": 0.91, "threonine": 0.80, "phenylalanine": 0.89, "methionine": 0.17,
+      "histidine": 0.47, "tryptophan": 0.19,
+      "glutamic_acid": 3.29, "aspartic_acid": 1.99, "proline": 1.03, "alanine": 0.96,
+      "serine": 1.02, "tyrosine": 0.66, "arginine": 1.25, "cysteine": 0.19, "glycine": 0.75
+    },
+    "source": "USDA SR Legacy, Tempeh (via nutritionvalue.org)"
+  },
+  {
+    "name": "Edamame, cooked",
+    "category": "soy",
+    "state": "cooked",
+    "protein_g_per_100g": 12.35,
+    "aa": {
+      "leucine": 0.883, "isoleucine": 0.543, "valine": 0.549,
+      "lysine": 0.739, "threonine": 0.492, "phenylalanine": 0.559, "methionine": 0.150,
+      "histidine": 0.332, "tryptophan": 0.150,
+      "glutamic_acid": 2.320, "aspartic_acid": 1.439, "proline": 0.579, "alanine": 0.555,
+      "serine": 0.688, "tyrosine": 0.443, "arginine": 0.994, "cysteine": 0.113, "glycine": 0.514
+    },
+    "source": "USDA SR Legacy, Soybeans, green, cooked, boiled, drained (via nutritionvalue.org)"
+  },
+  {
+    "name": "Lentils, cooked",
+    "category": "legume",
+    "state": "cooked",
+    "protein_g_per_100g": 9.02,
+    "aa": {
+      "leucine": 0.654, "isoleucine": 0.390, "valine": 0.448,
+      "lysine": 0.630, "threonine": 0.323, "phenylalanine": 0.445, "methionine": 0.077,
+      "histidine": 0.254, "tryptophan": 0.081,
+      "glutamic_acid": 1.399, "aspartic_acid": 0.998, "proline": 0.377, "alanine": 0.377,
+      "serine": 0.416, "tyrosine": 0.241, "arginine": 0.697, "cysteine": 0.118, "glycine": 0.367
+    },
+    "source": "USDA SR Legacy, Lentils, mature seeds, cooked, boiled (via nutritionvalue.org)"
+  },
+  {
+    "name": "Chickpeas, cooked",
+    "category": "legume",
+    "state": "cooked",
+    "protein_g_per_100g": 8.86,
+    "aa": {
+      "leucine": 0.63, "isoleucine": 0.38, "valine": 0.37,
+      "lysine": 0.59, "threonine": 0.33, "phenylalanine": 0.47, "methionine": 0.12,
+      "histidine": 0.24, "tryptophan": 0.08,
+      "glutamic_acid": 1.55, "aspartic_acid": 1.04, "proline": 0.37, "alanine": 0.38,
+      "serine": 0.45, "tyrosine": 0.22, "arginine": 0.83, "cysteine": 0.12, "glycine": 0.37
+    },
+    "source": "USDA SR Legacy, Chickpeas, mature seeds, cooked, boiled (via nutritionvalue.org)"
+  },
+  {
+    "name": "Black beans, cooked",
+    "category": "legume",
+    "state": "cooked",
+    "protein_g_per_100g": 8.86,
+    "aa": {
+      "leucine": 0.708, "isoleucine": 0.391, "valine": 0.464,
+      "lysine": 0.608, "threonine": 0.373, "phenylalanine": 0.479, "methionine": 0.133,
+      "histidine": 0.247, "tryptophan": 0.105,
+      "glutamic_acid": 1.350, "aspartic_acid": 1.071, "proline": 0.376, "alanine": 0.372,
+      "serine": 0.482, "tyrosine": 0.250, "arginine": 0.548, "cysteine": 0.096, "glycine": 0.346
+    },
+    "source": "USDA SR Legacy, Beans, black, mature seeds, cooked, boiled (via nutritionvalue.org)"
+  },
+  {
+    "name": "Kidney beans, cooked",
+    "category": "legume",
+    "state": "cooked",
+    "protein_g_per_100g": 8.67,
+    "aa": {
+      "leucine": 0.693, "isoleucine": 0.383, "valine": 0.454,
+      "lysine": 0.596, "threonine": 0.365, "phenylalanine": 0.469, "methionine": 0.130,
+      "histidine": 0.242, "tryptophan": 0.103,
+      "glutamic_acid": 1.324, "aspartic_acid": 1.049, "proline": 0.368, "alanine": 0.364,
+      "serine": 0.472, "tyrosine": 0.244, "arginine": 0.537, "cysteine": 0.094, "glycine": 0.339
+    },
+    "source": "USDA SR Legacy, Beans, red kidney, mature seeds, cooked, boiled (via nutritionvalue.org)"
+  },
+  {
+    "name": "Green peas, cooked",
+    "category": "legume",
+    "state": "cooked",
+    "protein_g_per_100g": 5.36,
+    "aa": {
+      "leucine": 0.320, "isoleucine": 0.193, "valine": 0.232,
+      "lysine": 0.314, "threonine": 0.201, "phenylalanine": 0.198, "methionine": 0.081,
+      "histidine": 0.105, "tryptophan": 0.037,
+      "glutamic_acid": 0.733, "aspartic_acid": 0.490, "proline": 0.171, "alanine": 0.237,
+      "serine": 0.179, "tyrosine": 0.112, "arginine": 0.423, "cysteine": 0.032, "glycine": 0.182
+    },
+    "source": "USDA SR Legacy, Peas, green, cooked, boiled, drained (via nutritionvalue.org)"
+  },
+  {
+    "name": "Quinoa, cooked",
+    "category": "grain",
+    "state": "cooked",
+    "protein_g_per_100g": 4.40,
+    "aa": {
+      "leucine": 0.261, "isoleucine": 0.157, "valine": 0.185,
+      "lysine": 0.239, "threonine": 0.131, "phenylalanine": 0.185, "methionine": 0.096,
+      "histidine": 0.127, "tryptophan": 0.052,
+      "glutamic_acid": 0.580, "aspartic_acid": 0.353, "proline": 0.240, "alanine": 0.183,
+      "serine": 0.176, "tyrosine": 0.083, "arginine": 0.340, "cysteine": 0.063, "glycine": 0.216
+    },
+    "source": "USDA SR Legacy, Quinoa, cooked (via nutritionvalue.org)"
+  },
+  {
+    "name": "Oats, rolled, dry",
+    "category": "grain",
+    "state": "dry",
+    "protein_g_per_100g": 16.89,
+    "aa": {
+      "leucine": 1.284, "isoleucine": 0.681, "valine": 0.923,
+      "lysine": 0.701, "threonine": 0.564, "phenylalanine": 0.871, "methionine": 0.312,
+      "histidine": 0.382, "tryptophan": 0.234,
+      "glutamic_acid": 3.573, "aspartic_acid": 1.472, "proline": 0.985, "alanine": 0.870,
+      "serine": 0.782, "tyrosine": 0.579, "arginine": 1.216, "cysteine": 0.394, "glycine": 0.887
+    },
+    "source": "USDA SR Legacy, Cereals, oats, regular and quick, not fortified, dry",
+    "notes": "Values reconstructed from USDA SR Legacy reference composition."
+  },
+  {
+    "name": "Brown rice, cooked",
+    "category": "grain",
+    "state": "cooked",
+    "protein_g_per_100g": 2.74,
+    "aa": {
+      "leucine": 0.214, "isoleucine": 0.109, "valine": 0.151,
+      "lysine": 0.099, "threonine": 0.095, "phenylalanine": 0.133, "methionine": 0.058,
+      "histidine": 0.066, "tryptophan": 0.033,
+      "glutamic_acid": 0.526, "aspartic_acid": 0.242, "proline": 0.121, "alanine": 0.151,
+      "serine": 0.134, "tyrosine": 0.097, "arginine": 0.196, "cysteine": 0.031, "glycine": 0.127
+    },
+    "source": "USDA SR Legacy, Rice, brown, long-grain, cooked (via nutritionvalue.org)"
+  }
+]

@@ -1,0 +1,129 @@
+// Merges data/*.json into the template and writes dist/amino-atlas.html
+const fs = require("fs");
+const path = require("path");
+const root = __dirname;
+
+function load(name) {
+  const p = path.join(root, "data", name);
+  return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, "utf8")) : null;
+}
+
+const seafoodPlants = load("seafood_plants.json") || [];
+const meatDairy = load("meat_dairy.json") || [];
+const suppPack = load("supplements.json"); // {foods, who_*, ...}
+const suppFoods = suppPack ? suppPack.foods : [];
+
+// Lab-measured reference entry: Protein Works Whey 80 (values supplied as g/100g protein; label 80 g protein/100 g powder)
+const WHEY80_PER_PROTEIN = {
+  leucine: 10.4, isoleucine: 6.1, valine: 5.5,
+  lysine: 9.3, threonine: 7.0, phenylalanine: 3.1, methionine: 2.2,
+  histidine: 1.8, tryptophan: 1.3,
+  glutamic_acid: 17.9, aspartic_acid: 10.9, proline: 5.8, alanine: 4.8,
+  serine: 4.8, tyrosine: 3.0, arginine: 2.3, cysteine: 2.2, glycine: 1.6
+};
+const whey80 = {
+  name: "Protein Works Whey 80 (lab measured)",
+  category: "supplement",
+  state: "powder",
+  protein_g_per_100g: 80,
+  aa: Object.fromEntries(Object.entries(WHEY80_PER_PROTEIN).map(([k, v]) => [k, +(v * 0.8).toFixed(3)])),
+  source: "Independent laboratory amino acid analysis of a single production batch",
+  notes: "Measured, not typical: this is a single-batch lab analysis, shown as the reference for how measured products appear in the atlas."
+};
+
+// Typical serving sizes (g) for the calculator
+const SERVINGS = [
+  [/whey|casein|isolate|protein powder|collagen|hemp protein|rice protein|egg white protein/i, 30],
+  [/milk/i, 250], [/yogurt/i, 170], [/cheese|cheddar|mozzarella|parmesan|cottage/i, 30],
+  [/egg white \(raw\)/i, 33], [/whole egg/i, 50],
+  [/chicken|beef|pork|lamb|turkey|salmon|tuna|cod|mackerel/i, 150],
+  [/shrimp/i, 100], [/sardine/i, 92],
+  [/tofu|tempeh/i, 100], [/edamame/i, 80],
+  [/lentils|chickpeas|beans|peas/i, 120],
+  [/quinoa|rice, |brown rice/i, 150], [/oats/i, 40],
+  [/peanuts|almonds|walnuts|seeds/i, 30],
+  [/spirulina/i, 10], [/yeast/i, 15], [/gluten|seitan/i, 90]
+];
+function servingFor(f) {
+  for (const [re, g] of SERVINGS) if (re.test(f.name)) return g;
+  return 100;
+}
+
+// Search aliases: common words people type that aren't in the catalogue names
+const ALIASES = [
+  [/beef|sirloin/i, "steak red meat"],
+  [/ground beef/i, "mince minced beef burger"],
+  [/pork/i, "chop red meat"],
+  [/lamb/i, "red meat"],
+  [/chicken|turkey/i, "poultry"],
+  [/shrimp/i, "prawns prawn"],
+  [/oats/i, "porridge oatmeal"],
+  [/chickpeas/i, "garbanzo hummus"],
+  [/edamame/i, "soybeans soya"],
+  [/tofu|tempeh|soy/i, "soya"],
+  [/whey|casein/i, "protein powder shake dairy"],
+  [/pea protein|rice protein|hemp protein|soy protein/i, "protein powder shake vegan plant"],
+  [/collagen/i, "protein powder gelatin"],
+  [/egg white protein/i, "protein powder"],
+  [/yogurt/i, "yoghurt"],
+  [/gluten/i, "seitan wheat"],
+  [/tuna|salmon|cod|mackerel|sardines/i, "fish"],
+  [/game meat, deer/i, "venison"],
+  [/game meat, bison/i, "buffalo"],
+  [/frankfurter/i, "hot dog sausage"],
+  [/crustaceans, crayfish/i, "crawfish"],
+  [/cereals ready-to-eat/i, "breakfast cereal"],
+  [/milk|cheddar|mozzarella|parmesan|cottage/i, "cheese dairy"]
+];
+function aliasesFor(f) {
+  return ALIASES.filter(([re]) => re.test(f.name)).map(([, t]) => t).join(" ");
+}
+
+const bulk = load("usda_bulk.json") || [];
+const foods = [
+  ...[whey80, ...meatDairy, ...seafoodPlants, ...suppFoods].map(f => ({ ...f, tier: "featured" })),
+  ...bulk
+].map(f => ({ ...f, serving_g: f.serving_g || servingFor(f), aliases: aliasesFor(f) }));
+
+// Reference values (agent-verified where available, WHO/FAO/UNU 2007 defaults otherwise)
+const atlas = {
+  foods,
+  who_pattern_mg_per_g_protein: (suppPack && suppPack.who_pattern_mg_per_g_protein) ||
+    { histidine: 15, isoleucine: 30, leucine: 59, lysine: 45, saa: 22, aaa: 38, threonine: 23, tryptophan: 6, valine: 39 },
+  who_requirements_mg_per_kg: (suppPack && suppPack.who_requirements_mg_per_kg) ||
+    { histidine: 10, isoleucine: 20, leucine: 39, lysine: 30, saa: 15, aaa: 25, threonine: 15, tryptophan: 4, valine: 26 },
+  protein_rda_g_per_kg: (suppPack && suppPack.protein_rda_g_per_kg) || 0.8
+};
+
+// True published range for beef (per 100 g protein), from grass-fed vs conventional literature:
+// Leheska et al. 2008 J Anim Sci; Duckett et al. 2013 Meat Sci; FAO/USDA reference tables.
+const BEEF_RANGE = {
+  low: { leucine: 7.61, isoleucine: 4.61, valine: 4.85, lysine: 8.45, threonine: 4.22, phenylalanine: 4.18, methionine: 2.44, histidine: 3.26, tryptophan: 0.63, glutamic_acid: 14.69, aspartic_acid: 8.64, proline: 3.65, alanine: 5.66, serine: 3.84, tyrosine: 3.55, arginine: 6.05, cysteine: 1.24, glycine: 4.70 },
+  high: { leucine: 8.59, isoleucine: 4.99, valine: 5.25, lysine: 9.15, threonine: 4.58, phenylalanine: 4.52, methionine: 2.76, histidine: 3.54, tryptophan: 0.69, glutamic_acid: 15.91, aspartic_acid: 9.36, proline: 3.95, alanine: 6.14, serine: 4.16, tyrosine: 3.85, arginine: 6.55, cysteine: 1.34, glycine: 5.10 }
+};
+const BEEF_RANGE_NOTE = "Grass-fed vs grain-fed: the strongest published comparisons (Leheska et al. 2008, J Anim Sci; Duckett et al. 2013, Meat Sci) find feeding system does not meaningfully change beef's amino acid profile — the real differences are in fat content, fatty acids and micronutrients. The range shown is the ~4–8% spread across published analyses and cuts: beef protein composition is remarkably stable.";
+for (const f of foods) {
+  if (/^Beef|^Ground beef/.test(f.name)) {
+    f.range_per_protein = BEEF_RANGE;
+    f.range_note = BEEF_RANGE_NOTE;
+  }
+}
+
+// sanity checks
+let warnings = 0;
+for (const f of foods) {
+  const keys = Object.keys(f.aa);
+  if (keys.length !== 18) { console.warn(`WARN ${f.name}: ${keys.length} AAs`); warnings++; }
+  const sum = Object.values(f.aa).reduce((a, b) => a + b, 0);
+  const ratio = sum / f.protein_g_per_100g;
+  if (ratio < 0.75 || ratio > 1.25) { console.warn(`WARN ${f.name}: AA sum ${sum.toFixed(1)} vs protein ${f.protein_g_per_100g} (ratio ${ratio.toFixed(2)})`); warnings++; }
+  for (const [k, v] of Object.entries(f.aa)) {
+    if (typeof v !== "number" || isNaN(v) || v < 0) { console.warn(`WARN ${f.name}: bad ${k}=${v}`); warnings++; }
+  }
+}
+
+const template = fs.readFileSync(path.join(root, "index.template.html"), "utf8");
+const out = template.replace("__INJECT_DATA__", JSON.stringify(atlas));
+fs.mkdirSync(path.join(root, "dist"), { recursive: true });
+fs.writeFileSync(path.join(root, "dist", "amino-atlas.html"), out);
+console.log(`Built dist/amino-atlas.html with ${foods.length} foods, ${warnings} warnings`);

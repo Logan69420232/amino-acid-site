@@ -1,0 +1,6 @@
+node_modules/
+dist/
+usda_csv/
+sr_legacy.zip
+.vercel/
+.DS_Store

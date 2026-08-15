@@ -1,0 +1,12 @@
+{
+  "name": "amino-atlas",
+  "version": "1.3.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.js && cp dist/amino-atlas.html dist/index.html",
+    "refresh-data": "node scripts/fetch_usda.js && node scripts/import_usda.js usda_csv/FoodData_Central_sr_legacy_food_csv_2018-04"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16"
+  }
+}

@@ -1,0 +1,1343 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Amino Atlas — amino acid profiles of every protein source</title>
+<style>
+  :root {
+    --bg: #f7f5ee;
+    --surface: #fcfcf8;
+    --surface-2: #f1efe6;
+    --ink: #24291c;
+    --ink-2: #59614c;
+    --ink-3: #8a9078;
+    --line: rgba(74, 82, 59, 0.16);
+    --line-strong: rgba(74, 82, 59, 0.32);
+    --c-bcaa: #437630;
+    --c-ess: #a8b23c;
+    --c-non: #4a68bd;
+    --c-limit: #a85b14;
+    --c-limit-bg: rgba(168, 91, 20, 0.1);
+    --c-good-bg: rgba(67, 118, 48, 0.1);
+    --ring: rgba(67, 118, 48, 0.55);
+    --shadow: 0 1px 2px rgba(36, 41, 28, 0.06), 0 8px 28px rgba(36, 41, 28, 0.08);
+    --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171a12;
+      --surface: #1e2218;
+      --surface-2: #262b1f;
+      --ink: #e9e8dc;
+      --ink-2: #adb29d;
+      --ink-3: #7d836c;
+      --line: rgba(233, 232, 220, 0.12);
+      --line-strong: rgba(233, 232, 220, 0.26);
+      --c-bcaa: #2e7f38;
+      --c-ess: #a3961f;
+      --c-non: #6f84d4;
+      --c-limit: #d1913c;
+      --c-limit-bg: rgba(209, 145, 60, 0.14);
+      --c-good-bg: rgba(46, 127, 56, 0.18);
+      --ring: rgba(120, 180, 100, 0.55);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171a12;
+    --surface: #1e2218;
+    --surface-2: #262b1f;
+    --ink: #e9e8dc;
+    --ink-2: #adb29d;
+    --ink-3: #7d836c;
+    --line: rgba(233, 232, 220, 0.12);
+    --line-strong: rgba(233, 232, 220, 0.26);
+    --c-bcaa: #2e7f38;
+    --c-ess: #a3961f;
+    --c-non: #6f84d4;
+    --c-limit: #d1913c;
+    --c-limit-bg: rgba(209, 145, 60, 0.14);
+    --c-good-bg: rgba(46, 127, 56, 0.18);
+    --ring: rgba(120, 180, 100, 0.55);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- header ---------- */
+  header.site { padding: 52px 0 8px; }
+  header.site .wrap { position: relative; }
+  #heroAnim {
+    display: none; position: absolute; right: -10px; top: 10px;
+    width: 400px; height: 400px; pointer-events: none;
+  }
+  @media (min-width: 1080px) { #heroAnim { display: block; } }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0 0 14px;
+  }
+  h1.masthead {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: clamp(34px, 5.5vw, 56px);
+    line-height: 1.04;
+    letter-spacing: -0.01em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  h1.masthead em { font-style: italic; color: var(--c-bcaa); }
+  .standfirst {
+    max-width: 62ch; color: var(--ink-2); font-size: 17px; margin: 0 0 10px;
+  }
+  .legend-row {
+    display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+    padding: 18px 0 6px; font-size: 12.5px; color: var(--ink-2);
+  }
+  .legend-row .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: -1px; }
+
+  /* ---------- toolbar ---------- */
+  .toolbar {
+    position: sticky; top: 0; z-index: 30;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 0;
+  }
+  .toolbar-inner { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .search {
+    flex: 1 1 220px; max-width: 340px;
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 999px;
+    padding: 8px 16px; color: var(--ink); font-size: 14px;
+  }
+  .search::placeholder { color: var(--ink-3); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2);
+    border-radius: 999px; padding: 5px 13px; font-size: 12.5px;
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .sort-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); }
+  select.sort {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
+    border-radius: 8px; padding: 6px 10px; font-size: 13px;
+  }
+
+  /* ---------- grid ---------- */
+  .count-line { color: var(--ink-3); font-size: 12.5px; padding: 16px 0 4px; }
+  .grid {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    padding: 10px 0 30px;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 16px 14px; text-align: left; display: flex; flex-direction: column; gap: 8px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .card .mini { width: 100%; display: block; }
+  .card h3 { margin: 0; font-family: var(--font-serif); font-weight: 500; font-size: 18px; line-height: 1.2; }
+  .card .meta { color: var(--ink-3); font-size: 13px; }
+  .card .meta b { color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .badge {
+    align-self: flex-start; font-size: 11px; letter-spacing: 0.02em;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .badge.good { background: var(--c-good-bg); color: var(--c-bcaa); }
+  .badge.limit { background: var(--c-limit-bg); color: var(--c-limit); }
+  .card .compare-btn {
+    position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; border-radius: 50%;
+    border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-3);
+    font-size: 14px; line-height: 1; display: grid; place-items: center; padding: 0;
+  }
+  .card { position: relative; }
+  .card .compare-btn[aria-pressed="true"] { background: var(--c-bcaa); border-color: var(--c-bcaa); color: #fff; }
+  .empty { padding: 60px 0; color: var(--ink-3); text-align: center; font-size: 14px; }
+
+  /* ---------- detail overlay ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 50; overflow-y: auto;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .overlay[hidden] { display: none; }
+  .sheet {
+    max-width: 980px; margin: 4vh auto 8vh; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
+    padding: clamp(20px, 4vw, 44px);
+  }
+  .sheet-top { display: flex; align-items: flex-start; gap: 12px; }
+  .sheet h2 { font-family: var(--font-serif); font-weight: 500; font-size: clamp(26px, 4vw, 38px); margin: 0 0 4px; line-height: 1.05; }
+  .sheet .sub { color: var(--ink-3); font-size: 13px; margin: 0; }
+  .close {
+    margin-left: auto; border: 1px solid var(--line-strong); background: transparent;
+    border-radius: 999px; width: 34px; height: 34px; font-size: 16px; color: var(--ink-2); flex: none;
+  }
+  .unit-toggle { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; margin: 18px 0 4px; }
+  .unit-toggle button { border: 0; background: transparent; padding: 6px 14px; font-size: 12.5px; color: var(--ink-2); }
+  .unit-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .unit-note { font-size: 13px; color: var(--ink-3); margin: 6px 0 0; max-width: 64ch; }
+  .bloom-holder { width: 100%; max-width: 720px; margin: 0 auto; }
+  .statrow {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px; margin: 10px 0 26px;
+  }
+  .stat { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; }
+  .stat .k { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+  .stat .v { font-size: 25px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .stat .v small { font-size: 13px; font-weight: 400; color: var(--ink-3); }
+  .stat.limit-stat .v { color: var(--c-limit); }
+  .stat.good-stat .v { color: var(--c-bcaa); }
+
+  .sec-h { font-family: var(--font-serif); font-weight: 500; font-size: 22px; margin: 34px 0 4px; }
+  .sec-p { color: var(--ink-2); font-size: 15px; max-width: 68ch; margin: 0 0 16px; }
+
+  /* coverage bars */
+  .covbars { display: flex; flex-direction: column; gap: 9px; max-width: 640px; }
+  .covrow { display: grid; grid-template-columns: 160px 1fr 84px; gap: 10px; align-items: center; font-size: 14.5px; }
+  .covrow .aa-name { color: var(--ink-2); text-align: right; }
+  .covrow .track { position: relative; height: 14px; background: var(--surface-2); border-radius: 7px; }
+  .covrow .fill { position: absolute; inset: 0 auto 0 0; border-radius: 7px; background: var(--c-bcaa); min-width: 2px; }
+  .covrow.is-limit .fill { background: var(--c-limit); }
+  .covrow .goal { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: 0.65; }
+  .covrow .goal.base { opacity: 0.25; }
+  .covrow .pct { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .covrow.is-limit .pct { color: var(--c-limit); font-weight: 600; }
+  .cov-note { font-size: 13px; color: var(--ink-3); margin-top: 10px; }
+
+  /* calculator */
+  .calc { background: var(--surface-2); border-radius: 14px; padding: 20px 22px; margin-top: 8px; }
+  .calc-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; margin-bottom: 14px; font-size: 14.5px; }
+  .ctl-group {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 14px;
+  }
+  .ctl-label {
+    font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-3); margin-right: 8px;
+  }
+  .calc-controls label { color: var(--ink-2); }
+  .calc-controls input {
+    width: 74px; margin-left: 8px; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 9px; font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .calc-controls select {
+    margin-left: 6px; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 8px; font-size: 13px;
+  }
+  .prot-targets { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; }
+  .prot-target { flex: 1 1 200px; background: var(--surface); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; color: var(--ink-2); }
+  .prot-target .t { font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+  .prot-target .n { font-size: 21px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .prot-target .n small { font-size: 12px; font-weight: 400; color: var(--ink-3); }
+  .rate-in {
+    width: 52px; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 5px;
+    font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .calc-summary { font-size: 15px; color: var(--ink-2); margin: 0 0 6px; max-width: 70ch; }
+  .calc-summary b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* my day */
+  .day-btn {
+    border: 1px solid var(--c-bcaa); background: var(--c-bcaa); color: #fff;
+    border-radius: 999px; padding: 6px 16px; font-size: 12.5px; font-weight: 700;
+  }
+  .day-banner {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+    background: var(--c-good-bg); border: 1px solid var(--c-bcaa);
+    border-radius: 14px; padding: 16px 20px; margin: 18px 0 6px;
+  }
+  .day-banner .txt { flex: 1 1 340px; }
+  .day-banner h3 { margin: 0 0 3px; font-family: var(--font-serif); font-weight: 500; font-size: 18px; }
+  .day-banner p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+  .day-banner p b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .day-banner .go-day {
+    border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px;
+    padding: 10px 20px; font-size: 13.5px; font-weight: 700; white-space: nowrap;
+  }
+  .day-banner .short-note { color: var(--c-limit); font-weight: 600; }
+  .day-list { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 14px; }
+  .day-row {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 12px; font-size: 14.5px;
+  }
+  .day-row .nm { flex: 1 1 150px; }
+  .day-row label { color: var(--ink-2); font-size: 12.5px; }
+  .day-row input, .day-add input {
+    width: 64px; margin: 0 4px; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line-strong); border-radius: 8px; padding: 5px 8px;
+    font-size: 13px; font-variant-numeric: tabular-nums;
+  }
+  .day-row .sub { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .day-row .rm { border: 0; background: transparent; color: var(--ink-3); font-size: 13px; padding: 2px 6px; }
+  .day-row .rm:hover { color: var(--c-limit); }
+  .day-add { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 4px 0 16px; font-size: 13px; color: var(--ink-2); }
+  .day-add input#dayPick {
+    flex: 1 1 220px; max-width: 320px; width: auto; margin: 0; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 10px; font-size: 13px;
+  }
+  .day-add button { border: 0; background: var(--c-bcaa); color: #fff; border-radius: 8px; padding: 7px 16px; font-size: 13px; font-weight: 600; }
+  .clear-day { border: 1px solid var(--line-strong); background: transparent; color: var(--ink-3); border-radius: 999px; padding: 5px 12px; font-size: 12px; margin-left: auto; }
+  .add-day { margin-top: 12px; border: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 999px; padding: 7px 16px; font-size: 13px; }
+  .add-day.added { background: transparent; border-color: var(--c-bcaa); color: var(--c-bcaa); cursor: default; }
+  .go-day-inline { margin-left: 10px; background: var(--c-bcaa); border-color: var(--c-bcaa); color: #fff; font-weight: 600; }
+  .day-bloom { max-width: 300px; margin: 18px auto 0; }
+  .day-bloom-cap { text-align: center; font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+
+  /* tables */
+  .tbl-wrap { overflow-x: auto; margin-top: 8px; }
+  table.data { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  @media (max-width: 620px) {
+    .hide-sm { display: none; }
+    table.data th, table.data td { padding: 7px 5px; font-size: 13.5px; }
+    .info-btn { margin-left: 4px; }
+  }
+  table.data th, table.data td { padding: 7px 12px; text-align: right; font-variant-numeric: tabular-nums; }
+  table.data th { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; border-bottom: 1px solid var(--line-strong); }
+  table.data td:first-child, table.data th:first-child { text-align: left; }
+  table.data tr { border-bottom: 1px solid var(--line); }
+  table.data td .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+  table.data tr.limit-row td { color: var(--c-limit); font-weight: 600; }
+  .info-btn {
+    width: 17px; height: 17px; border-radius: 50%; border: 1px solid var(--line-strong);
+    background: transparent; color: var(--ink-3); font-size: 10px; font-style: italic; font-family: var(--font-serif);
+    line-height: 1; margin-left: 8px; padding: 0; vertical-align: 1px;
+  }
+  .info-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+  .info-btn[aria-expanded="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  tr.info-row > td { text-align: left; background: var(--surface-2); color: var(--ink-2); font-size: 14px; line-height: 1.55; padding: 10px 14px 12px; }
+  tr.info-row .cls { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 3px; }
+  .rng { color: var(--ink-3); font-size: 11px; }
+  .src-note { font-size: 13px; color: var(--ink-3); margin-top: 16px; max-width: 74ch; }
+
+  /* ---------- compare tray & view ---------- */
+  .tray {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 40;
+    background: var(--ink); color: var(--bg); border-radius: 999px;
+    padding: 9px 10px 9px 20px; display: flex; align-items: center; gap: 12px;
+    font-size: 13.5px; box-shadow: var(--shadow); max-width: calc(100vw - 32px);
+  }
+  .tray[hidden] { display: none; }
+  .tray .names { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
+  .tray button.go { background: var(--bg); color: var(--ink); border: 0; border-radius: 999px; padding: 6px 16px; font-size: 13px; font-weight: 600; }
+  .tray button.clear { background: transparent; border: 0; color: var(--bg); opacity: 0.65; font-size: 13px; }
+  .cmp-cols { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 18px; }
+  .cmp-col { background: var(--surface-2); border-radius: 14px; padding: 16px; }
+  .cmp-col h3 { font-family: var(--font-serif); font-weight: 500; font-size: 19px; margin: 0 0 2px; }
+  .cmp-col .meta { font-size: 12px; color: var(--ink-3); margin-bottom: 8px; }
+  .cmp-col .covrow { grid-template-columns: 96px 1fr 52px; font-size: 12px; }
+
+  /* ---------- methodology ---------- */
+  .method { border-top: 1px solid var(--line); margin-top: 26px; padding: 46px 0 30px; }
+  .method h2 { font-family: var(--font-serif); font-weight: 500; font-size: 28px; margin: 0 0 10px; }
+  .method-grid { display: grid; gap: 26px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 18px; }
+  .method h3 { font-size: 14px; margin: 0 0 6px; }
+  .method p { color: var(--ink-2); font-size: 14.5px; margin: 0 0 10px; }
+  footer.site { border-top: 1px solid var(--line); padding: 22px 0 40px; color: var(--ink-3); font-size: 12px; }
+
+  /* tooltip */
+  .tip {
+    position: fixed; z-index: 60; pointer-events: none;
+    background: var(--ink); color: var(--bg); font-size: 13px; line-height: 1.45;
+    padding: 7px 11px; border-radius: 8px; max-width: 240px;
+    transform: translate(-50%, calc(-100% - 10px));
+  }
+  .tip[hidden] { display: none; }
+  .tip b { font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 560px) {
+    .covrow { grid-template-columns: 104px 1fr 64px; font-size: 12px; }
+    .sort-wrap { margin-left: 0; }
+  }
+</style>
+
+<div class="tip" id="tip" hidden role="status"></div>
+
+<header class="site">
+  <div class="wrap">
+    <canvas id="heroAnim" aria-hidden="true"></canvas>
+    <p class="eyebrow">An open reference · draft for review</p>
+    <h1 class="masthead">Every protein<br />has a <em>shape.</em></h1>
+    <p class="standfirst">
+      Protein isn't really one thing. Every gram you eat is built from <strong>amino acids</strong> —
+      the blocks of life your body takes apart and rebuilds into muscle, skin, enzymes and hormones.
+      Nine of them are <em>essential</em>: your body can't make them, so your food has to supply every one.
+    </p>
+    <p class="standfirst">
+      Here's the catch — different protein sources carry very different mixes of those blocks.
+      Two foods with the same protein number can feed your body very differently: one covers all nine,
+      another runs quietly short. Amino Atlas breaks down the full amino acid composition of the foods
+      we actually eat, so you can see how close you are to your <strong>amino acid</strong> needs — not just a protein number.
+    </p>
+    <div class="legend-row" aria-hidden="false">
+      <span><span class="swatch" style="background:var(--c-bcaa)"></span>BCAAs</span>
+      <span><span class="swatch" style="background:var(--c-ess)"></span>Other essential amino acids</span>
+      <span><span class="swatch" style="background:var(--c-non)"></span>Non-essential</span>
+      <span style="color:var(--ink-3)">Ray length = grams per 100 g of protein</span>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="wrap toolbar-inner">
+    <input class="search" id="search" type="search" placeholder="Search a food… (e.g. lentils, whey, egg)" aria-label="Search foods" />
+    <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
+    <button class="day-btn" id="dayBtn" aria-label="Open the day tracker">🍽 Day tracker · <span id="dayCount">0</span></button>
+    <div class="sort-wrap">
+      <label for="sort">Sort</label>
+      <select class="sort" id="sort">
+        <option value="protein">Protein density</option>
+        <option value="leucine">Leucine (per 100 g protein)</option>
+        <option value="eaa">Essential AA density</option>
+        <option value="score">Amino acid score</option>
+        <option value="name">A → Z</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div id="dayBanner"></div>
+  <p class="count-line" id="countLine"></p>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>Nothing matches that search — try a broader term.</div>
+</main>
+
+<div class="tray" id="tray" hidden>
+  <span class="names" id="trayNames"></span>
+  <button class="go" id="trayGo">Compare</button>
+  <button class="clear" id="trayClear" aria-label="Clear comparison">Clear</button>
+</div>
+
+<div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<section class="method">
+  <div class="wrap">
+    <h2>How to read this atlas</h2>
+    <p class="sec-p" style="max-width:74ch">
+      Built on the idea that the conversation needs to move past "grams of protein" —
+      towards which amino acids you're actually getting, and whether any one of them is quietly short.
+    </p>
+    <div class="method-grid">
+      <div>
+        <h3>Where the numbers come from</h3>
+        <p>Whole-food profiles are drawn from USDA FoodData Central (SR Legacy analytical data) — the featured set is hand-curated, and behind search sits the full SR Legacy import: every USDA food with a complete 18-amino-acid profile (4,000+), filtered through basic quality checks. Supplement powders use typical published compositional analyses (e.g. Gorissen et&nbsp;al. 2018) rather than one brand's label. Each entry lists its source.</p>
+        <p>One entry — Protein Works Whey 80 — is an independent lab-measured profile, included as a reference for how measured products will appear.</p>
+      </div>
+      <div>
+        <h3>Same food, different sample</h3>
+        <p>The same source varies: grass-fed vs corn-fed beef, cultivar, season, processing. Values here are typical, and the faint band at each ray tip marks a ±10% indicative variation — except where a true published range exists. Beef carries one now: the published grass-fed vs conventional comparisons find feeding system barely shifts beef's <em>amino acid</em> profile (the differences live in fat and micronutrients), so its measured range is a narrow ~4–8%. Building real ranges like this for every food is the roadmap.</p>
+      </div>
+      <div>
+        <h3>Requirements, not just RDA</h3>
+        <p>Coverage is scored against the WHO/FAO/UNU (2007) adult indispensable amino acid pattern, expressed per gram of protein, plus per-kilogram daily requirements in the calculator. For total protein we show two numbers: the RDA (0.8&nbsp;g/kg/day) as a survival floor — enough to prevent deficiency — and a thrive target entered as a simple total — defaulting to 1.6&nbsp;g/kg of body weight (about 120&nbsp;g for a 75&nbsp;kg adult), in line with the intakes meta-analyses associate with supporting muscle. Type your own total in the calculator if you work to a different number.</p>
+      </div>
+      <div>
+        <h3>What "limiting" means</h3>
+        <p>A protein's amino acid score is set by its scarcest essential amino acid relative to the WHO pattern. Below 100%, that amino acid caps how well the protein alone can support tissue needs — which is exactly why complementary sources matter.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    Amino Atlas · draft v0.1 · Educational reference, not medical advice. Compiled from public analytical data; corrections welcome.
+  </div>
+</footer>
+
+<script>
+/* ================= DATA ================= */
+const ATLAS = __INJECT_DATA__;
+
+const AA_META = [
+  ["leucine", "Leucine", "b"], ["isoleucine", "Isoleucine", "b"], ["valine", "Valine", "b"],
+  ["lysine", "Lysine", "e"], ["threonine", "Threonine", "e"], ["phenylalanine", "Phenylalanine", "e"],
+  ["methionine", "Methionine", "e"], ["histidine", "Histidine", "e"], ["tryptophan", "Tryptophan", "e"],
+  ["glutamic_acid", "Glutamic acid", "n"], ["aspartic_acid", "Aspartic acid", "n"], ["proline", "Proline", "n"],
+  ["alanine", "Alanine", "n"], ["serine", "Serine", "n"], ["tyrosine", "Tyrosine", "n"],
+  ["arginine", "Arginine", "n"], ["cysteine", "Cysteine", "n"], ["glycine", "Glycine", "n"]
+];
+const CLASS_NAME = { b: "BCAA (essential)", e: "Essential", n: "Non-essential" };
+
+/* Plain-English explainers for the ⓘ buttons in the profile table */
+const AA_INFO = {
+  leucine: ["BCAA · essential", "The anabolic trigger. Leucine directly switches on muscle protein synthesis (via mTOR), which is why it's the single best marker of a protein's muscle-building quality. Research often points to ~2.5–3 g in a meal as the threshold that flips the switch."],
+  isoleucine: ["BCAA · essential", "Works alongside leucine in muscle — it supports energy metabolism during exercise and helps shuttle glucose into muscle cells. Needed in decent amounts, but it's rarely the amino acid a diet falls short on."],
+  valine: ["BCAA · essential", "The third branched-chain amino acid. It contributes to muscle energy metabolism and nitrogen balance, and is used alongside the other BCAAs during exercise. Almost never limiting on its own."],
+  lysine: ["Essential", "Critical for collagen cross-linking (skin, tendon, bone), carnitine synthesis (fat transport into mitochondria) and antibodies. It's the classic limiting amino acid in grains — the main reason wheat- and rice-heavy diets score poorly — while animal proteins and legumes are rich in it."],
+  threonine: ["Essential", "A major building block of mucin, the protective protein lining your entire gut. A meaningful share of dietary threonine is used by the intestine itself before the rest of the body sees it. Also feeds into immune proteins."],
+  phenylalanine: ["Essential", "The raw material for tyrosine and from there the catecholamines — dopamine, noradrenaline, adrenaline. It's scored together with tyrosine because the body can cover tyrosine needs with spare phenylalanine."],
+  methionine: ["Essential · sulfur", "Every new protein your body makes starts with methionine. It's also the body's main methyl-group donor (SAMe), touching DNA regulation, and the precursor of cysteine. Typically the limiting amino acid in beans, peas and soy."],
+  histidine: ["Essential", "Precursor of histamine and of carnosine — the buffer that helps muscle resist acid build-up in hard efforts. Also part of haemoglobin. Needs are modest and most diets cover it comfortably."],
+  tryptophan: ["Essential", "The scarcest amino acid in food, and the precursor of serotonin, melatonin and niacin (vitamin B3). Collagen contains literally none of it — which is why collagen scores zero as a complete protein despite being ~90% protein."],
+  glutamic_acid: ["Non-essential", "Usually the most abundant amino acid in any protein (you'll see it dominate most blooms). In the body it's the main excitatory neurotransmitter (glutamate) and the partner of glutamine, a key fuel for gut and immune cells. It's also what your tongue reads as umami."],
+  aspartic_acid: ["Non-essential", "A workhorse of core metabolism: it feeds the urea cycle (clearing nitrogen), DNA and RNA synthesis, and interconverts freely with asparagine. Plentiful in almost every protein."],
+  proline: ["Non-essential", "With glycine, the structural backbone of collagen — skin, tendon, ligament, bone. Casein and collagen are unusually rich in it. The body makes its own, but demand rises when you're building a lot of connective tissue."],
+  alanine: ["Non-essential", "The muscle-to-liver glucose shuttle. During exercise or fasting, muscle packages nitrogen as alanine and sends it to the liver, which turns it back into glucose (the glucose–alanine cycle)."],
+  serine: ["Non-essential", "Needed for the phospholipids that build every cell membrane, for one-carbon metabolism (with folate), and as a precursor of glycine and cysteine. The body synthesises it readily from glucose."],
+  tyrosine: ["Non-essential · conditionally essential", "Made from phenylalanine, so it only becomes essential if phenylalanine is short. It's the raw material for thyroid hormones and for dopamine, noradrenaline and adrenaline."],
+  arginine: ["Non-essential · conditionally essential", "The nitric-oxide precursor — the signal that relaxes blood vessels — plus a player in the urea cycle and creatine synthesis. Nuts, seeds and hemp are notably rich in it. 'Conditionally essential' because synthesis can lag demand in growth, injury or illness."],
+  cysteine: ["Non-essential · sulfur, conditionally essential", "Rate-limiting for glutathione, the body's master antioxidant. The body can make it from methionine (which is why the two are scored together), but a methionine-poor diet drags cysteine down with it."],
+  glycine: ["Non-essential · conditionally essential", "The smallest amino acid — and every third link in a collagen chain, which is why collagen peptides are ~20% glycine. Also needed for creatine, glutathione and haem. There's a reasonable case the body can't always make as much as it could use."]
+};
+const CAT_LABEL = {
+  meat: "Meat & poultry", seafood: "Seafood", dairy: "Dairy", egg: "Eggs",
+  legume: "Legumes & pulses", soy: "Soy", grain: "Grains", nuts_seeds: "Nuts & seeds",
+  supplement: "Supplements", other: "Other"
+};
+const CAT_FILTERS = [
+  ["all", "All"], ["meat", "Meat"], ["seafood", "Seafood"], ["dairy_egg", "Dairy & eggs"],
+  ["plant", "Plants"], ["supplement", "Supplements"]
+];
+const FILTER_MAP = {
+  meat: ["meat"], seafood: ["seafood"], dairy_egg: ["dairy", "egg"],
+  plant: ["legume", "soy", "grain", "nuts_seeds", "other"], supplement: ["supplement"]
+};
+
+/* WHO/FAO/UNU 2007 adult scoring pattern, mg per g protein.
+   SAA = Met+Cys, AAA = Phe+Tyr. */
+const WHO = ATLAS.who_pattern_mg_per_g_protein;
+const WHO_KG = ATLAS.who_requirements_mg_per_kg;
+const THRIVE_G_PER_KG = 1.6; // Morton et al. 2018 meta-analysis breakpoint for muscle-supporting intakes
+const LB_PER_KG = 2.20462;
+const SCORE_ROWS = [
+  ["histidine", "Histidine", ["histidine"]],
+  ["isoleucine", "Isoleucine", ["isoleucine"]],
+  ["leucine", "Leucine", ["leucine"]],
+  ["lysine", "Lysine", ["lysine"]],
+  ["saa", "Methionine + Cysteine", ["methionine", "cysteine"]],
+  ["aaa", "Phenylalanine + Tyrosine", ["phenylalanine", "tyrosine"]],
+  ["threonine", "Threonine", ["threonine"]],
+  ["tryptophan", "Tryptophan", ["tryptophan"]],
+  ["valine", "Valine", ["valine"]]
+];
+
+/* ================= derived metrics ================= */
+function perProtein(f, key) { return f.aa[key] / f.protein_g_per_100g * 100; }
+function stateWord(f) {
+  return { raw: "raw weight", cooked: "cooked weight", dry: "dry weight", powder: "powder", canned: "drained weight", "as sold": "as sold" }[f.state] || "of the food";
+}
+function classTotal(f, cls) {
+  return AA_META.filter(m => (cls === "eaa" ? m[2] !== "n" : m[2] === cls))
+    .reduce((s, m) => s + perProtein(f, m[0]), 0);
+}
+function scoreRows(f) {
+  return SCORE_ROWS.map(([id, label, keys]) => {
+    const mgPerG = keys.reduce((s, k) => s + f.aa[k], 0) / f.protein_g_per_100g * 1000;
+    const ratio = mgPerG / WHO[id];
+    return { id, label, mgPerG, goal: WHO[id], ratio };
+  });
+}
+function aminoScore(f) {
+  const rows = scoreRows(f);
+  let min = rows[0];
+  rows.forEach(r => { if (r.ratio < min.ratio) min = r; });
+  return { rows, min, score: min.ratio };
+}
+ATLAS.foods.forEach((f, i) => {
+  f.id = i;
+  f.metrics = {
+    eaa: classTotal(f, "eaa"), bcaa: classTotal(f, "b"),
+    leu: perProtein(f, "leucine"), ...aminoScore(f)
+  };
+});
+
+/* ================= bloom renderer ================= */
+function niceStep(maxVal, targetRings) {
+  const raw = maxVal / targetRings;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const m of [1, 2, 2.5, 5, 10]) { if (raw <= m * pow) return m * pow; }
+  return 10 * pow;
+}
+const COL = () => ({
+  b: getComputedStyle(document.documentElement).getPropertyValue("--c-bcaa").trim(),
+  e: getComputedStyle(document.documentElement).getPropertyValue("--c-ess").trim(),
+  n: getComputedStyle(document.documentElement).getPropertyValue("--c-non").trim()
+});
+
+/* values(): array of {key,label,cls,val} in canonical order */
+function bloomValues(f, unit) {
+  return AA_META.map(([key, label, cls]) => ({
+    key, label, cls,
+    val: unit === "food" ? f.aa[key] : perProtein(f, key)
+  }));
+}
+
+function renderBloom(f, opts) {
+  const { mini = false, unit = "protein", band = true } = opts || {};
+  const vals = bloomValues(f, unit);
+  /* Scale is always anchored to the per-protein profile, so switching to
+     as-weighed mode visibly shrinks the rays by the non-protein fraction. */
+  const maxV = Math.max(...AA_META.map(m => perProtein(f, m[0])));
+  const col = COL();
+  const W = mini ? 240 : 820, H = mini ? 240 : 680;
+  const cx = W / 2, cy = H / 2;
+  const r0 = mini ? 26 : 78;
+  const maxLen = mini ? 82 : 200;
+  const scale = maxLen / (maxV || 1);
+  const sw = mini ? 6 : 14;
+  let s = "";
+  if (!mini) {
+    const step = niceStep(maxV, 4);
+    for (let g = step; g <= maxV + step * 0.35; g += step) {
+      s += `<circle cx="${cx}" cy="${cy}" r="${r0 + g * scale}" fill="none" stroke="currentColor" stroke-opacity="0.22" stroke-width="0.6" stroke-dasharray="2 5"/>`;
+    }
+  }
+  const n = vals.length;
+  vals.forEach((d, i) => {
+    const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const c = Math.cos(ang), sn = Math.sin(ang);
+    const len = d.val * scale;
+    const x1 = cx + c * r0, y1 = cy + sn * r0;
+    const x2 = cx + c * (r0 + len), y2 = cy + sn * (r0 + len);
+    if (!mini && band && d.val > 0) {
+      let lo = len * 0.9, hi = len * 1.1;
+      if (f.range_per_protein && unit !== "food") {
+        lo = f.range_per_protein.low[d.key] * scale;
+        hi = f.range_per_protein.high[d.key] * scale;
+      }
+      const bx1 = cx + c * (r0 + lo), by1 = cy + sn * (r0 + lo);
+      const bx2 = cx + c * (r0 + hi), by2 = cy + sn * (r0 + hi);
+      s += `<line x1="${bx1.toFixed(1)}" y1="${by1.toFixed(1)}" x2="${bx2.toFixed(1)}" y2="${by2.toFixed(1)}" stroke="${col[d.cls]}" stroke-width="${sw + 6}" stroke-linecap="round" opacity="0.18"/>`;
+    }
+    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col[d.cls]}" stroke-width="${sw}" stroke-linecap="round" opacity="0.92" ${mini ? "" : `class="ray" data-food="${f.id}" data-key="${d.key}" data-unit="${unit}" tabindex="0" role="img" aria-label="${d.label}: ${d.val.toFixed(1)} grams"`}/>`;
+    if (!mini) {
+      s += `<circle cx="${x2.toFixed(1)}" cy="${y2.toFixed(1)}" r="4" fill="${col[d.cls]}"/>`;
+      const lr = r0 + Math.max(len, 120) + 24;
+      const lx = cx + c * lr, ly = cy + sn * lr;
+      let anchor = "middle";
+      if (c > 0.25) anchor = "start"; else if (c < -0.25) anchor = "end";
+      s += `<text x="${lx.toFixed(1)}" y="${(ly - 6).toFixed(1)}" text-anchor="${anchor}" style="font-size:12px;fill:var(--ink-2);font-family:var(--font-sans);">${d.label}</text>`;
+      s += `<text x="${lx.toFixed(1)}" y="${(ly + 10).toFixed(1)}" text-anchor="${anchor}" style="font-size:11px;fill:var(--ink-3);font-family:var(--font-sans);font-variant-numeric:tabular-nums;">${d.val.toFixed(1)} g</text>`;
+    }
+  });
+  const coreR = mini ? 18 : 58;
+  s += `<circle cx="${cx}" cy="${cy}" r="${coreR}" fill="${col.b}" opacity="0.13"/>`;
+  s += `<circle cx="${cx}" cy="${cy}" r="${coreR * 0.79}" fill="none" stroke="${col.b}" stroke-width="0.75" stroke-opacity="0.5"/>`;
+  if (!mini) {
+    const short = f.name.split("(")[0].trim();
+    let lines = [short];
+    if (short.length > 15) {
+      let l1 = "", l2 = "";
+      for (const w of short.split(" ")) {
+        if (!l2 && (l1 + " " + w).trim().length <= 15) l1 = (l1 + " " + w).trim();
+        else l2 = (l2 + " " + w).trim();
+      }
+      if (l2.length > 17) l2 = l2.slice(0, 16) + "…";
+      lines = l2 ? [l1, l2] : [l1];
+    }
+    const nameStyle = `font-size:13.5px;font-weight:500;fill:var(--ink);font-family:var(--font-sans);`;
+    if (lines.length === 2) {
+      s += `<text x="${cx}" y="${cy - 14}" text-anchor="middle" style="${nameStyle}">${lines[0]}</text>`;
+      s += `<text x="${cx}" y="${cy + 2}" text-anchor="middle" style="${nameStyle}">${lines[1]}</text>`;
+      s += `<text x="${cx}" y="${cy + 20}" text-anchor="middle" style="font-size:10.5px;fill:var(--ink-3);font-family:var(--font-sans);">g per 100 g ${unit === "food" ? stateWord(f) : "protein"}</text>`;
+    } else {
+      s += `<text x="${cx}" y="${cy - 5}" text-anchor="middle" style="${nameStyle}">${lines[0]}</text>`;
+      s += `<text x="${cx}" y="${cy + 13}" text-anchor="middle" style="font-size:10.5px;fill:var(--ink-3);font-family:var(--font-sans);">g per 100 g ${unit === "food" ? stateWord(f) : "protein"}</text>`;
+    }
+  }
+  const label = `Radial bloom of ${f.name} amino acid profile; ray length proportional to grams per 100 grams of ${unit === "food" ? "food" : "protein"}.`;
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}" style="color:var(--ink-3)">${s}</svg>`;
+}
+
+/* ================= grid ================= */
+const state = { q: "", cat: "all", sort: "protein", compare: [] };
+const grid = document.getElementById("grid");
+const chipsEl = document.getElementById("chips");
+const emptyEl = document.getElementById("empty");
+const countLine = document.getElementById("countLine");
+
+CAT_FILTERS.forEach(([id, label]) => {
+  const b = document.createElement("button");
+  b.className = "chip"; b.textContent = label;
+  b.setAttribute("aria-pressed", id === state.cat);
+  b.addEventListener("click", () => {
+    state.cat = id;
+    chipsEl.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", "false"));
+    b.setAttribute("aria-pressed", "true");
+    renderGrid();
+  });
+  chipsEl.appendChild(b);
+});
+
+document.getElementById("search").addEventListener("input", e => { state.q = e.target.value.trim().toLowerCase(); renderGrid(); });
+document.getElementById("sort").addEventListener("change", e => { state.sort = e.target.value; renderGrid(); });
+
+function visibleFoods() {
+  let list = ATLAS.foods.slice();
+  if (state.cat !== "all") list = list.filter(f => FILTER_MAP[state.cat].includes(f.category));
+  if (state.q) list = list.filter(f => (f.name + " " + (f.aliases || "") + " " + (CAT_LABEL[f.category] || "")).toLowerCase().includes(state.q));
+  const key = {
+    protein: f => -f.protein_g_per_100g,
+    leucine: f => -f.metrics.leu,
+    eaa: f => -f.metrics.eaa,
+    score: f => -f.metrics.score,
+    name: f => f.name.toLowerCase()
+  }[state.sort];
+  list.sort((a, b) => { const ka = key(a), kb = key(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
+  return list;
+}
+
+const MAX_CARDS = 80;
+function renderGrid() {
+  const list = visibleFoods();
+  const isDefault = !state.q && state.cat === "all";
+  const shown = isDefault ? list.filter(f => f.tier !== "bulk") : list.slice(0, MAX_CARDS);
+  grid.innerHTML = "";
+  emptyEl.hidden = list.length > 0;
+  countLine.textContent = isDefault
+    ? `${shown.length} featured sources of ${ATLAS.foods.length.toLocaleString()} foods in the atlas — search or filter to explore the full USDA set`
+    : list.length > shown.length
+      ? `Showing ${shown.length} of ${list.length.toLocaleString()} matches — refine your search to narrow it down`
+      : `${list.length} match${list.length === 1 ? "" : "es"} · click any bloom for the full profile`;
+  shown.forEach(f => {
+    const m = f.metrics;
+    const card = document.createElement("button");
+    card.className = "card";
+    card.setAttribute("aria-label", `${f.name}: open full amino acid profile`);
+    const complete = m.score >= 1;
+    card.innerHTML = `
+      ${renderBloom(f, { mini: true })}
+      <h3>${f.name}</h3>
+      <span class="meta"><b>${f.protein_g_per_100g.toFixed(0)} g</b> protein / 100 g ${f.state === "powder" ? "powder" : f.state} · ${CAT_LABEL[f.category] || ""}</span>
+      <span class="badge ${complete ? "good" : "limit"}">${complete ? "Complete · score " + Math.round(m.score * 100) + "%" : "Limited by " + m.min.label.toLowerCase() + " · " + Math.round(m.score * 100) + "%"}</span>`;
+    const cmp = document.createElement("button");
+    cmp.className = "compare-btn";
+    cmp.title = "Add to comparison";
+    cmp.setAttribute("aria-label", `Add ${f.name} to comparison`);
+    cmp.setAttribute("aria-pressed", state.compare.includes(f.id));
+    cmp.textContent = state.compare.includes(f.id) ? "✓" : "+";
+    cmp.addEventListener("click", e => { e.stopPropagation(); toggleCompare(f.id); });
+    card.appendChild(cmp);
+    card.addEventListener("click", () => openDetail(f.id));
+    grid.appendChild(card);
+  });
+}
+
+/* ================= tooltip ================= */
+const tip = document.getElementById("tip");
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.hidden = false;
+  const pad = 12;
+  tip.style.left = Math.min(Math.max(x, 130), window.innerWidth - 130) + "px";
+  tip.style.top = Math.max(y, 70) + "px";
+}
+function hideTip() { tip.hidden = true; }
+document.addEventListener("pointerover", e => {
+  const ray = e.target.closest && e.target.closest(".ray");
+  if (!ray) return;
+  const f = ATLAS.foods[+ray.dataset.food];
+  const meta = AA_META.find(m => m[0] === ray.dataset.key);
+  const unit = ray.dataset.unit;
+  const val = unit === "food" ? f.aa[meta[0]] : perProtein(f, meta[0]);
+  const mgg = f.aa[meta[0]] / f.protein_g_per_100g * 1000;
+  let extra = "";
+  const sr = SCORE_ROWS.find(r => r[2].includes(meta[0]));
+  if (sr && meta[2] !== "n") {
+    const row = f.metrics.rows.find(r => r.id === sr[0]);
+    extra = `<br>${row.label}: <b>${Math.round(row.ratio * 100)}%</b> of WHO pattern`;
+  }
+  showTip(`<span style="opacity:.75">${CLASS_NAME[meta[2]]}</span><br><b>${meta[1]}</b> — <b>${val.toFixed(2)} g</b> per 100 g ${unit === "food" ? stateWord(f) : "protein"} (<b>${mgg.toFixed(0)}</b> mg/g protein)${extra}`, e.clientX, e.clientY);
+});
+document.addEventListener("pointermove", e => { if (!tip.hidden && e.target.closest && e.target.closest(".ray")) showTip(tip.innerHTML, e.clientX, e.clientY); });
+document.addEventListener("pointerout", e => { if (e.target.closest && e.target.closest(".ray")) hideTip(); });
+
+/* ================= detail ================= */
+const overlay = document.getElementById("overlay");
+const sheet = document.getElementById("sheet");
+let currentUnit = "protein";
+let lastFocus = null;
+
+function openDetail(id) {
+  lastFocus = document.activeElement;
+  currentUnit = "protein";
+  renderDetail(id);
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+  sheet.querySelector(".close").focus();
+}
+function closeDetail() {
+  overlay.hidden = true; hideTip();
+  document.body.style.overflow = "";
+  if (lastFocus) lastFocus.focus();
+}
+overlay.addEventListener("click", e => { if (e.target === overlay) closeDetail(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !overlay.hidden) closeDetail(); });
+
+const store = (() => {
+  try { localStorage.setItem("aa_test", "1"); localStorage.removeItem("aa_test"); return localStorage; }
+  catch (e) { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)) }; }
+})();
+function getWeight() { return +(store.getItem("aa_weight") || 75); }
+function getThriveG(weightKg) {
+  const custom = +store.getItem("aa_thrive_g");
+  return custom > 0 ? Math.max(30, Math.min(500, custom)) : Math.round(weightKg * THRIVE_G_PER_KG);
+}
+function getPortion(f) {
+  const stored = store.getItem("aa_portion_" + f.id);
+  return stored ? +stored : (f.serving_g || 100);
+}
+
+function renderDetail(id) {
+  const f = ATLAS.foods[id];
+  const m = f.metrics;
+  const complete = m.score >= 1;
+  const weight = getWeight();
+  const portion = getPortion(f);
+
+
+  const wUnit = store.getItem("aa_wunit") || "kg";
+  const displayWeight = wUnit === "lb" ? Math.round(weight * LB_PER_KG) : weight;
+  const protFloor = weight * ATLAS.protein_rda_g_per_kg;
+  const protThrive = getThriveG(weight);
+  const protInPortion = f.protein_g_per_100g * portion / 100;
+  const aaScale = protThrive / protFloor;
+  const covHtml = SCORE_ROWS.map(([rid, label, keys]) => {
+    const gotMg = keys.reduce((s, k) => s + f.aa[k], 0) * portion / 100 * 1000;
+    const baseMg = WHO_KG[rid] * weight;
+    return covRow2(label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), gotMg, baseMg, baseMg * aaScale);
+  }).join("");
+
+  const tableRows = AA_META.map(([key, label, cls]) => {
+    const rng = f.range_per_protein;
+    const per = perProtein(f, key);
+    const perCell = rng
+      ? `${per.toFixed(1)} <span class="rng">(${rng.low[key].toFixed(1)}–${rng.high[key].toFixed(1)})</span>`
+      : per.toFixed(1);
+    return `
+    <tr>
+      <td><span class="dot" style="background:var(--c-${cls === "b" ? "bcaa" : cls === "e" ? "ess" : "non"})"></span>${label}<button class="info-btn" data-aa="${key}" aria-expanded="false" aria-label="About ${label}">i</button></td>
+      <td>${perCell}</td>
+      <td>${f.aa[key].toFixed(2)}</td>
+      <td class="hide-sm">${(f.aa[key] * portion / 100).toFixed(2)}</td>
+    </tr>`;
+  }).join("");
+
+  sheet.innerHTML = `
+    <div class="sheet-top">
+      <div>
+        <h2 id="sheetTitle">${f.name}</h2>
+        <p class="sub">${CAT_LABEL[f.category] || ""} · ${f.protein_g_per_100g.toFixed(1)} g protein per 100 g (${f.state}) · ${f.source}</p>
+      </div>
+      <button class="close" aria-label="Close profile">✕</button>
+    </div>
+
+    <div class="unit-toggle" role="group" aria-label="Units">
+      <button data-unit="protein" aria-pressed="${currentUnit === "protein"}">per 100 g protein</button>
+      <button data-unit="food" aria-pressed="${currentUnit === "food"}">per 100 g ${stateWord(f)}</button>
+    </div>
+    <p class="unit-note">"Per 100 g protein" compares quality between foods regardless of water or fat content. "Per 100 g ${stateWord(f)}" is what you'd weigh on the scales — the amounts in the food itself, not what's digested or absorbed. Watch the rays shrink when you switch: the gap is everything in the food that isn't protein${f.protein_g_per_100g < 20 ? " (mostly water, here)" : ""}.</p>
+    <div class="bloom-holder" id="bloomHolder">${renderBloom(f, { unit: currentUnit })}</div>
+
+    <div class="statrow">
+      <div class="stat"><div class="k">Essential AAs</div><div class="v">${m.eaa.toFixed(0)}<small> g /100 g protein</small></div></div>
+      <div class="stat"><div class="k">BCAAs</div><div class="v">${m.bcaa.toFixed(1)}<small> g /100 g protein</small></div></div>
+      <div class="stat"><div class="k">Leucine</div><div class="v">${m.leu.toFixed(1)}<small> g /100 g protein</small></div></div>
+      <div class="stat ${complete ? "good-stat" : "limit-stat"}">
+        <div class="k">Amino acid score</div>
+        <div class="v">${Math.round(m.score * 100)}%<small> ${complete ? "complete" : "limited by " + m.min.label.toLowerCase()}</small></div>
+      </div>
+    </div>
+
+    <h3 class="sec-h">Your day, in this food</h3>
+    <div class="calc">
+      <div class="calc-controls">
+        <div class="ctl-group">
+          <span class="ctl-label">About you</span>
+          <label>Body weight <input id="calcWeight" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="1" value="${displayWeight}" aria-label="Body weight" /></label>
+          <select id="weightUnit" aria-label="Weight unit">
+            <option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option>
+            <option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option>
+          </select>
+        </div>
+        <div class="ctl-group">
+          <span class="ctl-label">This portion</span>
+          <label><input id="calcPortion" type="number" min="5" max="1000" step="5" value="${portion}" aria-label="Portion in grams" /> g of ${f.name.split("(")[0].trim().toLowerCase()}</label>
+        </div>
+      </div>
+      <div class="prot-targets">
+        <div class="prot-target"><div class="t">Survival floor · RDA</div><div class="n">${protFloor.toFixed(0)} g<small> /day · 0.8 g/kg</small></div>Enough to prevent deficiency — not a target.</div>
+        <div class="prot-target"><div class="t">Thrive target</div><div class="n"><input class="rate-in" id="thriveG" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Thrive protein target in grams per day" /><small> g /day</small></div>Default is 1.6 g per kg of body weight, in line with muscle-supporting intakes — type your own total if you work to a different number.</div>
+      </div>
+      <p class="calc-summary">
+        A ${portion} g portion gives <b>${protInPortion.toFixed(1)} g protein</b> — <b>${Math.round(protInPortion / protFloor * 100)}%</b> of the survival floor and <b>${Math.round(protInPortion / protThrive * 100)}%</b> of the thrive target at ${displayWeight} ${wUnit}. Amino acid by amino acid:
+      </p>
+      <div class="covbars">${covHtml}</div>
+      <p class="cov-note">Faint line = WHO/FAO 2007 baseline need at your weight (the survival-floor equivalent) · dark line = <b>your target</b> — the baseline scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein target. Percentages are against your target. No official "thrive" amino acid figures exist; proportional scaling is our transparent assumption. Met+Cys and Phe+Tyr are scored together because the body can spare one with the other.</p>
+      <button class="add-day" id="addDayBtn">＋ Add this ${portion} g portion to my day</button>
+    </div>
+
+    <h3 class="sec-h">Full profile</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Amino acid</th><th>g / 100 g protein</th><th>g / 100 g ${stateWord(f)}</th><th class="hide-sm">g / ${portion} g portion</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <p class="src-note"><strong>Source:</strong> ${f.source}.${f.notes ? " " + f.notes : ""} ${f.range_per_protein
+      ? "The faint band on each ray, and the bracketed figures in the table, show this food's published range across analyses — not an estimate."
+      : "Values are typical for this food — individual samples vary with breed, feed, cultivar and processing (indicatively ±10%, shown as the faint band on each ray)."}</p>
+    ${f.range_note ? `<p class="src-note"><strong>About this range:</strong> ${f.range_note}</p>` : ""}
+  `;
+
+  sheet.querySelector(".close").addEventListener("click", closeDetail);
+  sheet.querySelectorAll(".unit-toggle button").forEach(b => {
+    b.addEventListener("click", () => {
+      currentUnit = b.dataset.unit;
+      sheet.querySelectorAll(".unit-toggle button").forEach(x => x.setAttribute("aria-pressed", x === b));
+      document.getElementById("bloomHolder").innerHTML = renderBloom(f, { unit: currentUnit });
+    });
+  });
+  sheet.querySelector("#calcWeight").addEventListener("change", e => {
+    const unit = store.getItem("aa_wunit") || "kg";
+    const kg = unit === "lb" ? (+e.target.value || 165) / LB_PER_KG : (+e.target.value || 75);
+    store.setItem("aa_weight", Math.round(Math.max(30, Math.min(200, kg)) * 10) / 10);
+    renderDetail(id);
+  });
+  sheet.querySelector("#weightUnit").addEventListener("change", e => {
+    store.setItem("aa_wunit", e.target.value);
+    renderDetail(id);
+  });
+  sheet.querySelector("#thriveG").addEventListener("change", e => {
+    const v = +e.target.value;
+    store.setItem("aa_thrive_g", v > 0 ? Math.max(30, Math.min(500, v)) : "");
+    renderDetail(id);
+  });
+  sheet.querySelector("#calcPortion").addEventListener("change", e => {
+    store.setItem("aa_portion_" + f.id, Math.max(5, Math.min(1000, +e.target.value || 100)));
+    renderDetail(id);
+  });
+  sheet.querySelector("#addDayBtn").addEventListener("click", e => {
+    addToDay(f.name, portion);
+    e.target.textContent = "Added ✓";
+    e.target.classList.add("added");
+    e.target.disabled = true;
+    const d = loadDay();
+    let prot = 0;
+    d.forEach(en => { const ff = foodByName(en.name); prot += ff.protein_g_per_100g * en.g / 100; });
+    const go = document.createElement("button");
+    go.className = "add-day go-day-inline";
+    go.textContent = `See my day so far → ${d.length} food${d.length === 1 ? "" : "s"} · ${prot.toFixed(0)} g protein`;
+    go.addEventListener("click", renderDay);
+    e.target.after(go);
+    go.focus();
+  });
+  sheet.querySelectorAll(".info-btn").forEach(b => b.addEventListener("click", () => {
+    const tr = b.closest("tr");
+    const wasOpen = b.getAttribute("aria-expanded") === "true";
+    sheet.querySelectorAll("tr.info-row").forEach(r => r.remove());
+    sheet.querySelectorAll(".info-btn").forEach(x => x.setAttribute("aria-expanded", "false"));
+    if (!wasOpen) {
+      const info = AA_INFO[b.dataset.aa];
+      const row = document.createElement("tr");
+      row.className = "info-row";
+      row.innerHTML = `<td colspan="4"><span class="cls">${info[0]}</span>${info[1]}</td>`;
+      tr.after(row);
+      b.setAttribute("aria-expanded", "true");
+    }
+  }));
+}
+
+/* ================= compare ================= */
+const tray = document.getElementById("tray");
+function toggleCompare(id) {
+  const i = state.compare.indexOf(id);
+  if (i >= 0) state.compare.splice(i, 1);
+  else {
+    if (state.compare.length >= 3) state.compare.shift();
+    state.compare.push(id);
+  }
+  renderTray(); renderGrid();
+}
+function renderTray() {
+  tray.hidden = state.compare.length === 0;
+  document.getElementById("trayNames").textContent = state.compare.map(id => ATLAS.foods[id].name).join("  ·  ");
+  document.getElementById("trayGo").textContent = `Compare ${state.compare.length}`;
+}
+document.getElementById("trayClear").addEventListener("click", () => { state.compare = []; renderTray(); renderGrid(); });
+document.getElementById("trayGo").addEventListener("click", openCompare);
+
+function openCompare() {
+  if (!state.compare.length) return;
+  lastFocus = document.activeElement;
+  const foods = state.compare.map(id => ATLAS.foods[id]);
+  const cols = foods.map(f => {
+    const m = f.metrics;
+    const complete = m.score >= 1;
+    const cov = m.rows.map(r => {
+      const isLimit = r.id === m.min.id && !complete;
+      const w = Math.min(r.ratio * 100, 160) / 160 * 100;
+      return `<div class="covrow ${isLimit ? "is-limit" : ""}">
+        <span class="aa-name">${r.label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr")}</span>
+        <span class="track"><span class="fill" style="width:${w}%"></span><span class="goal" style="left:${100 / 160 * 100}%"></span></span>
+        <span class="pct">${Math.round(r.ratio * 100)}%</span></div>`;
+    }).join("");
+    return `<div class="cmp-col">
+      ${renderBloom(f, { mini: true })}
+      <h3>${f.name}</h3>
+      <div class="meta">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · leucine ${m.leu.toFixed(1)} g · score <b style="color:${complete ? "var(--c-bcaa)" : "var(--c-limit)"}">${Math.round(m.score * 100)}%</b></div>
+      ${cov}
+    </div>`;
+  }).join("");
+  sheet.innerHTML = `
+    <div class="sheet-top">
+      <div><h2 id="sheetTitle">Side by side</h2>
+      <p class="sub">Essential amino acids per g of protein vs the WHO 2007 adult pattern — the dark line is 100%.</p></div>
+      <button class="close" aria-label="Close comparison">✕</button>
+    </div>
+    <div class="cmp-cols">${cols}</div>`;
+  sheet.querySelector(".close").addEventListener("click", closeDetail);
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+  sheet.querySelector(".close").focus();
+}
+
+/* ================= my day ================= */
+function loadDay() { try { return JSON.parse(store.getItem("aa_day") || "[]").filter(e => foodByName(e.name)); } catch (e) { return []; } }
+function saveDay(d) { store.setItem("aa_day", JSON.stringify(d)); updateDayBtn(); }
+function foodByName(n) { return ATLAS.foods.find(f => f.name === n); }
+function updateDayBtn() {
+  document.getElementById("dayCount").textContent = loadDay().length;
+  renderDayBanner();
+}
+
+function renderDayBanner() {
+  const el = document.getElementById("dayBanner");
+  const day = loadDay();
+  if (!day.length) {
+    el.innerHTML = `<div class="day-banner">
+      <div class="txt">
+        <h3>Are you actually hitting your amino acid needs?</h3>
+        <p>One food rarely covers everything. Add each meal of your day — breakfast to dinner, shakes included — and the <b>Day tracker</b> totals every essential amino acid against your personal daily targets.</p>
+      </div>
+      <button class="go-day">Start tracking my day</button>
+    </div>`;
+  } else {
+    const weight = getWeight();
+    const aaScale = getThriveG(weight) / (weight * ATLAS.protein_rda_g_per_kg);
+    const totals = {}; AA_META.forEach(m => totals[m[0]] = 0);
+    let prot = 0;
+    day.forEach(e => { const f = foodByName(e.name); prot += f.protein_g_per_100g * e.g / 100; AA_META.forEach(m => totals[m[0]] += f.aa[m[0]] * e.g / 100); });
+    const short = SCORE_ROWS.filter(([rid, , keys]) => keys.reduce((s, k) => s + totals[k], 0) * 1000 < WHO_KG[rid] * weight * aaScale)
+      .map(([, label]) => label.toLowerCase());
+    const status = short.length
+      ? `<span class="short-note">still short on ${short.length} essential${short.length === 1 ? "" : "s"}: ${short.join(", ")}</span>`
+      : `all nine essential amino acids covered ✓`;
+    el.innerHTML = `<div class="day-banner">
+      <div class="txt">
+        <h3>Your day so far</h3>
+        <p><b>${day.length}</b> food${day.length === 1 ? "" : "s"} · <b>${prot.toFixed(0)} g</b> protein · ${status}</p>
+      </div>
+      <button class="go-day">Open day tracker</button>
+    </div>`;
+  }
+  el.querySelector(".go-day").addEventListener("click", openDay);
+}
+function addToDay(name, grams) {
+  const d = loadDay();
+  const hit = d.find(e => e.name === name);
+  if (hit) hit.g += grams; else d.push({ name, g: grams });
+  saveDay(d);
+}
+document.getElementById("dayBtn").addEventListener("click", openDay);
+
+// Type-ahead list for the day picker, built once (4k+ options)
+const dayList = document.createElement("datalist");
+dayList.id = "dayFoodList";
+dayList.innerHTML = ATLAS.foods.slice().sort((a, b) => a.name.localeCompare(b.name))
+  .map(f => `<option value="${f.name.replace(/"/g, "&quot;")}"></option>`).join("");
+document.body.appendChild(dayList);
+
+function openDay() {
+  lastFocus = document.activeElement;
+  renderDay();
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+  sheet.querySelector(".close").focus();
+}
+
+/* Bar with two markers: faint = RDA baseline, dark = the user's target. % shown vs target. */
+function covRow2(label, val, base, target) {
+  const span = target * 1.6;
+  const w = Math.min(val, span) / span * 100;
+  const basePos = Math.min(base, span) / span * 100;
+  const tPos = target / span * 100;
+  const pct = val / target * 100;
+  return `<div class="covrow ${val < target ? "is-limit" : ""}">
+    <span class="aa-name">${label}</span>
+    <span class="track"><span class="fill" style="width:${w}%"></span><span class="goal base" style="left:${basePos}%"></span><span class="goal" style="left:${tPos}%"></span></span>
+    <span class="pct">${Math.round(pct)}%</span></div>`;
+}
+
+function renderDay() {
+  const day = loadDay();
+  const weight = getWeight();
+  const wUnit = store.getItem("aa_wunit") || "kg";
+  const displayWeight = wUnit === "lb" ? Math.round(weight * LB_PER_KG) : weight;
+  const totals = {}; AA_META.forEach(m => totals[m[0]] = 0);
+  let protTotal = 0;
+  day.forEach(e => {
+    const f = foodByName(e.name);
+    protTotal += f.protein_g_per_100g * e.g / 100;
+    AA_META.forEach(m => totals[m[0]] += f.aa[m[0]] * e.g / 100);
+  });
+  const protFloor = weight * ATLAS.protein_rda_g_per_kg;
+  const protThrive = getThriveG(weight);
+
+  const rows = day.map((e, i) => {
+    const f = foodByName(e.name);
+    return `<div class="day-row">
+      <span class="nm">${e.name}</span>
+      <label>Portion <input data-idx="${i}" class="day-g" type="number" min="5" max="2000" step="5" value="${e.g}" aria-label="Portion of ${e.name} in grams"> g</label>
+      <span class="sub">${(f.protein_g_per_100g * e.g / 100).toFixed(1)} g protein</span>
+      <button class="rm" data-idx="${i}" aria-label="Remove ${e.name}">✕</button></div>`;
+  }).join("");
+
+  const aaScale = protThrive / protFloor;
+  const shortOn = SCORE_ROWS
+    .filter(([rid, , keys]) => keys.reduce((s, k) => s + totals[k], 0) * 1000 < WHO_KG[rid] * weight * aaScale)
+    .map(([, label]) => label.toLowerCase());
+  const verdict = !day.length ? "" : shortOn.length
+    ? `Against your target you're still short on <b>${shortOn.join(", ")}</b>.`
+    : "Every essential amino acid target is covered for the day.";
+
+  const eaaRows = SCORE_ROWS.map(([rid, label, keys]) => {
+    const got = keys.reduce((s, k) => s + totals[k], 0) * 1000;
+    const base = WHO_KG[rid] * weight;
+    return covRow2(label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), got, base, base * aaScale);
+  }).join("");
+
+  const pseudo = { name: "Your day", state: "as sold", protein_g_per_100g: protTotal || 1, aa: totals };
+
+  sheet.innerHTML = `
+    <div class="sheet-top">
+      <div><h2 id="sheetTitle">Your day, across meals</h2>
+      <p class="sub">Add everything you eat in a day — portions total up against your daily amino acid and protein needs.</p></div>
+      <button class="close" aria-label="Close day tracker">✕</button>
+    </div>
+    <div class="calc" style="margin-top:18px">
+      <div class="calc-controls">
+        <div class="ctl-group">
+          <span class="ctl-label">About you</span>
+          <label>Body weight <input id="dayWeight" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="1" value="${displayWeight}" aria-label="Body weight"></label>
+          <select id="dayWUnit" aria-label="Weight unit">
+            <option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option>
+            <option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option>
+          </select>
+          <label>Thrive target <input class="rate-in" id="dayThrive" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Thrive protein target in grams per day" /> g/day</label>
+        </div>
+        ${day.length ? '<button class="clear-day" id="dayClear">Clear day</button>' : ""}
+      </div>
+      ${day.length ? `<div class="day-list">${rows}</div>` : '<p class="calc-summary">Nothing added yet — pick your first food below, or use "Add to my day" on any food\'s profile.</p>'}
+      <div class="day-add">
+        <input id="dayPick" list="dayFoodList" placeholder="Type a food… (any of ${ATLAS.foods.length.toLocaleString()})" aria-label="Choose a food" />
+        <span><input id="dayPickG" type="number" min="5" max="2000" step="5" value="100" aria-label="Portion in grams"> g</span>
+        <button id="dayPickAdd">Add</button>
+        <span id="dayPickErr" style="color:var(--c-limit);font-size:12px;" hidden>Pick a food from the list first</span>
+      </div>
+      ${day.length ? `
+        <p class="calc-summary"><b>${protTotal.toFixed(1)} g protein</b> from ${day.length} food${day.length === 1 ? "" : "s"}. ${verdict}</p>
+        <div class="covbars">
+          ${covRow2("Protein", protTotal, protFloor, protThrive)}
+        </div>
+        <p class="cov-note">Faint line = RDA survival floor (${protFloor.toFixed(0)} g) · dark line = your target (${protThrive.toFixed(0)} g). Percentages are against your target, and bars stay amber until they reach it.</p>
+        <h3 class="sec-h" style="font-size:19px">Essential amino acids vs your daily need</h3>
+        <p class="sec-p">Amino acid targets are the WHO/FAO/UNU 2007 baseline at ${displayWeight} ${wUnit}, scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein target (no official "thrive" amino figures exist — proportional scaling is our transparent assumption). Anything under the dark line is a gap against your target.</p>
+        <div class="covbars">${eaaRows}</div>
+        <div class="day-bloom">${renderBloom(pseudo, { mini: true })}</div>
+        <p class="day-bloom-cap">The whole day's combined amino acid profile</p>
+      ` : ""}
+    </div>`;
+
+  sheet.querySelector(".close").addEventListener("click", closeDetail);
+  const pick = sheet.querySelector("#dayPick"), pickG = sheet.querySelector("#dayPickG");
+  pick.addEventListener("change", () => {
+    const f = foodByName(pick.value);
+    if (f) { pickG.value = f.serving_g || 100; sheet.querySelector("#dayPickErr").hidden = true; }
+  });
+  sheet.querySelector("#dayPickAdd").addEventListener("click", () => {
+    const f = foodByName(pick.value);
+    if (!f) { sheet.querySelector("#dayPickErr").hidden = false; return; }
+    addToDay(f.name, Math.max(5, Math.min(2000, +pickG.value || 100)));
+    renderDay();
+  });
+  sheet.querySelector("#dayWeight").addEventListener("change", e => {
+    const unit = store.getItem("aa_wunit") || "kg";
+    const kg = unit === "lb" ? (+e.target.value || 165) / LB_PER_KG : (+e.target.value || 75);
+    store.setItem("aa_weight", Math.round(Math.max(30, Math.min(200, kg)) * 10) / 10);
+    renderDay();
+  });
+  sheet.querySelector("#dayWUnit").addEventListener("change", e => { store.setItem("aa_wunit", e.target.value); renderDay(); });
+  sheet.querySelector("#dayThrive").addEventListener("change", e => {
+    const v = +e.target.value;
+    store.setItem("aa_thrive_g", v > 0 ? Math.max(30, Math.min(500, v)) : "");
+    renderDay();
+  });
+  sheet.querySelectorAll(".day-g").forEach(inp => inp.addEventListener("change", e => {
+    const d = loadDay();
+    d[+e.target.dataset.idx].g = Math.max(5, Math.min(2000, +e.target.value || 100));
+    saveDay(d); renderDay();
+  }));
+  sheet.querySelectorAll(".day-row .rm").forEach(b => b.addEventListener("click", e => {
+    const d = loadDay(); d.splice(+b.dataset.idx, 1); saveDay(d); renderDay();
+  }));
+  const clr = sheet.querySelector("#dayClear");
+  if (clr) clr.addEventListener("click", () => { saveDay([]); renderDay(); });
+}
+
+renderGrid();
+renderTray();
+updateDayBtn();
+
+/* ================= hero animation: blocks -> chain -> shape ================= */
+(function () {
+  const cv = document.getElementById("heroAnim");
+  if (!cv || !cv.getContext) return;
+  const ctx = cv.getContext("2d");
+  const S = 400, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = S * dpr; cv.height = S * dpr;
+  ctx.scale(dpr, dpr);
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const N = 18;
+  const CLS = ["b", "b", "b", "e", "e", "e", "e", "e", "e", "n", "n", "n", "n", "n", "n", "n", "n", "n"];
+  const LEN = [150, 108, 96, 132, 120, 66, 52, 40, 34, 146, 140, 90, 82, 80, 60, 48, 46, 38];
+  const cx = S / 2, cy = S / 2 + 4, coreR = 32;
+
+  let cols = {};
+  function readCols() {
+    const cs = getComputedStyle(document.documentElement);
+    cols = {
+      b: cs.getPropertyValue("--c-bcaa").trim(), e: cs.getPropertyValue("--c-ess").trim(),
+      n: cs.getPropertyValue("--c-non").trim(), ink: cs.getPropertyValue("--ink-3").trim()
+    };
+  }
+  readCols();
+
+  const rnd = () => { const a = Math.random() * Math.PI * 2, r = 110 + Math.random() * 95; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; };
+  let P0 = Array.from({ length: N }, rnd);
+  const P1 = Array.from({ length: N }, (_, i) => [46 + i * (308 / (N - 1)), cy - 8 + Math.sin(i * 0.85) * 42]);
+  const P2 = Array.from({ length: N }, (_, i) => { const a = i * 0.6 - 1.2, r = 22 + i * 6; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; });
+  const P3 = Array.from({ length: N }, (_, i) => { const a = (i / N) * Math.PI * 2 - Math.PI / 2; return [cx + Math.cos(a) * (coreR + LEN[i] * 0.78), cy + Math.sin(a) * (coreR + LEN[i] * 0.78)]; });
+
+  const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const c01 = t => Math.max(0, Math.min(1, t));
+  const mix = (A, B, t) => [A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t];
+
+  const T = 12000;
+  let animT = 0, lastTs = null, raf = null, frames = 0;
+
+  function draw(t) {
+    ctx.clearRect(0, 0, S, S);
+    let fade = 1;
+    if (t < 400) fade = t / 400;
+    if (t > 11000) fade = Math.max(0, 1 - (t - 11000) / 900);
+
+    const pos = [], u3 = [];
+    for (let i = 0; i < N; i++) {
+      const a0 = i * 90;
+      let p;
+      if (t < 3000) { p = mix(P0[i], P1[i], ease(c01((t - a0) / 900))); u3[i] = 0; }
+      else if (t < 5600) { p = mix(P1[i], P2[i], ease(c01((t - 3000) / 2600))); u3[i] = 0; }
+      else if (t < 6400) {
+        const br = 1 + 0.015 * Math.sin(t / 480 + i);
+        p = [cx + (P2[i][0] - cx) * br, cy + (P2[i][1] - cy) * br]; u3[i] = 0;
+      } else if (t < 8800) { const u = ease(c01((t - 6400 - i * 30) / 2000)); p = mix(P2[i], P3[i], u); u3[i] = u; }
+      else { p = P3[i]; u3[i] = 1; }
+      pos.push(p);
+    }
+
+    // backbone
+    let segFade = 1;
+    if (t >= 6400) segFade = c01(1 - (t - 6400) / 700);
+    if (segFade > 0) {
+      ctx.lineWidth = 2.5; ctx.lineCap = "round";
+      for (let i = 0; i < N - 1; i++) {
+        let a = segFade;
+        if (t < 3000) a *= c01((t - ((i + 1) * 90 + 900)) / 300);
+        if (a <= 0) continue;
+        ctx.globalAlpha = 0.65 * a * fade;
+        ctx.strokeStyle = cols.ink;
+        ctx.beginPath(); ctx.moveTo(pos[i][0], pos[i][1]); ctx.lineTo(pos[i + 1][0], pos[i + 1][1]); ctx.stroke();
+      }
+    }
+
+    // rays + core (bloom phase)
+    if (t >= 6400) {
+      for (let i = 0; i < N; i++) {
+        const rA = c01((u3[i] - 0.6) / 0.4);
+        if (rA <= 0) continue;
+        const dx = pos[i][0] - cx, dy = pos[i][1] - cy, d = Math.hypot(dx, dy) || 1;
+        ctx.globalAlpha = 0.85 * rA * fade;
+        ctx.strokeStyle = cols[CLS[i]];
+        ctx.lineWidth = 5; ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(cx + dx / d * (coreR - 4), cy + dy / d * (coreR - 4));
+        ctx.lineTo(pos[i][0], pos[i][1]);
+        ctx.stroke();
+      }
+      const cA = c01((t - 6900) / 800);
+      ctx.globalAlpha = 0.13 * cA * fade;
+      ctx.fillStyle = cols.b;
+      ctx.beginPath(); ctx.arc(cx, cy, coreR - 6, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.5 * cA * fade;
+      ctx.strokeStyle = cols.b; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.arc(cx, cy, coreR - 12, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // beads
+    for (let i = 0; i < N; i++) {
+      let r = CLS[i] === "b" ? 7.5 : CLS[i] === "e" ? 6.5 : 6;
+      if (t > 8800) r += 0.6 * Math.sin(t / 300 + i * 1.3);
+      ctx.globalAlpha = 0.95 * fade;
+      ctx.fillStyle = cols[CLS[i]];
+      ctx.beginPath(); ctx.arc(pos[i][0], pos[i][1], r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function loop(ts) {
+    raf = requestAnimationFrame(loop);
+    if (lastTs !== null && ts - lastTs < 33) return; // ~30fps cap
+    const dt = lastTs === null ? 16 : Math.min(ts - lastTs, 100);
+    lastTs = ts;
+    const prev = animT;
+    animT = (animT + dt) % T;
+    if (animT < prev) P0 = Array.from({ length: N }, rnd); // new scatter each loop
+    if (++frames % 60 === 0) readCols(); // pick up theme changes
+    draw(animT);
+  }
+  let hold = false;
+  function start() { if (!hold && !raf) { lastTs = null; raf = requestAnimationFrame(loop); } }
+  function stop() { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+
+  window.__heroFrame = t => { hold = true; stop(); draw(t % T); };
+  window.__heroResume = () => { hold = false; start(); };
+  if (reduced) { draw(9500); return; }
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(es => { es[0].isIntersecting ? start() : stop(); }).observe(cv);
+  } else start();
+})();
+</script>
