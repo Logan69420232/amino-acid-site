@@ -3,43 +3,44 @@
 <title>Amino Atlas — amino acid profiles of every protein source</title>
 <style>
   :root {
-    --bg: #fbfaf5;
+    /* Lab Neutral: off-white paper, graphite ink, one molecular blue */
+    --bg: #f5f4f0;
     --surface: #ffffff;
-    --surface-2: #f4f3ea;
-    --ink: #23281c;
-    --ink-2: #5c6450;
-    --ink-3: #8d947c;
-    --line: rgba(74, 82, 59, 0.14);
-    --line-strong: rgba(74, 82, 59, 0.28);
-    --c-bcaa: #437630;
-    --c-ess: #a8b23c;
-    --c-non: #4a68bd;
-    --c-limit: #a85b14;
-    --c-limit-bg: rgba(168, 91, 20, 0.1);
-    --c-good-bg: rgba(67, 118, 48, 0.1);
-    --ring: rgba(67, 118, 48, 0.55);
-    --shadow: 0 1px 2px rgba(36, 41, 28, 0.05), 0 8px 26px rgba(36, 41, 28, 0.07);
+    --surface-2: #ecebe6;
+    --ink: #1a1c22;
+    --ink-2: #6b6e77;
+    --ink-3: #9a9da5;
+    --line: #e4e2db;
+    --line-strong: #d9d6ce;
+    --c-bcaa: #2554d6;
+    --c-ess: #9d6fc0;
+    --c-non: #128a70;
+    --c-limit: #b8571a;
+    --c-limit-bg: rgba(184, 87, 26, 0.09);
+    --c-good-bg: rgba(37, 84, 214, 0.07);
+    --ring: rgba(37, 84, 214, 0.5);
+    --shadow: 0 1px 2px rgba(26, 28, 34, 0.05), 0 8px 26px rgba(26, 28, 34, 0.07);
     --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
   }
   /* Light by default — dark only when explicitly requested. */
   :root[data-theme="dark"] {
-    --bg: #171a12;
-    --surface: #1e2218;
-    --surface-2: #262b1f;
-    --ink: #e9e8dc;
-    --ink-2: #adb29d;
-    --ink-3: #7d836c;
-    --line: rgba(233, 232, 220, 0.12);
-    --line-strong: rgba(233, 232, 220, 0.26);
-    --c-bcaa: #2e7f38;
-    --c-ess: #a3961f;
-    --c-non: #6f84d4;
+    --bg: #14161b;
+    --surface: #1c1f26;
+    --surface-2: #242833;
+    --ink: #eceef2;
+    --ink-2: #a7abb5;
+    --ink-3: #767b86;
+    --line: rgba(236, 238, 242, 0.11);
+    --line-strong: rgba(236, 238, 242, 0.24);
+    --c-bcaa: #5b8def;
+    --c-ess: #b58ad6;
+    --c-non: #2ba58a;
     --c-limit: #d1913c;
     --c-limit-bg: rgba(209, 145, 60, 0.14);
-    --c-good-bg: rgba(46, 127, 56, 0.18);
-    --ring: rgba(120, 180, 100, 0.55);
+    --c-good-bg: rgba(91, 141, 239, 0.14);
+    --ring: rgba(91, 141, 239, 0.55);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
   }
 
@@ -70,7 +71,7 @@
   }
   @media (min-width: 1080px) { #heroAnim { display: block; } }
   .eyebrow {
-    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--ink-3); margin: 0 0 14px;
   }
   h1.masthead {
@@ -180,7 +181,7 @@
     gap: 10px; margin: 10px 0 26px;
   }
   .stat { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; }
-  .stat .k { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+  .stat .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
   .stat .v { font-size: 25px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
   .stat .v small { font-size: 13px; font-weight: 400; color: var(--ink-3); }
   .stat.limit-stat .v { color: var(--c-limit); }
@@ -211,7 +212,7 @@
     padding: 8px 14px;
   }
   .ctl-label {
-    font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--ink-3); margin-right: 8px;
   }
   .calc-controls label { color: var(--ink-2); }
@@ -226,7 +227,7 @@
   }
   .prot-targets { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; }
   .prot-target { flex: 1 1 200px; background: var(--surface); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; color: var(--ink-2); }
-  .prot-target .t { font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+  .prot-target .t { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
   .prot-target .n { font-size: 21px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
   .prot-target .n small { font-size: 12px; font-weight: 400; color: var(--ink-3); }
   .rate-in {
@@ -294,7 +295,7 @@
     .info-btn { margin-left: 4px; }
   }
   table.data th, table.data td { padding: 7px 12px; text-align: right; font-variant-numeric: tabular-nums; }
-  table.data th { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; border-bottom: 1px solid var(--line-strong); }
+  table.data th { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; border-bottom: 1px solid var(--line-strong); }
   table.data td:first-child, table.data th:first-child { text-align: left; }
   table.data tr { border-bottom: 1px solid var(--line); }
   table.data td .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
@@ -307,7 +308,7 @@
   .info-btn:hover { color: var(--ink); border-color: var(--ink-3); }
   .info-btn[aria-expanded="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   tr.info-row > td { text-align: left; background: var(--surface-2); color: var(--ink-2); font-size: 14px; line-height: 1.55; padding: 10px 14px 12px; }
-  tr.info-row .cls { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 3px; }
+  tr.info-row .cls { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 3px; }
   .rng { color: var(--ink-3); font-size: 11px; }
   .src-note { font-size: 13px; color: var(--ink-3); margin-top: 16px; max-width: 74ch; }
 
@@ -795,10 +796,14 @@ function renderDetail(id) {
   const protThrive = getThriveG(weight);
   const protInPortion = f.protein_g_per_100g * portion / 100;
   const aaScale = protThrive / protFloor;
+  /* In a single-food view the bar length answers "how much of my day does this portion
+     cover" — being under a whole day's target is normal, so it is not flagged. Rust is
+     reserved for this protein's own limiting amino acid. */
   const covHtml = SCORE_ROWS.map(([rid, label, keys]) => {
     const gotMg = keys.reduce((s, k) => s + f.aa[k], 0) * portion / 100 * 1000;
     const baseMg = WHO_KG[rid] * weight;
-    return covRow2(label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), gotMg, baseMg, baseMg * aaScale);
+    const isLimiting = rid === m.min.id && !complete;
+    return covRow2(label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), gotMg, baseMg, baseMg * aaScale, isLimiting);
   }).join("");
 
   const tableRows = AA_META.map(([key, label, cls]) => {
@@ -866,7 +871,7 @@ function renderDetail(id) {
         A ${portion} g portion gives <b>${protInPortion.toFixed(1)} g protein</b> — <b>${Math.round(protInPortion / protFloor * 100)}%</b> of your daily survival floor and <b>${Math.round(protInPortion / protThrive * 100)}%</b> of your ${protThrive.toFixed(0)} g daily protein target. Amino acid by amino acid:
       </p>
       <div class="covbars">${covHtml}</div>
-      <p class="cov-note">Faint line = WHO/FAO 2007 baseline need at your weight (the survival-floor equivalent) · dark line = <b>your target</b> — the baseline scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein target. Percentages are against your target. No official "thrive" amino acid figures exist; proportional scaling is our transparent assumption. Met+Cys and Phe+Tyr are scored together because the body can spare one with the other.</p>
+      <p class="cov-note">Bars show how much of your <b>whole day</b> this one portion covers, so under 100% is normal — eat more across the day and it adds up. Faint line = WHO/FAO 2007 baseline need at your weight · dark line = your target (baseline scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein target). ${complete ? "Nothing is flagged: this protein carries every essential amino acid in good proportion." : `Only <b>${m.min.label.toLowerCase()}</b> is flagged — the one amino acid this protein is genuinely short of for its protein content.`} No official "thrive" amino acid figures exist; proportional scaling is our transparent assumption. Met+Cys and Phe+Tyr are scored together because the body can spare one with the other.</p>
       <button class="add-day" id="addDayBtn">＋ Add this ${portion} g portion to my day</button>
     </div>
 
@@ -1056,14 +1061,15 @@ function openDay() {
 }
 
 /* Bar with two markers: faint = RDA baseline, dark = the user's target. % shown vs target. */
-function covRow2(label, val, base, target) {
+function covRow2(label, val, base, target, flagged) {
   const span = target * 1.6;
   const w = Math.min(val, span) / span * 100;
   const basePos = Math.min(base, span) / span * 100;
   const tPos = target / span * 100;
   const pct = val / target * 100;
-  return `<div class="covrow ${val < target ? "is-limit" : ""}">
-    <span class="aa-name">${label}</span>
+  const isFlagged = flagged === undefined ? val < target : flagged;
+  return `<div class="covrow ${isFlagged ? "is-limit" : ""}">
+    <span class="aa-name">${label}${flagged ? " ⚠" : ""}</span>
     <span class="track"><span class="fill" style="width:${w}%"></span><span class="goal base" style="left:${basePos}%"></span><span class="goal" style="left:${tPos}%"></span></span>
     <span class="pct">${Math.round(pct)}%</span></div>`;
 }
