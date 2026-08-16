@@ -859,11 +859,11 @@ function renderDetail(id) {
         </div>
       </div>
       <div class="prot-targets">
-        <div class="prot-target"><div class="t">Survival floor · RDA</div><div class="n">${protFloor.toFixed(0)} g<small> /day · 0.8 g/kg</small></div>Enough to prevent deficiency — not a target.</div>
-        <div class="prot-target"><div class="t">Thrive target</div><div class="n"><input class="rate-in" id="thriveG" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Thrive protein target in grams per day" /><small> g /day</small></div>Default is 1.6 g per kg of body weight, in line with muscle-supporting intakes — type your own total if you work to a different number.</div>
+        <div class="prot-target"><div class="t">Daily protein — survival floor</div><div class="n">${protFloor.toFixed(0)} g<small> of protein a day · RDA 0.8 g/kg</small></div>Enough to prevent deficiency — not a target.</div>
+        <div class="prot-target"><div class="t">Daily protein — your thrive target</div><div class="n"><input class="rate-in" id="thriveG" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Your daily protein target in grams per day" /><small> g of protein a day</small></div>Total protein you're aiming for across the whole day. Defaults to 1.6 g per kg of body weight, in line with muscle-supporting intakes — type your own if you work to a different number.</div>
       </div>
       <p class="calc-summary">
-        A ${portion} g portion gives <b>${protInPortion.toFixed(1)} g protein</b> — <b>${Math.round(protInPortion / protFloor * 100)}%</b> of the survival floor and <b>${Math.round(protInPortion / protThrive * 100)}%</b> of the thrive target at ${displayWeight} ${wUnit}. Amino acid by amino acid:
+        A ${portion} g portion gives <b>${protInPortion.toFixed(1)} g protein</b> — <b>${Math.round(protInPortion / protFloor * 100)}%</b> of your daily survival floor and <b>${Math.round(protInPortion / protThrive * 100)}%</b> of your ${protThrive.toFixed(0)} g daily protein target. Amino acid by amino acid:
       </p>
       <div class="covbars">${covHtml}</div>
       <p class="cov-note">Faint line = WHO/FAO 2007 baseline need at your weight (the survival-floor equivalent) · dark line = <b>your target</b> — the baseline scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein target. Percentages are against your target. No official "thrive" amino acid figures exist; proportional scaling is our transparent assumption. Met+Cys and Phe+Tyr are scored together because the body can spare one with the other.</p>
@@ -1123,7 +1123,7 @@ function renderDay() {
             <option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option>
             <option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option>
           </select>
-          <label>Thrive target <input class="rate-in" id="dayThrive" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Thrive protein target in grams per day" /> g/day</label>
+          <label>Daily protein target <input class="rate-in" id="dayThrive" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Your daily protein target in grams per day" /> g of protein a day</label>
         </div>
         ${day.length ? '<button class="clear-day" id="dayClear">Clear day</button>' : ""}
       </div>
