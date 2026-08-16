@@ -3,14 +3,14 @@
 <title>Amino Atlas — amino acid profiles of every protein source</title>
 <style>
   :root {
-    --bg: #f7f5ee;
-    --surface: #fcfcf8;
-    --surface-2: #f1efe6;
-    --ink: #24291c;
-    --ink-2: #59614c;
-    --ink-3: #8a9078;
-    --line: rgba(74, 82, 59, 0.16);
-    --line-strong: rgba(74, 82, 59, 0.32);
+    --bg: #fbfaf5;
+    --surface: #ffffff;
+    --surface-2: #f4f3ea;
+    --ink: #23281c;
+    --ink-2: #5c6450;
+    --ink-3: #8d947c;
+    --line: rgba(74, 82, 59, 0.14);
+    --line-strong: rgba(74, 82, 59, 0.28);
     --c-bcaa: #437630;
     --c-ess: #a8b23c;
     --c-non: #4a68bd;
@@ -18,31 +18,12 @@
     --c-limit-bg: rgba(168, 91, 20, 0.1);
     --c-good-bg: rgba(67, 118, 48, 0.1);
     --ring: rgba(67, 118, 48, 0.55);
-    --shadow: 0 1px 2px rgba(36, 41, 28, 0.06), 0 8px 28px rgba(36, 41, 28, 0.08);
+    --shadow: 0 1px 2px rgba(36, 41, 28, 0.05), 0 8px 26px rgba(36, 41, 28, 0.07);
     --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #171a12;
-      --surface: #1e2218;
-      --surface-2: #262b1f;
-      --ink: #e9e8dc;
-      --ink-2: #adb29d;
-      --ink-3: #7d836c;
-      --line: rgba(233, 232, 220, 0.12);
-      --line-strong: rgba(233, 232, 220, 0.26);
-      --c-bcaa: #2e7f38;
-      --c-ess: #a3961f;
-      --c-non: #6f84d4;
-      --c-limit: #d1913c;
-      --c-limit-bg: rgba(209, 145, 60, 0.14);
-      --c-good-bg: rgba(46, 127, 56, 0.18);
-      --ring: rgba(120, 180, 100, 0.55);
-      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
-    }
-  }
+  /* Light by default — dark only when explicitly requested. */
   :root[data-theme="dark"] {
     --bg: #171a12;
     --surface: #1e2218;
@@ -120,10 +101,11 @@
   }
   .toolbar-inner { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .search {
-    flex: 1 1 220px; max-width: 340px;
-    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 999px;
-    padding: 8px 16px; color: var(--ink); font-size: 14px;
+    flex: 1 1 320px; max-width: 480px;
+    background: var(--surface); border: 1.5px solid var(--line-strong); border-radius: 999px;
+    padding: 12px 22px; color: var(--ink); font-size: 16.5px;
   }
+  .search:focus { border-color: var(--c-bcaa); }
   .search::placeholder { color: var(--ink-3); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
@@ -401,7 +383,6 @@
   <div class="wrap toolbar-inner">
     <input class="search" id="search" type="search" placeholder="Search a food… (e.g. lentils, whey, egg)" aria-label="Search foods" />
     <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
-    <button class="day-btn" id="dayBtn" aria-label="Open the day tracker">🍽 Day tracker · <span id="dayCount">0</span></button>
     <div class="sort-wrap">
       <label for="sort">Sort</label>
       <select class="sort" id="sort">
@@ -1018,10 +999,7 @@ function openCompare() {
 function loadDay() { try { return JSON.parse(store.getItem("aa_day") || "[]").filter(e => foodByName(e.name)); } catch (e) { return []; } }
 function saveDay(d) { store.setItem("aa_day", JSON.stringify(d)); updateDayBtn(); }
 function foodByName(n) { return ATLAS.foods.find(f => f.name === n); }
-function updateDayBtn() {
-  document.getElementById("dayCount").textContent = loadDay().length;
-  renderDayBanner();
-}
+function updateDayBtn() { renderDayBanner(); }
 
 function renderDayBanner() {
   const el = document.getElementById("dayBanner");
@@ -1061,7 +1039,6 @@ function addToDay(name, grams) {
   if (hit) hit.g += grams; else d.push({ name, g: grams });
   saveDay(d);
 }
-document.getElementById("dayBtn").addEventListener("click", openDay);
 
 // Type-ahead list for the day picker, built once (4k+ options)
 const dayList = document.createElement("datalist");
