@@ -164,18 +164,30 @@
     border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
     padding: clamp(20px, 4vw, 44px);
   }
-  .sheet-top { display: flex; align-items: flex-start; gap: 12px; }
+  .sheet-top { display: flex; align-items: flex-start; gap: 12px; padding-right: 46px; }
   .sheet h2 { font-family: var(--font-serif); font-weight: 500; font-size: clamp(26px, 4vw, 38px); margin: 0 0 4px; line-height: 1.05; }
   .sheet .sub { color: var(--ink-3); font-size: 13px; margin: 0; }
+  /* Zero-height sticky dock keeps the close button in view for the whole sheet scroll. */
+  .close-dock {
+    position: sticky; top: 12px; z-index: 6; height: 0;
+    display: flex; justify-content: flex-end;
+  }
   .close {
-    margin-left: auto; border: 1px solid var(--line-strong); background: transparent;
+    border: 1px solid var(--line-strong); background: var(--surface);
     border-radius: 999px; width: 34px; height: 34px; font-size: 16px; color: var(--ink-2); flex: none;
   }
-  .unit-toggle { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; margin: 18px 0 4px; }
-  .unit-toggle button { border: 0; background: transparent; padding: 6px 14px; font-size: 12.5px; color: var(--ink-2); }
-  .unit-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-  .unit-note { font-size: 13px; color: var(--ink-3); margin: 6px 0 0; max-width: 64ch; }
+  .unit-note { font-size: 13px; color: var(--ink-3); margin: 18px 0 0; max-width: 64ch; }
   .bloom-holder { width: 100%; max-width: 720px; margin: 0 auto; }
+  /* Bloom ring labels live in SVG user units, so these scale with the viewBox. */
+  .bl-label { font-size: 12px; fill: var(--ink-2); font-family: var(--font-sans); }
+  .bl-val { font-size: 11px; fill: var(--ink-3); font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+  @media (max-width: 700px) {
+    /* Narrow screens: let the bloom use the full sheet width and enlarge the
+       ring labels, which would otherwise render at ~5px once the SVG scales down. */
+    .bloom-holder { margin-inline: calc(-1 * clamp(20px, 4vw, 44px)); width: auto; }
+    .bl-label { font-size: 17px; }
+    .bl-val { font-size: 15px; }
+  }
   .statrow {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 10px; margin: 10px 0 26px;
@@ -425,7 +437,6 @@
       <div>
         <h3>Where the numbers come from</h3>
         <p>Whole-food profiles are drawn from USDA FoodData Central (SR Legacy analytical data) — the featured set is hand-curated, and behind search sits the full SR Legacy import: every USDA food with a complete 18-amino-acid profile (4,000+), filtered through basic quality checks. Supplement powders use typical published compositional analyses (e.g. Gorissen et&nbsp;al. 2018) rather than one brand's label. Each entry lists its source.</p>
-        <p>One entry — Protein Works Whey 80 — is an independent lab-measured profile, included as a reference for how measured products will appear.</p>
       </div>
       <div>
         <h3>Same food, different sample</h3>
@@ -568,11 +579,11 @@ function bloomValues(f, unit) {
 }
 
 function renderBloom(f, opts) {
-  const { mini = false, unit = "protein", band = true } = opts || {};
+  const { mini = false, unit = "protein", band = true, compact = false } = opts || {};
   const vals = bloomValues(f, unit);
-  /* Scale is always anchored to the per-protein profile, so switching to
-     as-weighed mode visibly shrinks the rays by the non-protein fraction. */
-  const maxV = Math.max(...AA_META.map(m => perProtein(f, m[0])));
+  /* Scale is anchored to the largest value actually shown, so a low-protein
+     food still fills the frame. Ring labels carry the absolute grams. */
+  const maxV = Math.max(...AA_META.map(m => unit === "food" ? f.aa[m[0]] : perProtein(f, m[0])));
   const col = COL();
   const W = mini ? 240 : 820, H = mini ? 240 : 680;
   const cx = W / 2, cy = H / 2;
@@ -607,12 +618,15 @@ function renderBloom(f, opts) {
     s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col[d.cls]}" stroke-width="${sw}" stroke-linecap="round" opacity="0.92" ${mini ? "" : `class="ray" data-food="${f.id}" data-key="${d.key}" data-unit="${unit}" tabindex="0" role="img" aria-label="${d.label}: ${d.val.toFixed(1)} grams"`}/>`;
     if (!mini) {
       s += `<circle cx="${x2.toFixed(1)}" cy="${y2.toFixed(1)}" r="4" fill="${col[d.cls]}"/>`;
-      const lr = r0 + Math.max(len, 120) + 24;
+      /* Narrow screens: push alternate labels further out so neighbours in the
+         crowded diagonals stop colliding once the type scales up. */
+      const lr = r0 + Math.max(len, 120) + 24 + (compact && i % 2 ? 42 : 0);
       const lx = cx + c * lr, ly = cy + sn * lr;
       let anchor = "middle";
       if (c > 0.25) anchor = "start"; else if (c < -0.25) anchor = "end";
-      s += `<text x="${lx.toFixed(1)}" y="${(ly - 6).toFixed(1)}" text-anchor="${anchor}" style="font-size:12px;fill:var(--ink-2);font-family:var(--font-sans);">${d.label}</text>`;
-      s += `<text x="${lx.toFixed(1)}" y="${(ly + 10).toFixed(1)}" text-anchor="${anchor}" style="font-size:11px;fill:var(--ink-3);font-family:var(--font-sans);font-variant-numeric:tabular-nums;">${d.val.toFixed(1)} g</text>`;
+      /* Value sits below the name on an em-relative offset, so the pair keeps
+         its spacing when the labels scale up on narrow screens. */
+      s += `<text class="bl-label" x="${lx.toFixed(1)}" y="${(ly - 6).toFixed(1)}" text-anchor="${anchor}">${d.label}<tspan class="bl-val" x="${lx.toFixed(1)}" dy="1.45em">${d.val.toFixed(1)} g</tspan></text>`;
     }
   });
   const coreR = mini ? 18 : 58;
@@ -641,7 +655,7 @@ function renderBloom(f, opts) {
     }
   }
   const label = `Radial bloom of ${f.name} amino acid profile; ray length proportional to grams per 100 grams of ${unit === "food" ? "food" : "protein"}.`;
-  return `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}" style="color:var(--ink-3)">${s}</svg>`;
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${H}" role="img" aria-label="${label}" style="color:var(--ink-3)">${s}</svg>`;
 }
 
 /* ================= grid ================= */
@@ -749,19 +763,18 @@ document.addEventListener("pointerout", e => { if (e.target.closest && e.target.
 /* ================= detail ================= */
 const overlay = document.getElementById("overlay");
 const sheet = document.getElementById("sheet");
-let currentUnit = "protein";
+const currentUnit = "food";
 let lastFocus = null;
 
 function openDetail(id) {
   lastFocus = document.activeElement;
-  currentUnit = "protein";
+  overlay.hidden = false;   /* unhide first: fitBloom needs a measurable SVG */
   renderDetail(id);
-  overlay.hidden = false;
   document.body.style.overflow = "hidden";
   sheet.querySelector(".close").focus();
 }
 function closeDetail() {
-  overlay.hidden = true; hideTip();
+  overlay.hidden = true; hideTip(); openDetailId = null;
   document.body.style.overflow = "";
   if (lastFocus) lastFocus.focus();
 }
@@ -782,7 +795,9 @@ function getPortion(f) {
   return stored ? +stored : (f.serving_g || 100);
 }
 
+let openDetailId = null;
 function renderDetail(id) {
+  openDetailId = id;
   const f = ATLAS.foods[id];
   const m = f.metrics;
   const complete = m.score >= 1;
@@ -822,20 +837,16 @@ function renderDetail(id) {
   }).join("");
 
   sheet.innerHTML = `
+    <div class="close-dock"><button class="close" aria-label="Close profile">✕</button></div>
     <div class="sheet-top">
       <div>
         <h2 id="sheetTitle">${f.name}</h2>
         <p class="sub">${CAT_LABEL[f.category] || ""} · ${f.protein_g_per_100g.toFixed(1)} g protein per 100 g (${f.state}) · ${f.source}</p>
       </div>
-      <button class="close" aria-label="Close profile">✕</button>
     </div>
 
-    <div class="unit-toggle" role="group" aria-label="Units">
-      <button data-unit="protein" aria-pressed="${currentUnit === "protein"}">per 100 g protein</button>
-      <button data-unit="food" aria-pressed="${currentUnit === "food"}">per 100 g ${stateWord(f)}</button>
-    </div>
-    <p class="unit-note">"Per 100 g protein" compares quality between foods regardless of water or fat content. "Per 100 g ${stateWord(f)}" is what you'd weigh on the scales — the amounts in the food itself, not what's digested or absorbed. Watch the rays shrink when you switch: the gap is everything in the food that isn't protein${f.protein_g_per_100g < 20 ? " (mostly water, here)" : ""}.</p>
-    <div class="bloom-holder" id="bloomHolder">${renderBloom(f, { unit: currentUnit })}</div>
+    <p class="unit-note">Amounts are per 100 g ${stateWord(f)} — what you'd weigh on the scales — not what's digested or absorbed.</p>
+    <div class="bloom-holder" id="bloomHolder">${renderBloom(f, { unit: currentUnit, compact: isCompact() })}</div>
 
     <div class="statrow">
       <div class="stat"><div class="k">Essential AAs</div><div class="v">${m.eaa.toFixed(0)}<small> g /100 g protein</small></div></div>
@@ -889,13 +900,6 @@ function renderDetail(id) {
   `;
 
   sheet.querySelector(".close").addEventListener("click", closeDetail);
-  sheet.querySelectorAll(".unit-toggle button").forEach(b => {
-    b.addEventListener("click", () => {
-      currentUnit = b.dataset.unit;
-      sheet.querySelectorAll(".unit-toggle button").forEach(x => x.setAttribute("aria-pressed", x === b));
-      document.getElementById("bloomHolder").innerHTML = renderBloom(f, { unit: currentUnit });
-    });
-  });
   sheet.querySelector("#calcWeight").addEventListener("change", e => {
     const unit = store.getItem("aa_wunit") || "kg";
     const kg = unit === "lb" ? (+e.target.value || 165) / LB_PER_KG : (+e.target.value || 75);
@@ -944,7 +948,43 @@ function renderDetail(id) {
       b.setAttribute("aria-expanded", "true");
     }
   }));
+  fitBloom(sheet.querySelector("#bloomHolder"));
 }
+
+/* The bloom is drawn on a fixed 820x680 canvas, and where the labels land
+   leaves roughly a third of it empty. Cropping the viewBox to what was
+   actually drawn buys that width back — most of it on phones. */
+function fitBloom(holder) {
+  const svg = holder && holder.querySelector("svg");
+  if (!svg) return;
+  /* Desktop has width to spare, and cropping there would enlarge the bloom by
+     ~40% — a change of its own. Restore the drawn canvas and leave it be. */
+  if (!isCompact()) { svg.setAttribute("viewBox", `0 0 ${svg.dataset.w} ${svg.dataset.h}`); return; }
+  let b;
+  try { b = svg.getBBox(); } catch (e) { return; }
+  if (!b || b.width <= 0 || b.height <= 0) return;
+  const pad = 6;
+  svg.setAttribute("viewBox",
+    `${(b.x - pad).toFixed(1)} ${(b.y - pad).toFixed(1)} ${(b.width + pad * 2).toFixed(1)} ${(b.height + pad * 2).toFixed(1)}`);
+}
+
+/* Matches the 700px bloom breakpoint in the stylesheet. */
+function isCompact() { return innerWidth <= 700; }
+
+/* Label size and stagger both change at that breakpoint, so a crossing needs a
+   full redraw; anything else just needs the crop redone. */
+let lastCompact = isCompact();
+addEventListener("resize", () => {
+  if (overlay.hidden) return;
+  const holder = sheet.querySelector("#bloomHolder");
+  if (!holder) return;
+  if (isCompact() !== lastCompact && openDetailId != null) {
+    lastCompact = isCompact();
+    renderDetail(openDetailId);
+  } else {
+    fitBloom(holder);
+  }
+});
 
 /* ================= compare ================= */
 const tray = document.getElementById("tray");
@@ -988,10 +1028,10 @@ function openCompare() {
     </div>`;
   }).join("");
   sheet.innerHTML = `
+    <div class="close-dock"><button class="close" aria-label="Close comparison">✕</button></div>
     <div class="sheet-top">
       <div><h2 id="sheetTitle">Side by side</h2>
       <p class="sub">Essential amino acids per g of protein vs the WHO 2007 adult pattern — the dark line is 100%.</p></div>
-      <button class="close" aria-label="Close comparison">✕</button>
     </div>
     <div class="cmp-cols">${cols}</div>`;
   sheet.querySelector(".close").addEventListener("click", closeDetail);
@@ -1115,10 +1155,10 @@ function renderDay() {
   const pseudo = { name: "Your day", state: "as sold", protein_g_per_100g: protTotal || 1, aa: totals };
 
   sheet.innerHTML = `
+    <div class="close-dock"><button class="close" aria-label="Close day tracker">✕</button></div>
     <div class="sheet-top">
       <div><h2 id="sheetTitle">Your day, across meals</h2>
       <p class="sub">Add everything you eat in a day — portions total up against your daily amino acid and protein needs.</p></div>
-      <button class="close" aria-label="Close day tracker">✕</button>
     </div>
     <div class="calc" style="margin-top:18px">
       <div class="calc-controls">

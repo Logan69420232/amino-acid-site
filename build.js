@@ -13,24 +13,6 @@ const meatDairy = load("meat_dairy.json") || [];
 const suppPack = load("supplements.json"); // {foods, who_*, ...}
 const suppFoods = suppPack ? suppPack.foods : [];
 
-// Lab-measured reference entry: Protein Works Whey 80 (values supplied as g/100g protein; label 80 g protein/100 g powder)
-const WHEY80_PER_PROTEIN = {
-  leucine: 10.4, isoleucine: 6.1, valine: 5.5,
-  lysine: 9.3, threonine: 7.0, phenylalanine: 3.1, methionine: 2.2,
-  histidine: 1.8, tryptophan: 1.3,
-  glutamic_acid: 17.9, aspartic_acid: 10.9, proline: 5.8, alanine: 4.8,
-  serine: 4.8, tyrosine: 3.0, arginine: 2.3, cysteine: 2.2, glycine: 1.6
-};
-const whey80 = {
-  name: "Protein Works Whey 80 (lab measured)",
-  category: "supplement",
-  state: "powder",
-  protein_g_per_100g: 80,
-  aa: Object.fromEntries(Object.entries(WHEY80_PER_PROTEIN).map(([k, v]) => [k, +(v * 0.8).toFixed(3)])),
-  source: "Independent laboratory amino acid analysis of a single production batch",
-  notes: "Measured, not typical: this is a single-batch lab analysis, shown as the reference for how measured products appear in the atlas."
-};
-
 // Typical serving sizes (g) for the calculator
 const SERVINGS = [
   [/whey|casein|isolate|protein powder|collagen|hemp protein|rice protein|egg white protein/i, 30],
@@ -81,7 +63,7 @@ function aliasesFor(f) {
 
 const bulk = load("usda_bulk.json") || [];
 const foods = [
-  ...[whey80, ...meatDairy, ...seafoodPlants, ...suppFoods].map(f => ({ ...f, tier: "featured" })),
+  ...[...meatDairy, ...seafoodPlants, ...suppFoods].map(f => ({ ...f, tier: "featured" })),
   ...bulk
 ].map(f => ({ ...f, serving_g: f.serving_g || servingFor(f), aliases: aliasesFor(f) }));
 
