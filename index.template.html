@@ -255,9 +255,9 @@
   .calc { background: var(--surface-2); border-radius: 14px; padding: 20px 22px; margin-top: 8px; }
   .calc-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; margin-bottom: 14px; font-size: 14.5px; }
   .ctl-group {
-    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
-    padding: 8px 14px;
+    padding: 12px 18px;
   }
   .ctl-label {
     font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
@@ -265,23 +265,23 @@
   }
   .calc-controls label { color: var(--ink-2); }
   .calc-controls input {
-    width: 74px; margin-left: 8px; background: var(--surface); color: var(--ink);
-    border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 9px; font-size: 14px;
+    width: 96px; margin-left: 8px; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px 12px; font-size: 16px;
     font-variant-numeric: tabular-nums;
   }
   .calc-controls select {
     margin-left: 6px; background: var(--surface); color: var(--ink);
-    border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 8px; font-size: 13px;
+    border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px 10px; font-size: 14px;
   }
   .prot-targets { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; }
-  .prot-target { flex: 1 1 200px; background: var(--surface); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; color: var(--ink-2); }
+  .prot-target { flex: 1 1 220px; background: var(--surface); border-radius: 10px; padding: 14px 18px; font-size: 13.5px; color: var(--ink-2); }
   .prot-target .t { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
   .prot-target .n { font-size: 21px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
   .prot-target .n small { font-size: 12px; font-weight: 400; color: var(--ink-3); }
   .rate-in {
-    width: 52px; background: var(--surface); color: var(--ink);
-    border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 5px;
-    font-size: 12px; font-variant-numeric: tabular-nums;
+    width: 84px; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 10px;
+    font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums;
   }
   .calc-summary { font-size: 15px; color: var(--ink-2); margin: 0 0 6px; max-width: 70ch; }
   .calc-summary b { color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -938,7 +938,7 @@ function renderDetail(id) {
         </div>
       </div>
       <div class="prot-targets">
-        <div class="prot-target"><div class="t">Daily protein — survival floor</div><div class="n">${protFloor.toFixed(0)} g<small> of protein a day · RDA 0.8 g/kg</small></div>Enough to prevent deficiency — not a target.</div>
+        <div class="prot-target"><div class="t">Daily protein — survival floor</div><div class="n">${protFloor.toFixed(0)} g<small> of protein a day · RDA 0.8 g/kg</small></div>Enough to prevent deficiency — not a target. Based on your body weight of ${displayWeight} ${wUnit} — change it in the <b>Day tracker</b>.</div>
         <div class="prot-target"><div class="t">Daily protein — your thrive target</div><div class="n"><input class="rate-in" id="thriveG" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Your daily protein target in grams per day" /><small> g of protein a day</small></div>Total protein you're aiming for across the whole day. Defaults to 1.6 g per kg of body weight, in line with muscle-supporting intakes — type your own if you work to a different number.</div>
       </div>
       <p class="calc-summary">
