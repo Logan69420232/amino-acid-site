@@ -110,7 +110,7 @@
     "glycine": 2.8
    },
    "source": "Gorissen et al. 2018, Amino Acids 50:1685-1695 (commercial pea protein isolate)",
-   "notes": "Very low methionine, high lysine and arginine — complementary to rice protein."
+   "notes": "Very low methionine, high lysine and arginine, complementary to rice protein."
   },
   {
    "name": "Brown rice protein",
@@ -194,7 +194,7 @@
     "glycine": 20.0
    },
    "source": "Composite of published hydrolyzed bovine collagen peptide analyses, scaled to 90% protein",
-   "notes": "Hydroxyproline (~10.7 g/100 g) and hydroxylysine are present in collagen but excluded from the standard 18. Contains essentially zero tryptophan — an incomplete protein despite the high protein number."
+   "notes": "Hydroxyproline (~10.7 g/100 g) and hydroxylysine are present in collagen but excluded from the standard 18. Contains essentially zero tryptophan: an incomplete protein despite the high protein number."
   },
   {
    "name": "Egg white protein powder",
@@ -358,7 +358,7 @@
     "glycine": 3.2
    },
    "source": "USDA SR Legacy, Vital wheat gluten (via nutritionvalue.org)",
-   "notes": "The classic lysine-limited plant protein — very high glutamine/glutamate and proline."
+   "notes": "The classic lysine-limited plant protein, with very high glutamine/glutamate and proline."
   },
   {
    "name": "Spirulina, dried",

@@ -83,7 +83,7 @@ const BEEF_RANGE = {
   low: { leucine: 7.61, isoleucine: 4.61, valine: 4.85, lysine: 8.45, threonine: 4.22, phenylalanine: 4.18, methionine: 2.44, histidine: 3.26, tryptophan: 0.63, glutamic_acid: 14.69, aspartic_acid: 8.64, proline: 3.65, alanine: 5.66, serine: 3.84, tyrosine: 3.55, arginine: 6.05, cysteine: 1.24, glycine: 4.70 },
   high: { leucine: 8.59, isoleucine: 4.99, valine: 5.25, lysine: 9.15, threonine: 4.58, phenylalanine: 4.52, methionine: 2.76, histidine: 3.54, tryptophan: 0.69, glutamic_acid: 15.91, aspartic_acid: 9.36, proline: 3.95, alanine: 6.14, serine: 4.16, tyrosine: 3.85, arginine: 6.55, cysteine: 1.34, glycine: 5.10 }
 };
-const BEEF_RANGE_NOTE = "Grass-fed vs grain-fed: the strongest published comparisons (Leheska et al. 2008, J Anim Sci; Duckett et al. 2013, Meat Sci) find feeding system does not meaningfully change beef's amino acid profile — the real differences are in fat content, fatty acids and micronutrients. The range shown is the ~4–8% spread across published analyses and cuts: beef protein composition is remarkably stable.";
+const BEEF_RANGE_NOTE = "Grass-fed vs grain-fed: the strongest published comparisons (Leheska et al. 2008, J Anim Sci; Duckett et al. 2013, Meat Sci) find feeding system does not meaningfully change beef's amino acid profile; the real differences are in fat content, fatty acids and micronutrients. The range shown is the ~4–8% spread across published analyses and cuts: beef protein composition is remarkably stable.";
 for (const f of foods) {
   if (/^Beef|^Ground beef/.test(f.name)) {
     f.range_per_protein = BEEF_RANGE;
