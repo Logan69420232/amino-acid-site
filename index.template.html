@@ -115,6 +115,34 @@
   }
   .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .sort-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); }
+  .menu-wrap { position: relative; }
+  .burger {
+    border: 1px solid var(--line-strong); background: var(--surface); border-radius: 10px;
+    width: 42px; height: 42px; font-size: 17px; color: var(--ink-2); flex: none;
+  }
+  .menu-pop {
+    position: absolute; right: 0; top: calc(100% + 8px); z-index: 35;
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 14px;
+    box-shadow: var(--shadow); min-width: 240px; padding: 6px;
+  }
+  .menu-pop[hidden] { display: none; }
+  .menu-pop button {
+    display: block; width: 100%; text-align: left; border: 0; background: transparent;
+    color: var(--ink); font-size: 14.5px; font-weight: 600; padding: 10px 12px; border-radius: 9px;
+  }
+  .menu-pop button:hover { background: var(--surface-2); }
+  .menu-pop .mi-sub { display: block; font-size: 11.5px; font-weight: 400; color: var(--ink-3); margin-top: 1px; }
+
+  /* compare picker page */
+  .pick-block { background: var(--surface-2); border-radius: 14px; padding: 18px; margin-top: 18px; }
+  .pick-block h3 { font-family: var(--font-serif); font-weight: 500; font-size: 20px; margin: 0 0 4px; }
+  .pick-block .pb-sub { font-size: 13.5px; color: var(--ink-3); margin: 0 0 12px; }
+  .pick-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pick-row input {
+    flex: 1 1 180px; background: var(--surface); border: 1px solid var(--line-strong);
+    border-radius: 8px; padding: 9px 12px; font-size: 14px; color: var(--ink); min-width: 0;
+  }
+  .pick-hint { font-size: 12.5px; color: var(--c-limit); margin: 8px 0 0; min-height: 1em; }
   select.sort {
     background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
     border-radius: 8px; padding: 6px 10px; font-size: 13px;
@@ -344,12 +372,12 @@
   /* ---------- amino acid vs amino acid ---------- */
   .aa-vs { border-top: 1px solid var(--line); padding: 44px 0 52px; }
   .aa-vs-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
-  .aa-vs-controls select {
+  .aa-vs-controls select, .pick-row select {
     background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
     border-radius: 8px; padding: 8px 10px; font-size: 14px; max-width: 46vw;
   }
   .aa-vs-controls .vs { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; }
-  .aa-vs-controls .go-cmp {
+  .go-cmp {
     border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px;
     padding: 9px 20px; font-size: 13.5px; font-weight: 700; white-space: nowrap;
   }
@@ -429,6 +457,14 @@
         <option value="name">A → Z</option>
       </select>
     </div>
+    <div class="menu-wrap">
+      <button class="burger" id="menuBtn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
+      <div class="menu-pop" id="menuPop" hidden>
+        <button data-act="compare">Compare<span class="mi-sub">Foods or amino acids, side by side</span></button>
+        <button data-act="day">Day tracker<span class="mi-sub">Total your meals against your targets</span></button>
+        <button data-act="method">How the numbers work</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -444,10 +480,10 @@
     <h2 class="sec-h" style="margin-top:0">Compare two amino acids</h2>
     <p class="sec-p">Pick any two — what each one does, how much of it you need in a day, and which foods carry the most of it.</p>
     <div class="aa-vs-controls">
-      <select id="aaSelA" aria-label="First amino acid"></select>
+      <select class="aa-pick-a" aria-label="First amino acid"></select>
       <span class="vs">vs</span>
-      <select id="aaSelB" aria-label="Second amino acid"></select>
-      <button class="go-cmp" id="aaVsGo">Compare</button>
+      <select class="aa-pick-b" aria-label="Second amino acid"></select>
+      <button class="go-cmp aa-pick-go">Compare</button>
     </div>
   </div>
 </section>
@@ -462,7 +498,7 @@
   <div class="sheet" id="sheet"></div>
 </div>
 
-<section class="method">
+<section class="method" id="method">
   <div class="wrap">
     <h2>How to read this atlas</h2>
     <p class="sec-p" style="max-width:74ch">
@@ -1041,10 +1077,11 @@ function renderTray() {
 document.getElementById("trayClear").addEventListener("click", () => { state.compare = []; renderTray(); renderGrid(); });
 document.getElementById("trayGo").addEventListener("click", openCompare);
 
-function openCompare() {
-  if (!state.compare.length) return;
+function openCompare(foodsArg) {
+  /* Called both as a click handler (arg = Event) and directly with a foods array. */
+  const foods = Array.isArray(foodsArg) ? foodsArg : state.compare.map(id => ATLAS.foods[id]);
+  if (!foods.length) return;
   lastFocus = document.activeElement;
-  const foods = state.compare.map(id => ATLAS.foods[id]);
   const cols = foods.map(f => {
     const m = f.metrics;
     const complete = m.score >= 1;
@@ -1140,8 +1177,8 @@ function openAACompare(aKey, bKey) {
   sheet.querySelector(".close").focus();
 }
 
-(function initAAVs() {
-  const a = document.getElementById("aaSelA"), b = document.getElementById("aaSelB");
+function wireAAPickers(root) {
+  const a = root.querySelector(".aa-pick-a"), b = root.querySelector(".aa-pick-b");
   if (!a) return;
   const groups = [["b", []], ["e", []], ["n", []]];
   AA_META.forEach(([key, label, cls]) => groups.find(g => g[0] === cls)[1].push([key, label]));
@@ -1155,7 +1192,79 @@ function openAACompare(aKey, bKey) {
     if (self.value === other.value) other.value = self.dataset.prev;
     a.dataset.prev = a.value; b.dataset.prev = b.value;
   }));
-  document.getElementById("aaVsGo").addEventListener("click", () => openAACompare(a.value, b.value));
+  root.querySelector(".aa-pick-go").addEventListener("click", () => openAACompare(a.value, b.value));
+}
+wireAAPickers(document.querySelector(".aa-vs"));
+
+/* ================= compare picker page ================= */
+function openComparePicker() {
+  lastFocus = document.activeElement;
+  sheet.innerHTML = `
+    <div class="close-dock"><button class="close" aria-label="Close compare">✕</button></div>
+    <div class="sheet-top">
+      <div><h2 id="sheetTitle">Compare</h2>
+      <p class="sub">Put any two things side by side — whole foods, or the amino acids themselves.</p></div>
+    </div>
+    <div class="pick-block">
+      <h3>Two foods</h3>
+      <p class="pb-sub">Start typing — every one of the ${ATLAS.foods.length.toLocaleString()} foods in the atlas is available. A third is optional.</p>
+      <div class="pick-row">
+        <input type="text" class="food-pick" list="dayFoodList" placeholder="e.g. Whey protein isolate" aria-label="First food">
+        <input type="text" class="food-pick" list="dayFoodList" placeholder="e.g. Lentils, cooked" aria-label="Second food">
+        <input type="text" class="food-pick" list="dayFoodList" placeholder="Optional third" aria-label="Third food (optional)">
+        <button class="go-cmp" id="foodPickGo">Compare foods</button>
+      </div>
+      <p class="pick-hint" id="foodPickHint"></p>
+    </div>
+    <div class="pick-block">
+      <h3>Two amino acids</h3>
+      <p class="pb-sub">What each one does, how much you need a day, and which foods carry the most of it.</p>
+      <div class="pick-row">
+        <select class="aa-pick-a" aria-label="First amino acid"></select>
+        <span class="vs" style="font-family:var(--font-mono);font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em">vs</span>
+        <select class="aa-pick-b" aria-label="Second amino acid"></select>
+        <button class="go-cmp aa-pick-go">Compare amino acids</button>
+      </div>
+    </div>`;
+  sheet.querySelector(".close").addEventListener("click", closeDetail);
+  wireAAPickers(sheet);
+  sheet.querySelector("#foodPickGo").addEventListener("click", () => {
+    const names = [...sheet.querySelectorAll(".food-pick")].map(i => i.value.trim()).filter(Boolean);
+    const foods = [...new Set(names)].map(foodByName).filter(Boolean);
+    const hint = sheet.querySelector("#foodPickHint");
+    if (foods.length < 2) {
+      const bad = names.filter(n => !foodByName(n));
+      hint.textContent = bad.length
+        ? `Couldn't find ${bad.map(n => `"${n}"`).join(" or ")} — pick a suggestion from the list as you type.`
+        : "Pick at least two different foods to compare.";
+      return;
+    }
+    openCompare(foods);
+  });
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+  sheet.querySelector(".close").focus();
+}
+
+/* ================= burger menu ================= */
+(function initMenu() {
+  const btn = document.getElementById("menuBtn"), pop = document.getElementById("menuPop");
+  const close = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); };
+  btn.addEventListener("click", e => {
+    e.stopPropagation();
+    pop.hidden = !pop.hidden;
+    btn.setAttribute("aria-expanded", String(!pop.hidden));
+  });
+  document.addEventListener("click", e => { if (!pop.hidden && !pop.contains(e.target)) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !pop.hidden) { close(); btn.focus(); } });
+  pop.addEventListener("click", e => {
+    const act = e.target.closest("button") && e.target.closest("button").dataset.act;
+    if (!act) return;
+    close();
+    if (act === "compare") openComparePicker();
+    else if (act === "day") openDay();
+    else if (act === "method") document.getElementById("method").scrollIntoView({ behavior: "smooth" });
+  });
 })();
 
 /* ================= my day ================= */
