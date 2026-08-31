@@ -696,8 +696,10 @@ function renderBloom(f, opts) {
         if (!l2 && (l1 + " " + w).trim().length <= 15) l1 = (l1 + " " + w).trim();
         else l2 = (l2 + " " + w).trim();
       }
-      if (l2.length > 17) l2 = l2.slice(0, 16) + "…";
-      lines = l2 ? [l1, l2] : [l1];
+      /* A name that would truncate mid-phrase collapses to its leading word:
+         "Beef" reads better than "Beef, round, separ…". */
+      if (l2.length > 17) lines = [short.split(/[\s,]+/)[0]];
+      else lines = l2 ? [l1, l2] : [l1];
     }
     const nameStyle = `font-size:13.5px;font-weight:500;fill:var(--ink);font-family:var(--font-sans);`;
     if (lines.length === 2) {
