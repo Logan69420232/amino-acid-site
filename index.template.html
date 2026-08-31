@@ -364,13 +364,10 @@
   .cmp-col .covrow { grid-template-columns: 96px 1fr 52px; font-size: 12px; }
 
   /* ---------- amino acid vs amino acid ---------- */
-  .aa-vs { border-top: 1px solid var(--line); padding: 44px 0 52px; }
-  .aa-vs-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
-  .aa-vs-controls select, .pick-row select {
+  .pick-row select {
     background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
     border-radius: 8px; padding: 8px 10px; font-size: 14px; max-width: 46vw;
   }
-  .aa-vs-controls .vs { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; }
   .go-cmp {
     border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px;
     padding: 9px 20px; font-size: 13.5px; font-weight: 700; white-space: nowrap;
@@ -473,19 +470,6 @@
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty" hidden>Nothing matches that search. Try a broader term.</div>
 </main>
-
-<section class="aa-vs">
-  <div class="wrap">
-    <h2 class="sec-h" style="margin-top:0">Compare two amino acids</h2>
-    <p class="sec-p">Pick any two: what each one does, how much of it you need in a day, and which foods carry the most of it.</p>
-    <div class="aa-vs-controls">
-      <select class="aa-pick-a" aria-label="First amino acid"></select>
-      <span class="vs">vs</span>
-      <select class="aa-pick-b" aria-label="Second amino acid"></select>
-      <button class="go-cmp aa-pick-go">Compare</button>
-    </div>
-  </div>
-</section>
 
 <div class="tray" id="tray" hidden>
   <span class="names" id="trayNames"></span>
@@ -1175,7 +1159,6 @@ function wireAAPickers(root) {
   }));
   root.querySelector(".aa-pick-go").addEventListener("click", () => openAACompare(a.value, b.value));
 }
-wireAAPickers(document.querySelector(".aa-vs"));
 
 /* ================= compare picker page ================= */
 function openComparePicker() {
