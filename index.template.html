@@ -1005,17 +1005,19 @@ function renderDetail(id) {
     .map(r => covRow2(r.label, r.gotMg, r.baseMg, r.baseMg * aaScale, r.isLimiting)).join("");
 
   const tableRows = AA_META.map(([key, label, cls]) => {
-    const rng = f.range_per_protein;
-    const per = perProtein(f, key);
-    const perCell = rng
-      ? `${per.toFixed(1)} <span class="rng">(${rng.low[key].toFixed(1)}–${rng.high[key].toFixed(1)})</span>`
-      : per.toFixed(1);
+    const req = AA_REQ_ROW[key];
+    let pctCell = "";
+    if (req) {
+      const rid = req[0];
+      const gotMg = SCORE_ROWS.find(r => r[0] === rid)[2].reduce((t, k) => t + f.aa[k], 0) * 1000;
+      const targetMg = WHO_KG[rid] * weight * aaScale;
+      pctCell = `${Math.round(gotMg / targetMg * 100)}%${req[1] ? `<span class="rng"> (${rid === "saa" ? "Met+Cys" : "Phe+Tyr"})</span>` : ""}`;
+    }
     return `
     <tr>
       <td><span class="dot" style="background:var(--c-${cls === "b" ? "bcaa" : cls === "e" ? "ess" : "non"})"></span>${label}<button class="info-btn" data-aa="${key}" aria-expanded="false" aria-label="About ${label}">i</button></td>
-      <td>${perCell}</td>
       <td>${f.aa[key].toFixed(2)}</td>
-      <td class="hide-sm">${(f.aa[key] * portion / 100).toFixed(2)}</td>
+      <td>${pctCell}</td>
     </tr>`;
   }).join("");
 
@@ -1064,12 +1066,13 @@ function renderDetail(id) {
     <h3 class="sec-h">Full profile</h3>
     <div class="tbl-wrap">
       <table class="data">
-        <thead><tr><th>Amino acid</th><th>g / 100 g protein</th><th>g / 100 g ${stateWord(f)}</th><th class="hide-sm">g / ${portion} g portion</th></tr></thead>
+        <thead><tr><th>Amino acid</th><th>g / 100 g ${stateWord(f)}</th><th>% of daily target</th></tr></thead>
         <tbody>${tableRows}</tbody>
       </table>
     </div>
+    <p class="src-note">Daily targets: WHO/FAO 2007 baseline at your body weight, scaled to your ${protThrive.toFixed(0)} g protein target. Met+Cys and Phe+Tyr are counted together; non-essential amino acids have no set target.</p>
     <p class="src-note"><strong>Source:</strong> ${f.source}.${f.notes ? " " + f.notes : ""} ${f.range_per_protein
-      ? "The faint band on each ray, and the bracketed figures in the table, show this food's published range across analyses, not an estimate."
+      ? "The faint band on each ray shows this food's published range across analyses, not an estimate."
       : "Values are typical for this food; individual samples vary with breed, feed, cultivar and processing (indicatively ±10%, shown as the faint band on each ray)."}</p>
     ${f.range_note ? `<p class="src-note"><strong>About this range:</strong> ${f.range_note}</p>` : ""}
   `;
@@ -1110,7 +1113,7 @@ function renderDetail(id) {
       const info = AA_INFO[b.dataset.aa];
       const row = document.createElement("tr");
       row.className = "info-row";
-      row.innerHTML = `<td colspan="4"><span class="cls">${info[0]}</span>${info[1]}</td>`;
+      row.innerHTML = `<td colspan="3"><span class="cls">${info[0]}</span>${info[1]}</td>`;
       tr.after(row);
       b.setAttribute("aria-expanded", "true");
     }
