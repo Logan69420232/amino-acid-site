@@ -1,47 +1,54 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Amino Atlas: amino acid profiles of every protein source</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* Lab Neutral: off-white paper, graphite ink, one molecular blue */
-    --bg: #f5f4f0;
+    /* Instrument: paper white, near-black ink, ninhydrin violet.
+       Ninhydrin has stained amino acids violet on chromatograms since 1910;
+       it is the one colour this subject actually owns. */
+    --bg: #fcfcfb;
     --surface: #ffffff;
-    --surface-2: #ecebe6;
-    --ink: #1a1c22;
-    --ink-2: #6b6e77;
-    --ink-3: #9a9da5;
-    --line: #e4e2db;
-    --line-strong: #d9d6ce;
-    --c-bcaa: #2554d6;
-    --c-ess: #9d6fc0;
-    --c-non: #128a70;
-    --c-limit: #b8571a;
-    --c-limit-bg: rgba(184, 87, 26, 0.09);
-    --c-good-bg: rgba(37, 84, 214, 0.07);
-    --ring: rgba(37, 84, 214, 0.5);
-    --shadow: 0 1px 2px rgba(26, 28, 34, 0.05), 0 8px 26px rgba(26, 28, 34, 0.07);
-    --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --surface-2: #f4f3f1;
+    --ink: #17161a;
+    --ink-2: #55535b;
+    --ink-3: #8b8892;
+    --line: #e7e5e1;
+    --line-strong: #cfccc6;
+    --rule-hair: #eeedea;
+    --c-bcaa: #4f2d7f;
+    --c-ess: #8b6bb8;
+    --c-non: #a3a1a6;
+    --c-limit: #b5401f;
+    --c-limit-bg: rgba(181, 64, 31, 0.08);
+    --c-good-bg: rgba(79, 45, 127, 0.06);
+    --ring: rgba(79, 45, 127, 0.55);
+    --shadow: none;
+    --font-serif: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
   }
   /* Light by default; dark only when explicitly requested. */
   :root[data-theme="dark"] {
-    --bg: #14161b;
-    --surface: #1c1f26;
-    --surface-2: #242833;
-    --ink: #eceef2;
-    --ink-2: #a7abb5;
-    --ink-3: #767b86;
-    --line: rgba(236, 238, 242, 0.11);
-    --line-strong: rgba(236, 238, 242, 0.24);
-    --c-bcaa: #5b8def;
-    --c-ess: #b58ad6;
-    --c-non: #2ba58a;
-    --c-limit: #d1913c;
-    --c-limit-bg: rgba(209, 145, 60, 0.14);
-    --c-good-bg: rgba(91, 141, 239, 0.14);
-    --ring: rgba(91, 141, 239, 0.55);
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
+    --bg: #131217;
+    --surface: #1a1920;
+    --surface-2: #232129;
+    --ink: #edecef;
+    --ink-2: #aaa8b0;
+    --ink-3: #787680;
+    --line: rgba(237, 236, 239, 0.1);
+    --line-strong: rgba(237, 236, 239, 0.24);
+    --rule-hair: rgba(237, 236, 239, 0.06);
+    --c-bcaa: #a98fd6;
+    --c-ess: #7d63a8;
+    --c-non: #77757d;
+    --c-limit: #e0693f;
+    --c-limit-bg: rgba(224, 105, 63, 0.14);
+    --c-good-bg: rgba(169, 143, 214, 0.12);
+    --ring: rgba(169, 143, 214, 0.55);
+    --shadow: none;
   }
 
   * { box-sizing: border-box; }
@@ -55,7 +62,7 @@
     line-height: 1.6;
   }
   button { font: inherit; color: inherit; cursor: pointer; }
-  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 2px; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
   }
@@ -63,7 +70,7 @@
   .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
 
   /* ---------- header ---------- */
-  header.site { padding: 52px 0 8px; }
+  header.site { padding: 34px 0 6px; }
   header.site .wrap { position: relative; }
   #heroAnim {
     display: none; position: absolute; right: -10px; top: 10px;
@@ -76,30 +83,27 @@
   }
   h1.masthead {
     font-family: var(--font-serif);
-    font-weight: 500;
+    font-weight: 700;
     font-size: clamp(34px, 5.5vw, 56px);
-    line-height: 1.04;
-    letter-spacing: -0.01em;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
     margin: 0 0 18px;
     text-wrap: balance;
   }
-  h1.masthead em { font-style: italic; color: var(--c-bcaa); }
+  h1.masthead em { font-style: normal; color: var(--c-bcaa); }
   .standfirst {
     max-width: 62ch; color: var(--ink-2); font-size: 17px; margin: 0 0 10px;
   }
-  .legend-row {
-    display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
-    padding: 18px 0 6px; font-size: 12.5px; color: var(--ink-2);
-  }
-  .legend-row .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: -1px; }
 
   /* ---------- top bar ---------- */
   .topbar { border-bottom: 1px solid var(--line); background: var(--bg); }
   .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
   .topbar .brand {
+    display: inline-flex; align-items: center; gap: 9px;
     font-family: var(--font-mono); font-size: 13px; font-weight: 600;
     letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink);
   }
+  .topbar .brand .mark { color: var(--line-strong); flex: none; }
 
   /* ---------- toolbar ---------- */
   .toolbar {
@@ -111,7 +115,7 @@
   .toolbar-inner { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .search {
     flex: 1 1 320px; max-width: 480px;
-    background: var(--surface); border: 1.5px solid var(--line-strong); border-radius: 999px;
+    background: var(--surface); border: 1.5px solid var(--line-strong); border-radius: 2px;
     padding: 12px 22px; color: var(--ink); font-size: 16.5px;
   }
   .search:focus { border-color: var(--c-bcaa); }
@@ -119,41 +123,41 @@
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
     border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2);
-    border-radius: 999px; padding: 5px 13px; font-size: 12.5px;
+    border-radius: 2px; padding: 5px 13px; font-size: 12.5px;
   }
   .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .sort-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); }
   .menu-wrap { position: relative; }
   .burger {
-    border: 1px solid var(--line-strong); background: var(--surface); border-radius: 10px;
+    border: 1px solid var(--line-strong); background: var(--surface); border-radius: 2px;
     width: 42px; height: 42px; font-size: 17px; color: var(--ink-2); flex: none;
   }
   .menu-pop {
     position: absolute; right: 0; top: calc(100% + 8px); z-index: 35;
-    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 14px;
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 3px;
     box-shadow: var(--shadow); min-width: 240px; padding: 6px;
   }
   .menu-pop[hidden] { display: none; }
   .menu-pop button {
     display: block; width: 100%; text-align: left; border: 0; background: transparent;
-    color: var(--ink); font-size: 14.5px; font-weight: 600; padding: 10px 12px; border-radius: 9px;
+    color: var(--ink); font-size: 14.5px; font-weight: 600; padding: 10px 12px; border-radius: 2px;
   }
   .menu-pop button:hover { background: var(--surface-2); }
   .menu-pop .mi-sub { display: block; font-size: 11.5px; font-weight: 400; color: var(--ink-3); margin-top: 1px; }
 
   /* compare picker page */
-  .pick-block { background: var(--surface-2); border-radius: 14px; padding: 18px; margin-top: 18px; }
-  .pick-block h3 { font-family: var(--font-serif); font-weight: 500; font-size: 20px; margin: 0 0 4px; }
+  .pick-block { background: var(--surface-2); border-radius: 3px; padding: 18px; margin-top: 18px; }
+  .pick-block h3 { font-family: var(--font-serif); font-weight: 600; font-size: 20px; margin: 0 0 4px; }
   .pick-block .pb-sub { font-size: 13.5px; color: var(--ink-3); margin: 0 0 12px; }
   .pick-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .pick-row input {
     flex: 1 1 180px; background: var(--surface); border: 1px solid var(--line-strong);
-    border-radius: 8px; padding: 9px 12px; font-size: 14px; color: var(--ink); min-width: 0;
+    border-radius: 2px; padding: 9px 12px; font-size: 14px; color: var(--ink); min-width: 0;
   }
   .pick-hint { font-size: 12.5px; color: var(--c-limit); margin: 8px 0 0; min-height: 1em; }
   select.sort {
     background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
-    border-radius: 8px; padding: 6px 10px; font-size: 13px;
+    border-radius: 2px; padding: 6px 10px; font-size: 13px;
   }
 
   /* ---------- grid ---------- */
@@ -164,18 +168,18 @@
     padding: 10px 0 30px;
   }
   .card {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 3px;
     padding: 16px 16px 14px; text-align: left; display: flex; flex-direction: column; gap: 8px;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    transition: background 0.08s ease;
   }
-  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .card:hover { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--c-bcaa); }
   .card .mini { width: 100%; display: block; }
-  .card h3 { margin: 0; font-family: var(--font-serif); font-weight: 500; font-size: 18px; line-height: 1.2; }
+  .card h3 { margin: 0; font-family: var(--font-serif); font-weight: 600; font-size: 18px; line-height: 1.2; }
   .card .meta { color: var(--ink-3); font-size: 13px; }
   .card .meta b { color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
   .badge {
     align-self: flex-start; font-size: 11px; letter-spacing: 0.02em;
-    padding: 3px 9px; border-radius: 999px;
+    padding: 3px 9px; border-radius: 2px;
   }
   .badge.good { background: var(--c-good-bg); color: var(--c-bcaa); }
   .badge.limit { background: var(--c-limit-bg); color: var(--c-limit); }
@@ -188,6 +192,43 @@
   .card .compare-btn[aria-pressed="true"] { background: var(--c-bcaa); border-color: var(--c-bcaa); color: #fff; }
   .empty { padding: 60px 0; color: var(--ink-3); text-align: center; font-size: 14px; }
 
+  /* ---------- instrument table ---------- */
+  .grid.as-table { display: block; }
+  .table-wrap { overflow-x: auto; border-top: 2px solid var(--ink); }
+  table.atlas-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.atlas-tbl th {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-3); text-align: right;
+    padding: 9px 10px; border-bottom: 1px solid var(--line-strong); white-space: nowrap; cursor: pointer;
+  }
+  table.atlas-tbl th.on { color: var(--ink); }
+  table.atlas-tbl th.name, table.atlas-tbl td.name { text-align: left; }
+  table.atlas-tbl th.lim, table.atlas-tbl th.src { text-align: left; }
+  table.atlas-tbl td {
+    padding: 7px 10px; border-bottom: 1px solid var(--rule-hair);
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
+  table.atlas-tbl td.num { font-family: var(--font-mono); font-size: 12.5px; }
+  table.atlas-tbl td.lim { text-align: left; color: var(--c-limit); font-size: 12.5px; }
+  table.atlas-tbl td.src { text-align: left; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+  table.atlas-tbl tbody tr { cursor: pointer; }
+  table.atlas-tbl tbody tr:hover { background: var(--c-good-bg); box-shadow: inset 2px 0 0 var(--c-bcaa); }
+  .kbd-sel { background: var(--c-good-bg) !important; box-shadow: inset 2px 0 0 var(--c-bcaa) !important; }
+  .scorebar {
+    display: inline-block; min-width: 84px; padding: 1px 5px; text-align: right;
+    background: linear-gradient(to right, var(--c-good-bg) var(--w), transparent var(--w));
+  }
+  .scorebar.short { background: linear-gradient(to right, var(--c-limit-bg) var(--w), transparent var(--w)); color: var(--c-limit); }
+  .csv-btn {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase;
+    border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2);
+    border-radius: 2px; padding: 3px 9px; margin-left: 10px; vertical-align: 1px;
+  }
+  .csv-btn:hover { border-color: var(--ink-3); color: var(--ink); }
+  .kbd-hints { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.04em; white-space: nowrap; }
+  @media (max-width: 1000px) { .kbd-hints { display: none; } }
+  .stat .v { font-family: var(--font-mono); }
+
   /* ---------- detail overlay ---------- */
   .overlay {
     position: fixed; inset: 0; z-index: 50; overflow-y: auto;
@@ -197,11 +238,11 @@
   .overlay[hidden] { display: none; }
   .sheet {
     max-width: 980px; margin: 4vh auto 8vh; background: var(--surface);
-    border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
+    border: 1px solid var(--line); border-radius: 3px; box-shadow: var(--shadow);
     padding: clamp(20px, 4vw, 44px);
   }
   .sheet-top { display: flex; align-items: flex-start; gap: 12px; padding-right: 46px; }
-  .sheet h2 { font-family: var(--font-serif); font-weight: 500; font-size: clamp(26px, 4vw, 38px); margin: 0 0 4px; line-height: 1.05; }
+  .sheet h2 { font-family: var(--font-serif); font-weight: 700; font-size: clamp(26px, 4vw, 38px); margin: 0 0 4px; line-height: 1.05; letter-spacing: -0.02em; }
   .sheet .sub { color: var(--ink-3); font-size: 13px; margin: 0; }
   /* Zero-height sticky dock keeps the close button in view for the whole sheet scroll. */
   .close-dock {
@@ -210,7 +251,7 @@
   }
   .close {
     border: 1px solid var(--line-strong); background: var(--surface);
-    border-radius: 999px; width: 34px; height: 34px; font-size: 16px; color: var(--ink-2); flex: none;
+    border-radius: 2px; width: 34px; height: 34px; font-size: 16px; color: var(--ink-2); flex: none;
   }
   .unit-note { font-size: 13px; color: var(--ink-3); margin: 18px 0 0; max-width: 64ch; }
   .bloom-holder { width: 100%; max-width: 720px; margin: 0 auto; }
@@ -228,22 +269,22 @@
     display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 10px; margin: 10px 0 26px;
   }
-  .stat { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; }
+  .stat { background: var(--surface-2); border-radius: 2px; padding: 12px 14px; }
   .stat .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
   .stat .v { font-size: 25px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
   .stat .v small { font-size: 13px; font-weight: 400; color: var(--ink-3); }
   .stat.limit-stat .v { color: var(--c-limit); }
   .stat.good-stat .v { color: var(--c-bcaa); }
 
-  .sec-h { font-family: var(--font-serif); font-weight: 500; font-size: 22px; margin: 34px 0 4px; }
+  .sec-h { font-family: var(--font-serif); font-weight: 600; font-size: 22px; margin: 34px 0 10px; padding-bottom: 5px; border-bottom: 2px solid var(--ink); }
   .sec-p { color: var(--ink-2); font-size: 15px; max-width: 68ch; margin: 0 0 16px; }
 
   /* coverage bars */
   .covbars { display: flex; flex-direction: column; gap: 9px; max-width: 640px; }
   .covrow { display: grid; grid-template-columns: 160px 1fr 84px; gap: 10px; align-items: center; font-size: 14.5px; }
   .covrow .aa-name { color: var(--ink-2); text-align: right; }
-  .covrow .track { position: relative; height: 14px; background: var(--surface-2); border-radius: 7px; }
-  .covrow .fill { position: absolute; inset: 0 auto 0 0; border-radius: 7px; background: var(--c-bcaa); min-width: 2px; }
+  .covrow .track { position: relative; height: 14px; background: var(--surface-2); border-radius: 2px; }
+  .covrow .fill { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: var(--c-bcaa); min-width: 2px; }
   .covrow.is-limit .fill { background: var(--c-limit); }
   .covrow .goal { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: 0.65; }
   .covrow .goal.base { opacity: 0.25; }
@@ -252,11 +293,11 @@
   .cov-note { font-size: 13px; color: var(--ink-3); margin-top: 10px; }
 
   /* calculator */
-  .calc { background: var(--surface-2); border-radius: 14px; padding: 20px 22px; margin-top: 8px; }
+  .calc { background: var(--surface-2); border-radius: 3px; padding: 20px 22px; margin-top: 8px; }
   .calc-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; margin-bottom: 14px; font-size: 14.5px; }
   .ctl-group {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 2px;
     padding: 12px 18px;
   }
   .ctl-label {
@@ -266,21 +307,21 @@
   .calc-controls label { color: var(--ink-2); }
   .calc-controls input {
     width: 96px; margin-left: 8px; background: var(--surface); color: var(--ink);
-    border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px 12px; font-size: 16px;
+    border: 1px solid var(--line-strong); border-radius: 2px; padding: 10px 12px; font-size: 16px;
     font-variant-numeric: tabular-nums;
   }
   .calc-controls select {
     margin-left: 6px; background: var(--surface); color: var(--ink);
-    border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px 10px; font-size: 14px;
+    border: 1px solid var(--line-strong); border-radius: 2px; padding: 10px 10px; font-size: 14px;
   }
   .prot-targets { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; }
-  .prot-target { flex: 1 1 220px; background: var(--surface); border-radius: 10px; padding: 14px 18px; font-size: 13.5px; color: var(--ink-2); }
+  .prot-target { flex: 1 1 220px; background: var(--surface); border-radius: 2px; padding: 14px 18px; font-size: 13.5px; color: var(--ink-2); }
   .prot-target .t { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
   .prot-target .n { font-size: 21px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
   .prot-target .n small { font-size: 12px; font-weight: 400; color: var(--ink-3); }
   .rate-in {
     width: 84px; background: var(--surface); color: var(--ink);
-    border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 10px;
+    border: 1px solid var(--line-strong); border-radius: 2px; padding: 7px 10px;
     font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums;
   }
   .calc-summary { font-size: 15px; color: var(--ink-2); margin: 0 0 6px; max-width: 70ch; }
@@ -289,19 +330,19 @@
   /* my day */
   .day-btn {
     border: 1px solid var(--c-bcaa); background: var(--c-bcaa); color: #fff;
-    border-radius: 999px; padding: 6px 16px; font-size: 12.5px; font-weight: 700;
+    border-radius: 2px; padding: 6px 16px; font-size: 12.5px; font-weight: 700;
   }
   .day-list { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 14px; }
   .day-row {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 2px;
     padding: 8px 12px; font-size: 14.5px;
   }
   .day-row .nm { flex: 1 1 150px; }
   .day-row label { color: var(--ink-2); font-size: 12.5px; }
   .day-row input, .day-add input {
     width: 64px; margin: 0 4px; background: var(--surface); color: var(--ink);
-    border: 1px solid var(--line-strong); border-radius: 8px; padding: 5px 8px;
+    border: 1px solid var(--line-strong); border-radius: 2px; padding: 5px 8px;
     font-size: 13px; font-variant-numeric: tabular-nums;
   }
   .day-row .sub { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -310,11 +351,11 @@
   .day-add { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 4px 0 16px; font-size: 13px; color: var(--ink-2); }
   .day-add input#dayPick {
     flex: 1 1 220px; max-width: 320px; width: auto; margin: 0; background: var(--surface); color: var(--ink);
-    border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 10px; font-size: 13px;
+    border: 1px solid var(--line-strong); border-radius: 2px; padding: 7px 10px; font-size: 13px;
   }
-  .day-add button { border: 0; background: var(--c-bcaa); color: #fff; border-radius: 8px; padding: 7px 16px; font-size: 13px; font-weight: 600; }
-  .clear-day { border: 1px solid var(--line-strong); background: transparent; color: var(--ink-3); border-radius: 999px; padding: 5px 12px; font-size: 12px; margin-left: auto; }
-  .add-day { margin-top: 12px; border: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 999px; padding: 7px 16px; font-size: 13px; }
+  .day-add button { border: 0; background: var(--c-bcaa); color: #fff; border-radius: 2px; padding: 7px 16px; font-size: 13px; font-weight: 600; }
+  .clear-day { border: 1px solid var(--line-strong); background: transparent; color: var(--ink-3); border-radius: 2px; padding: 5px 12px; font-size: 12px; margin-left: auto; }
+  .add-day { margin-top: 12px; border: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 2px; padding: 7px 16px; font-size: 13px; }
   .add-day.added { background: transparent; border-color: var(--c-bcaa); color: var(--c-bcaa); cursor: default; }
   .go-day-inline { margin-left: 10px; background: var(--c-bcaa); border-color: var(--c-bcaa); color: #fff; font-weight: 600; }
   .day-bloom { max-width: 300px; margin: 18px auto 0; }
@@ -349,32 +390,32 @@
   /* ---------- compare tray & view ---------- */
   .tray {
     position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 40;
-    background: var(--ink); color: var(--bg); border-radius: 999px;
+    background: var(--ink); color: var(--bg); border-radius: 2px;
     padding: 9px 10px 9px 20px; display: flex; align-items: center; gap: 12px;
     font-size: 13.5px; box-shadow: var(--shadow); max-width: calc(100vw - 32px);
   }
   .tray[hidden] { display: none; }
   .tray .names { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
-  .tray button.go { background: var(--bg); color: var(--ink); border: 0; border-radius: 999px; padding: 6px 16px; font-size: 13px; font-weight: 600; }
+  .tray button.go { background: var(--bg); color: var(--ink); border: 0; border-radius: 2px; padding: 6px 16px; font-size: 13px; font-weight: 600; }
   .tray button.clear { background: transparent; border: 0; color: var(--bg); opacity: 0.65; font-size: 13px; }
   .cmp-cols { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 18px; }
-  .cmp-col { background: var(--surface-2); border-radius: 14px; padding: 16px; }
-  .cmp-col h3 { font-family: var(--font-serif); font-weight: 500; font-size: 19px; margin: 0 0 2px; }
+  .cmp-col { background: var(--surface-2); border-radius: 3px; padding: 16px; }
+  .cmp-col h3 { font-family: var(--font-serif); font-weight: 600; font-size: 19px; margin: 0 0 2px; }
   .cmp-col .meta { font-size: 12px; color: var(--ink-3); margin-bottom: 8px; }
   .cmp-col .covrow { grid-template-columns: 96px 1fr 52px; font-size: 12px; }
 
   /* ---------- amino acid vs amino acid ---------- */
   .pick-row select {
     background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
-    border-radius: 8px; padding: 8px 10px; font-size: 14px; max-width: 46vw;
+    border-radius: 2px; padding: 8px 10px; font-size: 14px; max-width: 46vw;
   }
   .go-cmp {
-    border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px;
+    border: 0; background: var(--c-bcaa); color: #fff; border-radius: 2px;
     padding: 9px 20px; font-size: 13.5px; font-weight: 700; white-space: nowrap;
   }
   .aa-col h3 { font-size: 22px; }
   .aa-col .aa-role { font-size: 14px; color: var(--ink-2); margin: 10px 0 14px; line-height: 1.5; }
-  .aa-col .aa-need { background: var(--surface); border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; font-size: 13.5px; }
+  .aa-col .aa-need { background: var(--surface); border-radius: 2px; padding: 10px 12px; margin-bottom: 16px; font-size: 13.5px; }
   .aa-col .aa-need .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 2px; }
   .aa-col h4 { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin: 0 0 8px; }
   .aa-src-row { display: grid; grid-template-columns: 1fr 64px; gap: 0 8px; align-items: center; font-size: 12.5px; margin-bottom: 9px; }
@@ -385,7 +426,7 @@
 
   /* ---------- methodology ---------- */
   .method { border-top: 1px solid var(--line); margin-top: 26px; padding: 46px 0 30px; }
-  .method h2 { font-family: var(--font-serif); font-weight: 500; font-size: 28px; margin: 0 0 10px; }
+  .method h2 { font-family: var(--font-serif); font-weight: 600; font-size: 28px; margin: 0 0 10px; }
   .method-grid { display: grid; gap: 26px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 18px; }
   .method h3 { font-size: 14px; margin: 0 0 6px; }
   .method p { color: var(--ink-2); font-size: 14.5px; margin: 0 0 10px; }
@@ -395,7 +436,7 @@
   .tip {
     position: fixed; z-index: 60; pointer-events: none;
     background: var(--ink); color: var(--bg); font-size: 13px; line-height: 1.45;
-    padding: 7px 11px; border-radius: 8px; max-width: 240px;
+    padding: 7px 11px; border-radius: 2px; max-width: 240px;
     transform: translate(-50%, calc(-100% - 10px));
   }
   .tip[hidden] { display: none; }
@@ -411,7 +452,7 @@
 
 <div class="topbar">
   <div class="wrap topbar-inner">
-    <span class="brand">Amino Atlas</span>
+    <span class="brand"><svg class="mark" width="13" height="20" viewBox="0 0 13 20" aria-hidden="true"><rect x="0.75" y="0.75" width="11.5" height="18.5" fill="none" stroke="currentColor" stroke-width="1"/><line x1="2.5" y1="4" x2="10.5" y2="4" stroke="currentColor" stroke-width="0.75" stroke-dasharray="1.6 1.4" opacity="0.45"/><circle cx="6.5" cy="7.6" r="2.3" fill="var(--c-bcaa)"/><circle cx="6.5" cy="12" r="1.7" fill="var(--c-bcaa)" opacity="0.6"/><circle cx="6.5" cy="15.4" r="1.2" fill="var(--c-bcaa)" opacity="0.35"/></svg>Amino Atlas</span>
     <div class="menu-wrap">
       <button class="burger menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
       <div class="menu-pop" hidden>
@@ -429,22 +470,10 @@
     <p class="eyebrow">An open reference · draft for review</p>
     <h1 class="masthead">Every protein<br />has a <em>shape.</em></h1>
     <p class="standfirst">
-      Protein isn't really one thing. Every gram you eat is built from <strong>amino acids</strong>,
-      the blocks of life your body takes apart and rebuilds into muscle, skin, enzymes and hormones.
-      Nine of them are <em>essential</em>: your body can't make them, so your food has to supply every one.
+      Every gram of protein you eat is built from 18 amino acids, and different foods carry
+      very different mixes of them. Amino Atlas maps the full profile of 4,000+ foods against
+      your daily needs, so you can see what you are actually getting.
     </p>
-    <p class="standfirst">
-      Here's the catch: different protein sources carry very different mixes of those blocks.
-      Two foods with the same protein number can feed your body very differently: one covers all nine,
-      another runs quietly short. Amino Atlas breaks down the full amino acid composition of the foods
-      we actually eat, so you can see how close you are to your <strong>amino acid</strong> needs, not just a protein number.
-    </p>
-    <div class="legend-row" aria-hidden="false">
-      <span><span class="swatch" style="background:var(--c-bcaa)"></span>BCAAs</span>
-      <span><span class="swatch" style="background:var(--c-ess)"></span>Other essential amino acids</span>
-      <span><span class="swatch" style="background:var(--c-non)"></span>Non-essential</span>
-      <span style="color:var(--ink-3)">Ray length = grams per 100 g of protein</span>
-    </div>
   </div>
 </header>
 
@@ -462,6 +491,7 @@
         <option value="name">A → Z</option>
       </select>
     </div>
+    <span class="kbd-hints" aria-hidden="true">/ search · ↑↓ select · ↵ open · c compare</span>
   </div>
 </div>
 
@@ -511,7 +541,8 @@
 
 <footer class="site">
   <div class="wrap">
-    Amino Atlas · draft v0.1 · Educational reference, not medical advice. Compiled from public analytical data; corrections welcome.
+    Amino Atlas · draft v0.1 · Educational reference, not medical advice. Compiled from public analytical data; corrections welcome.<br>
+    <span style="font-family:var(--font-mono);font-size:11px">Cite: Amino Atlas (2026), amino-acid-site.vercel.app · Data: USDA FoodData Central, SR Legacy · Scoring: WHO/FAO/UNU (2007)</span>
   </div>
 </footer>
 
@@ -751,18 +782,63 @@ function visibleFoods() {
   return list;
 }
 
-const MAX_CARDS = 80;
+const MAX_ROWS = 200;
+function srcShort(f) {
+  const m = (f.source || "").match(/FDC(?: ID)? (\d+)/);
+  if (m) return "FDC " + m[1];
+  if (/Gorissen/.test(f.source || "")) return "Gorissen 2018";
+  if (/laborator/i.test(f.source || "")) return "Lab analysis";
+  return (f.source || "").split(",")[0].slice(0, 22);
+}
+const TBL_COLS = [
+  ["Food", "name", "name"], ["Protein g/100g", "protein", "num"],
+  ["Leu g/100g prot", "leucine", "num"], ["EAA g/100g prot", "eaa", "num"],
+  ["Limiting", null, "lim"], ["Score", "score", "num"], ["Source", null, "src"]
+];
+function renderTable(list) {
+  const shown = list.slice(0, MAX_ROWS);
+  const head = TBL_COLS.map(([label, key, cls]) =>
+    `<th class="${cls}${key === state.sort ? " on" : ""}"${key ? ` data-sort="${key}" role="button" tabindex="0"` : ""}>${label}${key === state.sort ? " ▾" : ""}</th>`).join("");
+  const rows = shown.map(f => {
+    const m = f.metrics, complete = m.score >= 1;
+    const lim = complete ? "" : m.min.label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr");
+    const w = (Math.min(m.score, 1.6) / 1.6 * 100).toFixed(0);
+    return `<tr data-fid="${f.id}">
+      <td class="name">${f.name}</td>
+      <td class="num">${f.protein_g_per_100g.toFixed(1)}</td>
+      <td class="num">${m.leu.toFixed(1)}</td>
+      <td class="num">${m.eaa.toFixed(0)}</td>
+      <td class="lim">${lim}</td>
+      <td class="num"><span class="scorebar${complete ? "" : " short"}" style="--w:${w}%">${Math.round(m.score * 100)}%</span></td>
+      <td class="src" title="${(f.source || "").replace(/"/g, "&quot;")}">${srcShort(f)}</td>
+    </tr>`;
+  }).join("");
+  grid.classList.add("as-table");
+  grid.innerHTML = `<div class="table-wrap"><table class="atlas-tbl"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  grid.querySelectorAll("th[data-sort]").forEach(th => th.addEventListener("click", () => {
+    state.sort = th.dataset.sort;
+    const sel = document.getElementById("sort");
+    if ([...sel.options].some(o => o.value === state.sort)) sel.value = state.sort;
+    renderGrid();
+  }));
+  grid.querySelectorAll("tbody tr").forEach(tr => tr.addEventListener("click", () => openDetail(+tr.dataset.fid)));
+}
 function renderGrid() {
   const list = visibleFoods();
   const isDefault = !state.q && state.cat === "all";
-  const shown = isDefault ? list.filter(f => f.tier !== "bulk") : list.slice(0, MAX_CARDS);
+  const shown = isDefault ? list.filter(f => f.tier !== "bulk") : list.slice(0, MAX_ROWS);
   grid.innerHTML = "";
   emptyEl.hidden = list.length > 0;
-  countLine.textContent = isDefault
+  const text = isDefault
     ? `${shown.length} featured sources of ${ATLAS.foods.length.toLocaleString()} foods in the atlas. Search or filter to explore the full USDA set`
     : list.length > shown.length
       ? `Showing ${shown.length} of ${list.length.toLocaleString()} matches. Refine your search to narrow it down`
-      : `${list.length} match${list.length === 1 ? "" : "es"} · click any bloom for the full profile`;
+      : `${list.length} match${list.length === 1 ? "" : "es"} · click any row for the full profile`;
+  countLine.innerHTML = text + (isDefault ? "" : ` <button class="csv-btn" id="csvBtn">Download CSV</button>`);
+  const csvBtn = document.getElementById("csvBtn");
+  if (csvBtn) csvBtn.addEventListener("click", () => downloadCSV("amino-atlas-results.csv", foodsCSV(list)));
+  if (!isDefault) { renderTable(list); refreshKbd(); return; }
+  grid.classList.remove("as-table");
   shown.forEach(f => {
     const m = f.metrics;
     const card = document.createElement("button");
@@ -782,10 +858,59 @@ function renderGrid() {
     cmp.textContent = state.compare.includes(f.id) ? "✓" : "+";
     cmp.addEventListener("click", e => { e.stopPropagation(); toggleCompare(f.id); });
     card.appendChild(cmp);
+    card.dataset.fid = f.id;
     card.addEventListener("click", () => openDetail(f.id));
     grid.appendChild(card);
   });
+  refreshKbd();
 }
+
+/* ================= CSV export ================= */
+function foodsCSV(list) {
+  const aaKeys = AA_META.map(m => m[0]);
+  const head = ["name", "category", "state", "protein_g_per_100g",
+    ...aaKeys.map(k => k + "_g_per_100g"), "score_pct", "limiting", "source"];
+  const esc = v => { v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const lines = [head.join(",")];
+  list.forEach(f => {
+    const m = f.metrics;
+    lines.push([f.name, f.category, f.state, f.protein_g_per_100g,
+      ...aaKeys.map(k => f.aa[k]), Math.round(m.score * 100),
+      m.score >= 1 ? "" : m.min.label, f.source || ""].map(esc).join(","));
+  });
+  return lines.join("\n");
+}
+function downloadCSV(filename, text) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ================= keyboard: / search, arrows select, enter open, c compare ================= */
+let kbdItems = [], kbdSel = -1;
+function refreshKbd() {
+  kbdItems = [...grid.querySelectorAll("[data-fid]")];
+  kbdSel = Math.min(kbdSel, kbdItems.length - 1);
+  kbdItems.forEach((el, i) => el.classList.toggle("kbd-sel", i === kbdSel));
+}
+document.addEventListener("keydown", e => {
+  const typing = /INPUT|SELECT|TEXTAREA/.test((document.activeElement || {}).tagName || "");
+  if (e.key === "/" && !typing && overlay.hidden) { e.preventDefault(); document.getElementById("search").focus(); return; }
+  if (typing || !overlay.hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    if (!kbdItems.length) return;
+    e.preventDefault();
+    kbdSel = e.key === "ArrowDown" ? Math.min(kbdSel + 1, kbdItems.length - 1) : Math.max(kbdSel - 1, 0);
+    kbdItems.forEach((el, i) => el.classList.toggle("kbd-sel", i === kbdSel));
+    kbdItems[kbdSel].scrollIntoView({ block: "nearest" });
+  } else if (e.key === "Enter" && kbdSel >= 0) {
+    openDetail(+kbdItems[kbdSel].dataset.fid);
+  } else if ((e.key === "c" || e.key === "C") && kbdSel >= 0) {
+    toggleCompare(+kbdItems[kbdSel].dataset.fid);
+  }
+});
 
 /* ================= tooltip ================= */
 const tip = document.getElementById("tip");
@@ -873,8 +998,11 @@ function renderDetail(id) {
     const gotMg = keys.reduce((s, k) => s + f.aa[k], 0) * portion / 100 * 1000;
     const baseMg = WHO_KG[rid] * weight;
     const isLimiting = rid === m.min.id && !complete;
-    return covRow2(label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), gotMg, baseMg, baseMg * aaScale, isLimiting);
-  }).join("");
+    return { label: label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), gotMg, baseMg, isLimiting, ratio: gotMg / (baseMg * aaScale) };
+  })
+    /* Shortfalls surface first, the limiting amino acid pinned to the top. */
+    .sort((a, b) => (b.isLimiting - a.isLimiting) || (a.ratio - b.ratio))
+    .map(r => covRow2(r.label, r.gotMg, r.baseMg, r.baseMg * aaScale, r.isLimiting)).join("");
 
   const tableRows = AA_META.map(([key, label, cls]) => {
     const rng = f.range_per_protein;
@@ -896,7 +1024,7 @@ function renderDetail(id) {
     <div class="sheet-top">
       <div>
         <h2 id="sheetTitle">${f.name}</h2>
-        <p class="sub">${CAT_LABEL[f.category] || ""} · ${f.protein_g_per_100g.toFixed(1)} g protein per 100 g (${f.state}) · ${f.source}</p>
+        <p class="sub">${CAT_LABEL[f.category] || ""} · ${f.protein_g_per_100g.toFixed(1)} g protein per 100 g (${f.state}) · ${f.source} <button class="csv-btn" id="foodCsv">CSV</button></p>
       </div>
     </div>
 
@@ -947,6 +1075,8 @@ function renderDetail(id) {
   `;
 
   sheet.querySelector(".close").addEventListener("click", closeDetail);
+  sheet.querySelector("#foodCsv").addEventListener("click", () =>
+    downloadCSV(f.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".csv", foodsCSV([f])));
   sheet.querySelector("#thriveG").addEventListener("change", e => {
     const v = +e.target.value;
     store.setItem("aa_thrive_g", v > 0 ? Math.max(30, Math.min(500, v)) : "");
