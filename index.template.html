@@ -734,12 +734,10 @@ function renderBloom(f, opts) {
     }
     const nameStyle = `font-size:13.5px;font-weight:500;fill:var(--ink);font-family:var(--font-sans);`;
     if (lines.length === 2) {
-      s += `<text x="${cx}" y="${cy - 14}" text-anchor="middle" style="${nameStyle}">${lines[0]}</text>`;
-      s += `<text x="${cx}" y="${cy + 2}" text-anchor="middle" style="${nameStyle}">${lines[1]}</text>`;
-      s += `<text x="${cx}" y="${cy + 20}" text-anchor="middle" style="font-size:10.5px;fill:var(--ink-3);font-family:var(--font-sans);">g per 100 g ${unit === "food" ? stateWord(f) : "protein"}</text>`;
+      s += `<text x="${cx}" y="${cy - 8}" text-anchor="middle" style="${nameStyle}">${lines[0]}</text>`;
+      s += `<text x="${cx}" y="${cy + 8}" text-anchor="middle" style="${nameStyle}">${lines[1]}</text>`;
     } else {
-      s += `<text x="${cx}" y="${cy - 5}" text-anchor="middle" style="${nameStyle}">${lines[0]}</text>`;
-      s += `<text x="${cx}" y="${cy + 13}" text-anchor="middle" style="font-size:10.5px;fill:var(--ink-3);font-family:var(--font-sans);">g per 100 g ${unit === "food" ? stateWord(f) : "protein"}</text>`;
+      s += `<text x="${cx}" y="${cy + 1}" text-anchor="middle" style="${nameStyle}">${lines[0]}</text>`;
     }
   }
   const label = `Radial bloom of ${f.name} amino acid profile; ray length proportional to grams per 100 grams of ${unit === "food" ? "food" : "protein"}.`;
