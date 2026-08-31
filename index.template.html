@@ -93,6 +93,14 @@
   }
   .legend-row .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: -1px; }
 
+  /* ---------- top bar ---------- */
+  .topbar { border-bottom: 1px solid var(--line); background: var(--bg); }
+  .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+  .topbar .brand {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink);
+  }
+
   /* ---------- toolbar ---------- */
   .toolbar {
     position: sticky; top: 0; z-index: 30;
@@ -418,6 +426,20 @@
 
 <div class="tip" id="tip" hidden role="status"></div>
 
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <span class="brand">Amino Atlas</span>
+    <div class="menu-wrap">
+      <button class="burger menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
+      <div class="menu-pop" hidden>
+        <button data-act="compare">Compare<span class="mi-sub">Foods or amino acids, side by side</span></button>
+        <button data-act="day">Day tracker<span class="mi-sub">Total your meals against your targets</span></button>
+        <button data-act="method">How the numbers work</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <header class="site">
   <div class="wrap">
     <canvas id="heroAnim" aria-hidden="true"></canvas>
@@ -458,8 +480,8 @@
       </select>
     </div>
     <div class="menu-wrap">
-      <button class="burger" id="menuBtn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
-      <div class="menu-pop" id="menuPop" hidden>
+      <button class="burger menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
+      <div class="menu-pop" hidden>
         <button data-act="compare">Compare<span class="mi-sub">Foods or amino acids, side by side</span></button>
         <button data-act="day">Day tracker<span class="mi-sub">Total your meals against your targets</span></button>
         <button data-act="method">How the numbers work</button>
@@ -1248,23 +1270,29 @@ function openComparePicker() {
 
 /* ================= burger menu ================= */
 (function initMenu() {
-  const btn = document.getElementById("menuBtn"), pop = document.getElementById("menuPop");
-  const close = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); };
-  btn.addEventListener("click", e => {
-    e.stopPropagation();
-    pop.hidden = !pop.hidden;
-    btn.setAttribute("aria-expanded", String(!pop.hidden));
+  /* One menu in the top bar, one in the sticky toolbar — same items, same wiring. */
+  const wraps = [...document.querySelectorAll(".menu-wrap")]
+    .map(w => ({ btn: w.querySelector(".menu-btn"), pop: w.querySelector(".menu-pop") }));
+  const closeAll = () => wraps.forEach(({ btn, pop }) => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); });
+  wraps.forEach(({ btn, pop }) => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      const willOpen = pop.hidden;
+      closeAll();
+      pop.hidden = !willOpen;
+      btn.setAttribute("aria-expanded", String(willOpen));
+    });
+    pop.addEventListener("click", e => {
+      const act = e.target.closest("button") && e.target.closest("button").dataset.act;
+      if (!act) return;
+      closeAll();
+      if (act === "compare") openComparePicker();
+      else if (act === "day") openDay();
+      else if (act === "method") document.getElementById("method").scrollIntoView({ behavior: "smooth" });
+    });
   });
-  document.addEventListener("click", e => { if (!pop.hidden && !pop.contains(e.target)) close(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && !pop.hidden) { close(); btn.focus(); } });
-  pop.addEventListener("click", e => {
-    const act = e.target.closest("button") && e.target.closest("button").dataset.act;
-    if (!act) return;
-    close();
-    if (act === "compare") openComparePicker();
-    else if (act === "day") openDay();
-    else if (act === "method") document.getElementById("method").scrollIntoView({ behavior: "smooth" });
-  });
+  document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap")) closeAll(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeAll(); });
 })();
 
 /* ================= my day ================= */
