@@ -366,6 +366,14 @@
   .covrow.is-limit .pct { color: var(--c-limit); font-weight: 600; }
   .cov-note { font-size: 13px; color: var(--ink-3); margin-top: 10px; }
   .cov-i { margin-left: 6px; vertical-align: 0; }
+  .cov-group { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin: 14px 0 4px; }
+  .cov-group span { font-family: var(--font-sans); font-size: 12.5px; letter-spacing: 0; text-transform: none; color: var(--ink-3); margin-left: 8px; }
+  .cov-set { display: flex; flex-direction: column; gap: 9px; }
+  .cov-set.bcaa .covrow .fill { background: var(--c-bcaa); }
+  .cov-set.ess .covrow .fill { background: var(--c-ess); }
+  .cov-set.non .covrow .fill { background: var(--c-non); opacity: 0.85; }
+  .cov-set .covrow.is-limit .fill { background: var(--c-limit); opacity: 1; }
+  .covrow.amt .pct { color: var(--ink-2); font-weight: 400; }
   .cov-info { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; margin: 0 0 4px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
   .cov-info p { margin: 0 0 8px; } .cov-info p:last-child { margin: 0; }
   .cov-info b { color: var(--ink); }
@@ -1556,7 +1564,9 @@ document.addEventListener("click", e => {
   document.querySelectorAll(".cov-i").forEach(x => x.setAttribute("aria-expanded", "false"));
   if (open) return;
   const key = btn.dataset.info;
+  const single = AA_INFO[key] ? [[(AA_META.find(m => m[0] === key) || [key, key])[1], AA_INFO[key][1], AA_INFO[key][0]]] : null;
   const entries = key === "protein" ? [PROTEIN_INFO]
+    : single ? single
     : (SCORE_ROWS.find(r => r[0] === key) || [null, null, []])[2].map(k => { const meta = AA_META.find(m => m[0] === k); return [meta ? meta[1] : k, AA_INFO[k] ? AA_INFO[k][1] : "", AA_INFO[k] ? AA_INFO[k][0] : ""]; });
   const panel = document.createElement("div");
   panel.className = "cov-info";
@@ -1564,6 +1574,32 @@ document.addEventListener("click", e => {
   row.after(panel);
   btn.setAttribute("aria-expanded", "true");
 });
+
+/* Amount-only bar (no requirement line): used for non-essential amino acids */
+function covRowAmt(label, g, max, infoKey) {
+  const w = max ? Math.min(g, max) / max * 100 : 0;
+  return `<div class="covrow amt">
+    <span class="aa-name">${label}${infoKey ? `<button type="button" class="info-btn cov-i" data-info="${infoKey}" aria-expanded="false" aria-label="About ${label}">i</button>` : ""}</span>
+    <span class="track"><span class="fill" style="width:${w}%"></span></span>
+    <span class="pct">${g.toFixed(1)} g</span></div>`;
+}
+/* All amino acids for a day, grouped: BCAAs, other essentials (vs needs), non-essentials (amount eaten) */
+function groupedNeedRows(totals, weight, aaScale) {
+  const shortLbl = l => l.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr");
+  const rowFor = rid => {
+    const [id, label, keys] = SCORE_ROWS.find(r => r[0] === rid);
+    const got = keys.reduce((s, k) => s + totals[k], 0) * 1000, base = WHO_KG[id] * weight;
+    return covRow2(shortLbl(label), got, base, base * aaScale, undefined, id);
+  };
+  const nonKeys = AA_META.filter(m => m[2] === "n").map(m => m[0]);
+  const maxNon = Math.max(...nonKeys.map(k => totals[k]));
+  return `<div class="cov-group">BCAAs <span>essential, branched-chain</span></div>
+    <div class="cov-set bcaa">${["leucine", "isoleucine", "valine"].map(rowFor).join("")}</div>
+    <div class="cov-group">Other essential amino acids</div>
+    <div class="cov-set ess">${["histidine", "lysine", "saa", "aaa", "threonine", "tryptophan"].map(rowFor).join("")}</div>
+    <div class="cov-group">Non-essential <span>your body makes these; no daily requirement, so this is the amount eaten</span></div>
+    <div class="cov-set non">${nonKeys.map(k => covRowAmt(AA_META.find(m => m[0] === k)[1], totals[k], maxNon, k)).join("")}</div>`;
+}
 
 function covRow2(label, val, base, target, flagged, infoKey) {
   const span = target * 1.6;
@@ -1610,11 +1646,7 @@ function renderDay() {
     ? `Against your target you're still short on <b>${shortOn.join(", ")}</b>.`
     : "Every essential amino acid target is covered for the day.";
 
-  const eaaRows = SCORE_ROWS.map(([rid, label, keys]) => {
-    const got = keys.reduce((s, k) => s + totals[k], 0) * 1000;
-    const base = WHO_KG[rid] * weight;
-    return covRow2(label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), got, base, base * aaScale, undefined, rid);
-  }).join("");
+  const eaaRows = groupedNeedRows(totals, weight, aaScale);
 
   const pseudo = { name: "Your day", state: "as sold", protein_g_per_100g: protTotal || 1, aa: totals };
 
@@ -1997,10 +2029,7 @@ function showView(v) {
     // static bloom: strip the hover class so tooltips never look up a pseudo food
     const bloom = renderBloom(pseudo, { unit: "protein", band: false }).replace(/ class="ray"[^>]*?(?=\/>)/g, "");
 
-    const eaaRows = SCORE_ROWS.map(([rid, label, keys]) => {
-      const got = keys.reduce((s, k) => s + totals[k], 0) * 1000, base = WHO_KG[rid] * weight;
-      return covRow2(short(label), got, base, base * aaScale, undefined, rid);
-    }).join("");
+    const eaaRows = groupedNeedRows(totals, weight, aaScale);
 
     last = { day, prot, totals, eaa, score: min.ratio, complete, minLabel: min.label };
     const link = dayLink(), enc = encodeURIComponent;
@@ -2043,7 +2072,7 @@ function showView(v) {
           <div class="v2-sec">Against your daily needs</div>
           <div class="covbars">${covRow2("Protein", prot, protFloor, protThrive, undefined, "protein")}</div>
           <div class="covbars" style="margin-top:10px">${eaaRows}</div>
-          <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it.</p>
+          <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten.</p>
         </div>
       </div>`;
 
