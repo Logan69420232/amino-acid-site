@@ -65,7 +65,7 @@ const bulk = load("usda_bulk.json") || [];
 const foods = [
   ...[...meatDairy, ...seafoodPlants, ...suppFoods].map(f => ({ ...f, tier: "featured" })),
   ...bulk
-].map(f => ({ ...f, serving_g: f.serving_g || servingFor(f), aliases: aliasesFor(f) }));
+].map(f => ({ ...f, name: f.name.replace(/\s*--\s*/g, ", "), serving_g: f.serving_g || servingFor(f), aliases: aliasesFor(f) }));
 
 // Reference values (agent-verified where available, WHO/FAO/UNU 2007 defaults otherwise)
 const atlas = {
