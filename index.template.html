@@ -1195,7 +1195,7 @@ function renderDetail(id) {
       </table>
     </div>
     <p class="src-note">Daily targets: WHO/FAO 2007 baseline at your body weight, scaled to your ${protThrive.toFixed(0)} g protein target. Met+Cys and Phe+Tyr are counted together; non-essential amino acids have no set target.</p>
-    <p class="src-note"><strong>Source:</strong> ${f.source}.${f.notes ? " " + f.notes : ""} ${f.range_per_protein
+    <p class="src-note"><strong>Source:</strong> ${f.source}.${f.usda_name && f.usda_name !== f.name ? " USDA record name: " + f.usda_name + "." : ""}${f.notes ? " " + f.notes : ""} ${f.range_per_protein
       ? "The faint band on each ray shows this food's published range across analyses, not an estimate."
       : "Values are typical for this food; individual samples vary with breed, feed, cultivar and processing (indicatively ±10%, shown as the faint band on each ray)."}</p>
     ${f.range_note ? `<p class="src-note"><strong>About this range:</strong> ${f.range_note}</p>` : ""}
@@ -1497,7 +1497,7 @@ function openComparePicker() {
 /* ================= my day ================= */
 function loadDay() { try { return JSON.parse(store.getItem("aa_day") || "[]").filter(e => foodByName(e.name)); } catch (e) { return []; } }
 function saveDay(d) { store.setItem("aa_day", JSON.stringify(d)); updateDayBtn(); }
-function foodByName(n) { return ATLAS.foods.find(f => f.name === n); }
+function foodByName(n) { return ATLAS.foods.find(f => f.name === n) || ATLAS.foods.find(f => f.usda_name === n); }
 function updateDayBtn() {}
 
 function addToDay(name, grams) {

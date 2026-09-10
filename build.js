@@ -62,11 +62,55 @@ function aliasesFor(f) {
   return ALIASES.filter(([re]) => re.test(f.name)).map(([, t]) => t).join(" ");
 }
 
+// Plain-English display names for USDA records (the USDA name is kept as usda_name)
+const NAME_RULES = [
+  [/^Chicken, broilers? or fryers, /i, "Chicken, "],
+  [/^Chicken, roasting, /i, "Chicken (roaster), "],
+  [/^Chicken, stewing, /i, "Chicken (stewing hen), "],
+  [/^Chicken, capons, /i, "Capon, "],
+  [/^Turkey, (all classes|fryer-roasters|young hen|young tom), /i, "Turkey, "],
+  [/^Fish, /i, ""], [/^Crustaceans, /i, ""], [/^Mollusks, /i, ""],
+  [/^Game meat, deer, /i, "Venison, "], [/^Game meat, bison, /i, "Bison, "], [/^Game meat, /i, ""],
+  [/^Lamb, domestic, /i, "Lamb, "], [/^Lamb, (australian|new zealand), imported, /i, "Lamb ($1), "],
+  [/^Pork, fresh, /i, "Pork, "], [/^Pork, cured, bacon, /i, "Bacon, "], [/^Pork, cured, ham, /i, "Ham, "],
+  [/^Egg, whole, /i, "Egg, "], [/^Egg, white, /i, "Egg white, "], [/^Egg, yolk, /i, "Egg yolk, "],
+  [/^Nuts, /i, ""], [/^Seeds, /i, ""], [/^Cereals ready-to-eat, /i, ""], [/^Cereals, /i, ""],
+  [/, separable lean only/gi, ", lean only"], [/, separable lean and fat/gi, ", lean and fat"],
+  [/, cooked, broiled/gi, ", grilled"], [/, cooked, pan-broiled/gi, ", pan-fried"],
+  [/, cooked, (roasted|grilled|braised|fried|stewed|baked|simmered|poached|steamed|microwaved|pan-fried)/gi, ", $1"],
+  [/, cooked, (hard-boiled|scrambled|poached|pan-browned|omelet)/gi, ", $1"],
+  [/^Beef, ground, (\d+)% lean meat \/ \d+% fat/i, "Beef mince, $1% lean"],
+  [/^(Pork|Turkey|Chicken|Lamb|Venison|Bison), ground, /i, "$1 mince, "],
+  [/pan-broiled/gi, "pan-fried"],
+  [/, cooked, dry heat/gi, ", cooked"], [/, cooked, moist heat/gi, ", cooked"],
+  [/, cooked, boiled, drained/gi, ", boiled"], [/, boiled, drained/gi, ", boiled"],
+  [/, (with|without) salt/gi, ""], [/, unprepared/gi, ", frozen"],
+  [/ \(may contain additives to retain moisture\)/gi, ""], [/ \(includes foods for usda's food distribution program\)/gi, ""],
+  [/, all classes/gi, ""], [/, mixed species/gi, ""], [/, raw$/i, ", raw"]
+];
+function displayName(usda) {
+  let n = usda;
+  for (const [re, rep] of NAME_RULES) n = n.replace(re, rep);
+  n = n.replace(/\s*,\s*,+/g, ",").replace(/^\s*,\s*/, "").replace(/\s*,\s*$/, "").replace(/\s{2,}/g, " ").trim();
+  return n ? n[0].toUpperCase() + n.slice(1) : usda;
+}
+
 const bulk = load("usda_bulk.json") || [];
+const taken = new Set([...meatDairy, ...seafoodPlants, ...suppFoods].map(f => f.name));
+const renamedBulk = bulk.map(f => {
+  const usda = f.name.replace(/\s*--\s*/g, ", ");
+  return { ...f, usda_name: usda, name: displayName(usda) };
+});
+// never let a rewrite make two foods share a name: fall back to the USDA name for collisions
+const counts = {};
+for (const f of renamedBulk) counts[f.name] = (counts[f.name] || 0) + 1;
+let collisions = 0;
+for (const f of renamedBulk) if (counts[f.name] > 1 || taken.has(f.name)) { f.name = taken.has(f.usda_name) ? f.usda_name + " (USDA)" : f.usda_name; collisions++; }
 const foods = [
   ...[...meatDairy, ...seafoodPlants, ...suppFoods].map(f => ({ ...f, tier: "featured" })),
-  ...bulk
-].map(f => ({ ...f, name: f.name.replace(/\s*--\s*/g, ", "), serving_g: f.serving_g || servingFor(f), aliases: aliasesFor(f) }));
+  ...renamedBulk
+].map(f => ({ ...f, serving_g: f.serving_g || servingFor(f), aliases: aliasesFor(f) }));
+console.log(`display names: ${renamedBulk.filter(f => f.name !== f.usda_name).length} rewritten, ${collisions} kept as USDA to avoid duplicates`);
 
 // Reference values (agent-verified where available, WHO/FAO/UNU 2007 defaults otherwise)
 const atlas = {
