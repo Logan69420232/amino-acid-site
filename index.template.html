@@ -505,7 +505,6 @@
       <div class="menu-pop" hidden>
         <button data-act="atlas">Amino acid database<span class="mi-sub">Browse every food's individual amino acid profile</span></button>
         <button data-act="compare">Compare<span class="mi-sub">Foods or amino acids, side by side</span></button>
-        <button data-act="day">Day tracker<span class="mi-sub">Enter all your protein sources to see daily consumption</span></button>
         <button data-act="method">How the numbers work</button>
       </div>
     </div>
@@ -1117,7 +1116,7 @@ function renderDetail(id) {
         </div>
       </div>
       <div class="prot-targets">
-        <div class="prot-target"><div class="t">Daily protein · survival floor</div><div class="n">${protFloor.toFixed(0)} g<small> of protein a day · RDA 0.8 g/kg</small></div>Enough to prevent deficiency, not a target. Based on your body weight of ${displayWeight} ${wUnit}, set in the <b>Day tracker</b>.</div>
+        <div class="prot-target"><div class="t">Daily protein · survival floor</div><div class="n">${protFloor.toFixed(0)} g<small> of protein a day · RDA 0.8 g/kg</small></div>Enough to prevent deficiency, not a target. Based on your body weight of ${displayWeight} ${wUnit}, set on the <b>home page</b>.</div>
         <div class="prot-target"><div class="t">Daily protein · your thrive target</div><div class="n"><input class="rate-in" id="thriveG" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Your daily protein target in grams per day" /><small> g of protein a day</small></div>Total protein you're aiming for across the whole day. Defaults to 1.6 g per kg of body weight, in line with muscle-supporting intakes. Type your own if you work to a different number.</div>
       </div>
       <p class="calc-summary">
@@ -1428,7 +1427,6 @@ function openComparePicker() {
       closeAll();
       if (act === "atlas") showView("atlas");
       else if (act === "compare") openComparePicker();
-      else if (act === "day") openDay();
       else if (act === "method") document.getElementById("method").scrollIntoView({ behavior: "smooth" });
     });
   });
