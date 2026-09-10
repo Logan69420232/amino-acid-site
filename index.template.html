@@ -354,6 +354,11 @@
   .covrow .pct { font-variant-numeric: tabular-nums; color: var(--ink-2); }
   .covrow.is-limit .pct { color: var(--c-limit); font-weight: 600; }
   .cov-note { font-size: 13px; color: var(--ink-3); margin-top: 10px; }
+  .cov-i { margin-left: 6px; vertical-align: 0; }
+  .cov-info { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; margin: 0 0 4px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .cov-info p { margin: 0 0 8px; } .cov-info p:last-child { margin: 0; }
+  .cov-info b { color: var(--ink); }
+  .cov-info .cls { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin-left: 6px; }
 
   /* calculator */
   .calc { background: var(--surface-2); border-radius: 3px; padding: 20px 22px; margin-top: 8px; }
@@ -533,7 +538,7 @@
     <p class="eyebrow">An open reference · draft for review</p>
     <h1 class="masthead">Stop tracking protein.<br />Start tracking <em>amino acids.</em></h1>
     <p class="standfirst">
-      Every gram of protein you eat is built from 18 amino acids, and different foods carry
+      Every gram of protein you eat is built from 20 amino acids, and different foods carry
       very different mixes of them. Amino Atlas maps the full profile of 4,000+ foods against
       your daily needs, so you can see what you are actually getting.
     </p>
@@ -601,7 +606,7 @@
     <div class="method-grid">
       <div>
         <h3>Where the numbers come from</h3>
-        <p>Whole-food profiles are drawn from USDA FoodData Central (SR Legacy analytical data). The featured set is hand-curated, and behind search sits the full SR Legacy import: every USDA food with a complete 18-amino-acid profile (4,000+), filtered through basic quality checks. Supplement powders use typical published compositional analyses (e.g. Gorissen et&nbsp;al. 2018) rather than one brand's label. Each entry lists its source.</p>
+        <p>Whole-food profiles are drawn from USDA FoodData Central (SR Legacy analytical data). The featured set is hand-curated, and behind search sits the full SR Legacy import: every USDA food with a complete 18-amino-acid profile (4,000+; labs report 18 because the analysis merges glutamine into glutamic acid and asparagine into aspartic acid, so all 20 are accounted for), filtered through basic quality checks. Supplement powders use typical published compositional analyses (e.g. Gorissen et&nbsp;al. 2018) rather than one brand's label. Each entry lists its source.</p>
       </div>
       <div>
         <h3>Same food, different sample</h3>
@@ -651,8 +656,8 @@ const AA_INFO = {
   methionine: ["Essential · sulfur", "Every new protein your body makes starts with methionine. It's also the body's main methyl-group donor (SAMe), touching DNA regulation, and the precursor of cysteine. Typically the limiting amino acid in beans, peas and soy."],
   histidine: ["Essential", "Precursor of histamine and of carnosine, the buffer that helps muscle resist acid build-up in hard efforts. Also part of haemoglobin. Needs are modest and most diets cover it comfortably."],
   tryptophan: ["Essential", "The scarcest amino acid in food, and the precursor of serotonin, melatonin and niacin (vitamin B3). Collagen contains literally none of it, which is why collagen scores zero as a complete protein despite being ~90% protein."],
-  glutamic_acid: ["Non-essential", "Usually the most abundant amino acid in any protein (you'll see it dominate most blooms). In the body it's the main excitatory neurotransmitter (glutamate) and the partner of glutamine, a key fuel for gut and immune cells. It's also what your tongue reads as umami."],
-  aspartic_acid: ["Non-essential", "A workhorse of core metabolism: it feeds the urea cycle (clearing nitrogen), DNA and RNA synthesis, and interconverts freely with asparagine. Plentiful in almost every protein."],
+  glutamic_acid: ["Non-essential (includes glutamine)", "Usually the most abundant amino acid in any protein (you'll see it dominate most blooms). In the body it's the main excitatory neurotransmitter (glutamate) and the partner of glutamine, a key fuel for gut and immune cells. It's also what your tongue reads as umami. Food labs report glutamine together with glutamic acid, because the analysis converts one into the other, so this figure is the pair combined."],
+  aspartic_acid: ["Non-essential (includes asparagine)", "A workhorse of core metabolism: it feeds the urea cycle (clearing nitrogen), DNA and RNA synthesis, and interconverts freely with asparagine. Plentiful in almost every protein. Food labs report asparagine together with aspartic acid, because the analysis converts one into the other, so this figure is the pair combined."],
   proline: ["Non-essential", "With glycine, the structural backbone of collagen: skin, tendon, ligament, bone. Casein and collagen are unusually rich in it. The body makes its own, but demand rises when you're building a lot of connective tissue."],
   alanine: ["Non-essential", "The muscle-to-liver glucose shuttle. During exercise or fasting, muscle packages nitrogen as alanine and sends it to the liver, which turns it back into glucose (the glucose-alanine cycle)."],
   serine: ["Non-essential", "Needed for the phospholipids that build every cell membrane, for one-carbon metabolism (with folate), and as a precursor of glycine and cysteine. The body synthesises it readily from glucose."],
@@ -1129,11 +1134,11 @@ function renderDetail(id) {
     const gotMg = keys.reduce((s, k) => s + f.aa[k], 0) * portion / 100 * 1000;
     const baseMg = WHO_KG[rid] * weight;
     const isLimiting = rid === m.min.id && !complete;
-    return { label: label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), gotMg, baseMg, isLimiting, ratio: gotMg / (baseMg * aaScale) };
+    return { id: rid, label: label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), gotMg, baseMg, isLimiting, ratio: gotMg / (baseMg * aaScale) };
   })
     /* Shortfalls surface first, the limiting amino acid pinned to the top. */
     .sort((a, b) => (b.isLimiting - a.isLimiting) || (a.ratio - b.ratio))
-    .map(r => covRow2(r.label, r.gotMg, r.baseMg, r.baseMg * aaScale, r.isLimiting)).join("");
+    .map(r => covRow2(r.label, r.gotMg, r.baseMg, r.baseMg * aaScale, r.isLimiting, r.id)).join("");
 
   const tableRows = AA_META.map(([key, label, cls]) => {
     const req = AA_REQ_ROW[key];
@@ -1235,11 +1240,11 @@ function renderDetail(id) {
     e.target.after(go);
     go.focus();
   });
-  sheet.querySelectorAll(".info-btn").forEach(b => b.addEventListener("click", () => {
+  sheet.querySelectorAll(".info-btn:not(.cov-i)").forEach(b => b.addEventListener("click", () => {
     const tr = b.closest("tr");
     const wasOpen = b.getAttribute("aria-expanded") === "true";
     sheet.querySelectorAll("tr.info-row").forEach(r => r.remove());
-    sheet.querySelectorAll(".info-btn").forEach(x => x.setAttribute("aria-expanded", "false"));
+    sheet.querySelectorAll(".info-btn:not(.cov-i)").forEach(x => x.setAttribute("aria-expanded", "false"));
     if (!wasOpen) {
       const info = AA_INFO[b.dataset.aa];
       const row = document.createElement("tr");
@@ -1530,7 +1535,26 @@ function openDay() {
 }
 
 /* Bar with two markers: faint = RDA baseline, dark = the user's target. % shown vs target. */
-function covRow2(label, val, base, target, flagged) {
+const PROTEIN_INFO = ["Total protein", "Protein is the total; amino acids are what it is made of. This bar adds up every amino acid from what you entered and compares it with the RDA floor (0.8 g per kg of body weight) and your own daily target. Reaching the protein number does not guarantee each essential amino acid is covered. That is exactly what the bars below check."];
+document.addEventListener("click", e => {
+  const btn = e.target.closest(".cov-i");
+  if (!btn) return;
+  const row = btn.closest(".covrow");
+  const open = btn.getAttribute("aria-expanded") === "true";
+  document.querySelectorAll(".cov-info").forEach(x => x.remove());
+  document.querySelectorAll(".cov-i").forEach(x => x.setAttribute("aria-expanded", "false"));
+  if (open) return;
+  const key = btn.dataset.info;
+  const entries = key === "protein" ? [PROTEIN_INFO]
+    : (SCORE_ROWS.find(r => r[0] === key) || [null, null, []])[2].map(k => { const meta = AA_META.find(m => m[0] === k); return [meta ? meta[1] : k, AA_INFO[k] ? AA_INFO[k][1] : "", AA_INFO[k] ? AA_INFO[k][0] : ""]; });
+  const panel = document.createElement("div");
+  panel.className = "cov-info";
+  panel.innerHTML = entries.map(([name, text, cls]) => `<p><b>${name}</b>${cls ? ` <span class="cls">${cls}</span>` : ""}<br>${text}</p>`).join("");
+  row.after(panel);
+  btn.setAttribute("aria-expanded", "true");
+});
+
+function covRow2(label, val, base, target, flagged, infoKey) {
   const span = target * 1.6;
   const w = Math.min(val, span) / span * 100;
   const basePos = Math.min(base, span) / span * 100;
@@ -1538,7 +1562,7 @@ function covRow2(label, val, base, target, flagged) {
   const pct = val / target * 100;
   const isFlagged = flagged === undefined ? val < target : flagged;
   return `<div class="covrow ${isFlagged ? "is-limit" : ""}">
-    <span class="aa-name">${label}${flagged ? " ⚠" : ""}</span>
+    <span class="aa-name">${label}${flagged ? " ⚠" : ""}${infoKey ? `<button type="button" class="info-btn cov-i" data-info="${infoKey}" aria-expanded="false" aria-label="About ${label}">i</button>` : ""}</span>
     <span class="track"><span class="fill" style="width:${w}%"></span><span class="goal base" style="left:${basePos}%"></span><span class="goal" style="left:${tPos}%"></span></span>
     <span class="pct">${Math.round(pct)}%</span></div>`;
 }
@@ -1578,7 +1602,7 @@ function renderDay() {
   const eaaRows = SCORE_ROWS.map(([rid, label, keys]) => {
     const got = keys.reduce((s, k) => s + totals[k], 0) * 1000;
     const base = WHO_KG[rid] * weight;
-    return covRow2(label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), got, base, base * aaScale);
+    return covRow2(label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr"), got, base, base * aaScale, undefined, rid);
   }).join("");
 
   const pseudo = { name: "Your day", state: "as sold", protein_g_per_100g: protTotal || 1, aa: totals };
@@ -1612,7 +1636,7 @@ function renderDay() {
       ${day.length ? `
         <p class="calc-summary"><b>${protTotal.toFixed(1)} g protein</b> from ${day.length} food${day.length === 1 ? "" : "s"}. ${verdict}</p>
         <div class="covbars">
-          ${covRow2("Protein", protTotal, protFloor, protThrive)}
+          ${covRow2("Protein", protTotal, protFloor, protThrive, undefined, "protein")}
         </div>
         <p class="cov-note">Faint line = RDA survival floor (${protFloor.toFixed(0)} g) · dark line = your target (${protThrive.toFixed(0)} g). Percentages are against your target, and bars stay amber until they reach it.</p>
         <h3 class="sec-h" style="font-size:19px">Essential amino acids vs your daily need</h3>
@@ -1895,7 +1919,7 @@ function showView(v) {
 
     const eaaRows = SCORE_ROWS.map(([rid, label, keys]) => {
       const got = keys.reduce((s, k) => s + totals[k], 0) * 1000, base = WHO_KG[rid] * weight;
-      return covRow2(short(label), got, base, base * aaScale);
+      return covRow2(short(label), got, base, base * aaScale, undefined, rid);
     }).join("");
 
     result.hidden = false;
@@ -1922,7 +1946,7 @@ function showView(v) {
             <div class="v2-stat ${complete ? "good" : "limit"}"><div class="k">Amino acid score</div><div class="v">${Math.round(min.ratio * 100)}%<small> ${complete ? "complete" : "limited by " + min.label.toLowerCase()}</small></div></div>
           </div>
           <div class="v2-sec">Against your daily needs</div>
-          <div class="covbars">${covRow2("Protein", prot, protFloor, protThrive)}</div>
+          <div class="covbars">${covRow2("Protein", prot, protFloor, protThrive, undefined, "protein")}</div>
           <div class="covbars" style="margin-top:10px">${eaaRows}</div>
           <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it.</p>
         </div>
