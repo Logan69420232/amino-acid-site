@@ -134,10 +134,17 @@
   .v2-add { border: 0; background: var(--c-bcaa); color: #fff; border-radius: 12px; padding: 0 22px; font-size: 15px; font-weight: 700; }
   .v2-err { color: var(--c-limit); font-size: 13px; margin: 8px 0 0; }
   .v2-hint { color: var(--ink-3); font-size: 13px; margin: 10px 0 0; }
-  .v2-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 6px; }
-  .v2-item { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 999px; padding: 6px 8px 6px 14px; font-size: 14px; }
-  .v2-item input { width: 62px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px; font-size: 13.5px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
-  .v2-item .sub { color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .v2-list { display: flex; flex-direction: column; gap: 6px; margin: 16px 0 6px; }
+  .v2-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; padding: 8px 8px 8px 14px; font-size: 14.5px; }
+  .v2-item .nm { flex: 1 1 auto; min-width: 0; line-height: 1.3; }
+  .v2-item .qty { display: flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--ink-2); }
+  .v2-item input { width: 66px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 14px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .v2-item .sub { color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 92px; text-align: right; }
+  @media (max-width: 560px) {
+    .v2-item { flex-wrap: wrap; row-gap: 6px; }
+    .v2-item .nm { flex-basis: 100%; }
+    .v2-item .sub { flex: 1 1 auto; text-align: left; min-width: 0; }
+  }
   .v2-item .rm { border: 0; background: transparent; color: var(--ink-3); font-size: 15px; padding: 2px 6px; cursor: pointer; }
   .v2-item .rm:hover { color: var(--c-limit); }
   .v2-result { margin: 26px 0 40px; padding-top: 22px; border-top: 2px solid var(--ink); }
@@ -561,7 +568,7 @@
       <button type="submit" class="v2-add">Add to my day</button>
     </form>
     <p class="v2-err" id="v2Err" hidden>Pick a food from the list first.</p>
-    <p class="v2-hint" id="v2Hint">Searches all <b id="v2Count"></b> foods in the atlas. Portion prefills to a typical serving; change it to what you actually eat. Want to browse individual profiles instead? Open the <button type="button" class="linkish" id="v2ToAtlas">amino acid database</button>.</p>
+    <p class="v2-hint" id="v2Hint">Searches all <b id="v2Count"></b> foods in the atlas. Portion prefills to a typical serving; change it to what you actually eat. Want to browse individual profiles instead? Open the <span style="white-space:nowrap"><button type="button" class="linkish" id="v2ToAtlas">amino acid database</button>.</span></p>
     <div class="v2-list" id="v2List"></div>
   </section>
   <section class="v2-result" id="v2Result" hidden></section>
@@ -1847,9 +1854,10 @@ function showView(v) {
     const day = loadDay();
     list.innerHTML = day.map((e, i) => {
       const f = foodByName(e.name);
-      return `<span class="v2-item"><span>${e.name}</span>
-        <input type="number" min="5" max="2000" step="5" value="${e.g}" data-i="${i}" aria-label="Grams of ${e.name}"> <span class="sub">g · ${(f.protein_g_per_100g * e.g / 100).toFixed(1)} g protein</span>
-        <button class="rm" data-i="${i}" aria-label="Remove ${e.name}">✕</button></span>`;
+      return `<div class="v2-item"><span class="nm">${e.name}</span>
+        <span class="qty"><input type="number" min="5" max="2000" step="5" value="${e.g}" data-i="${i}" aria-label="Grams of ${e.name}"> g</span>
+        <span class="sub">${(f.protein_g_per_100g * e.g / 100).toFixed(1)} g protein</span>
+        <button class="rm" data-i="${i}" aria-label="Remove ${e.name}">✕</button></div>`;
     }).join("");
     list.querySelectorAll("input").forEach(inp => inp.addEventListener("change", ev => {
       const d = loadDay(); d[+ev.target.dataset.i].g = clamp(ev.target.value, 5, 2000, 100); saveDay(d); render();
