@@ -842,7 +842,7 @@ document.getElementById("sort").addEventListener("change", e => { state.sort = e
 
 
 /* ================= relevance search ================= */
-const SEARCH_NOISE = /\b(kids'? menu|platter|sandwich|entree|entrees|frozen|breaded|battered|patty|patties|nuggets?|pot pie|spread|casserole|dinner|meal|pizza|burrito|taco|soup|salad|gravy|with added solution|fast foods?|restaurant|luncheon|bologna|hot dog|sausage|prepackaged|imitation|deli|sliced|roll|fat-free|seasoned|flavou?r|separable fat|breakfast strips)\b/i;
+const SEARCH_NOISE = /\b(kids'? menu|platter|sandwich|entree|entrees|frozen|breaded|battered|nuggets?|pot pie|spread|casserole|dinner|meal|pizza|burrito|taco|soup|salad|gravy|with added solution|fast foods?|restaurant|luncheon|bologna|hot dog|sausage|prepackaged|imitation|deli|sliced|roll|fat-free|seasoned|flavou?r|separable fat|breakfast strips)\b/i;
 const SEARCH_BRAND = /^[A-Z0-9][A-Z0-9'&.\- ]{2,}(,|$)/;
 const SEARCH_DEMOTE_GROUPS = /\((Fast Foods|Restaurant Foods|Meals, Entrees, and Side Dishes|Baby Foods|Snacks|Sweets|Soups, Sauces, and Gravies|Sausages and Luncheon Meats|Baked Products)\)/;
 function searchTokens(q) { return q.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean); }
@@ -859,16 +859,25 @@ function searchScore(f, toks, q) {
   for (const t of toks) {
     if (!tokenHits(words, t)) return null;    // every word you type must match
     if (tokenHits(headWords, t)) s += 20;      // ...ideally in the food's own name, not a qualifier
+    if (words.includes(t)) s += 8;             // exact word beats a mere prefix
   }
   if (name.startsWith(q)) s += 30;
   else if (name.includes(q)) s += 15;
-  if (f.tier === "featured") s += 60;         // hand-curated entries first
+  const flesh = f.category === "meat" || f.category === "seafood";
+  const cooked = /\b(cooked|grilled|roasted|braised|broiled|baked|fried|stewed|simmered|poached|steamed|dry heat|moist heat)\b/.test(name);
+  const raw = /\braw\b/.test(name);
+  if (f.tier === "featured" && !(flesh && raw)) s += 60;   // hand-curated entries first (unless it is raw meat or fish)
   s -= Math.min(20, name.length * 0.4);       // simpler names win
   s -= (name.match(/,/g) || []).length * 2;
   if (SEARCH_BRAND.test(f.name)) s -= 90;     // APPLEBEE'S, BURGER KING...
   if (SEARCH_DEMOTE_GROUPS.test(f.source || "")) s -= 60;
   if (SEARCH_NOISE.test(f.name)) s -= 70;     // breaded, deli, kids' menu, pot pie...
-  if (/\b(raw|grilled|roasted|boiled|cooked)\b/.test(name)) s += 6;
+  if (flesh) {                                 // people eat meat and fish cooked: cooked forms on top
+    if (cooked) s += 60;
+    if (raw) s -= 25;
+    if (/\bmeat only\b/.test(name)) s += 5;
+    if (/\b(grilled|roasted)\b/.test(name)) s += 5;
+  } else if (/\b(raw|grilled|roasted|boiled|cooked)\b/.test(name)) s += 6;
   return s;
 }
 function rankFoods(q, limit) {
