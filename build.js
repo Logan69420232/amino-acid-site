@@ -109,7 +109,13 @@ for (const f of renamedBulk) if (counts[f.name] > 1 || taken.has(f.name)) { f.na
 const foods = [
   ...[...meatDairy, ...seafoodPlants, ...suppFoods].map(f => ({ ...f, tier: "featured" })),
   ...renamedBulk
-].map(f => ({ ...f, serving_g: f.serving_g || servingFor(f), aliases: aliasesFor(f) }));
+].map((f, i) => {
+  // stable share key: USDA FDC id for bulk records, slug for curated entries
+  const fdc = (f.source || "").match(/FDC ID (\d+)/);
+  const key = fdc ? "u" + fdc[1] : "f" + f.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return { ...f, key, serving_g: f.serving_g || servingFor(f), aliases: aliasesFor(f) };
+});
+{ const seen = new Set(); let dup = 0; for (const f of foods) { if (seen.has(f.key)) dup++; seen.add(f.key); } if (dup) console.warn(`WARN ${dup} duplicate share keys`); }
 console.log(`display names: ${renamedBulk.filter(f => f.name !== f.usda_name).length} rewritten, ${collisions} kept as USDA to avoid duplicates`);
 
 // Reference values (agent-verified where available, WHO/FAO/UNU 2007 defaults otherwise)
