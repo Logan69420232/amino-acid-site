@@ -3,6 +3,8 @@
 <meta property="og:title" content="Amino Atlas" />
 <meta property="og:description" content="Stop tracking protein. Start tracking amino acids. Enter what you eat in a day and see the shape of it." />
 <meta property="og:type" content="website" />
+<meta name="description" content="Enter what you eat in a day and see its full amino acid profile. 4,000+ foods from USDA analytical data, scored against WHO/FAO 2007 requirements." />
+<link rel="canonical" href="https://aminodata.org/" />
 <title>Amino Atlas: amino acid profiles of every protein source</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -592,13 +594,13 @@
       <button type="submit" class="v2-add">Add to my day</button>
     </form>
     <p class="v2-err" id="v2Err" hidden>Pick a food from the list first.</p>
-    <p class="v2-hint" id="v2Hint">Searches all <b id="v2Count"></b> foods in the atlas. Portion prefills to a typical serving; change it to what you actually eat. Want to browse individual profiles instead? Open the <span style="white-space:nowrap"><button type="button" class="linkish" id="v2ToAtlas">amino acid database</button>.</span></p>
+    <p class="v2-hint" id="v2Hint">Searches all <b id="v2Count"></b> foods in the atlas. Portion prefills to a typical serving; change it to what you actually eat. Want to browse individual profiles instead? Open the <span style="white-space:nowrap"><a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</span></p>
     <div class="v2-list" id="v2List"></div>
   </section>
   <section class="v2-result" id="v2Result" hidden></section>
   <div class="atlas-head">
     <h2 class="v2-h">Amino acid database</h2>
-    <button type="button" class="linkish" id="atlasBack">← Back to my day</button>
+    <a class="linkish" href="/" id="atlasBack">← Back to my day</a>
   </div>
   <p class="count-line" id="countLine"></p>
   <div class="grid" id="grid"></div>
@@ -1861,12 +1863,19 @@ updateDayBtn();
 })();
 
 /* ================= home views ================= */
-function showView(v) {
+function showView(v, push) {
   if (v === "atlas") document.body.dataset.view = "atlas"; else delete document.body.dataset.view;
   const target = v === "atlas" ? document.querySelector(".toolbar") : document.querySelector(".v2-entry");
   if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   if (v === "atlas") renderGrid();
+  /* keep the URL honest: /database is a real page, crawlable on its own */
+  if (push !== false && history.pushState) {
+    try { history.pushState({ v }, "", v === "atlas" ? "/database" : "/"); } catch (e) {}
+  }
 }
+window.addEventListener("popstate", () => {
+  showView(/^\/database/.test(location.pathname) ? "atlas" : "day", false);
+});
 
 /* ================= home: search-first daily intake ================= */
 (function () {
@@ -1874,8 +1883,8 @@ function showView(v) {
   const food = $("v2Food"), grams = $("v2Grams"), err = $("v2Err"), list = $("v2List"), result = $("v2Result");
   if (!food) return;
   $("v2Count").textContent = ATLAS.foods.length.toLocaleString();
-  $("v2ToAtlas").addEventListener("click", () => showView("atlas"));
-  $("atlasBack").addEventListener("click", () => showView("day"));
+  $("v2ToAtlas").addEventListener("click", e => { e.preventDefault(); showView("atlas"); });
+  $("atlasBack").addEventListener("click", e => { e.preventDefault(); showView("day"); });
 
   const short = label => label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr");
   const clamp = (v, lo, hi, d) => { v = +v; return v > 0 ? Math.max(lo, Math.min(hi, v)) : d; };
@@ -1952,7 +1961,13 @@ function showView(v) {
   const dd = $("v2DD");
   let ddItems = [], ddIdx = -1, ddTimer = null;
   function hideDD() { dd.hidden = true; dd.innerHTML = ""; ddItems = []; ddIdx = -1; }
-  function pick(f) { food.value = f.name; grams.value = f.serving_g || 100; err.hidden = true; hideDD(); grams.focus(); grams.select(); }
+  function pick(f) {
+    /* Picking a suggestion adds it straight to the day: typed grams win,
+       otherwise the typical serving. The row's amount stays editable. */
+    addToDay(f.name, clamp(grams.value, 5, 2000, f.serving_g || 100));
+    food.value = ""; grams.value = ""; err.hidden = true;
+    hideDD(); render(); food.focus();
+  }
   function showDD() {
     const q = food.value.trim();
     if (q.length < 2) return hideDD();
@@ -2103,5 +2118,27 @@ function showView(v) {
   sharedNotice = loadDayFromHash();
   window.__v2Render = render;
   render();
+})();
+
+/* ================= URL boot: page view + food deep links ================= */
+(function bootURL() {
+  if (/^\/database/.test(location.pathname) || document.title.indexOf("database") !== -1) {
+    showView("atlas", false);
+  }
+  let m = location.hash.match(/^#f=([a-z0-9-]+)/);
+  if (m) {
+    const f = ATLAS.foods.find(x => x.slug === m[1]);
+    if (f) { showView("atlas", false); openDetail(f.id); }
+    return;
+  }
+  m = location.hash.match(/^#add=([a-z0-9-]+)/);
+  if (m) {
+    const f = ATLAS.foods.find(x => x.slug === m[1]);
+    if (f) {
+      addToDay(f.name, f.serving_g || 100);
+      if (window.__v2Render) window.__v2Render();
+      history.replaceState(null, "", location.pathname);
+    }
+  }
 })();
 </script>

@@ -119,6 +119,15 @@ const foods = [
 console.log(`display names: ${renamedBulk.filter(f => f.name !== f.usda_name).length} rewritten, ${collisions} kept as USDA to avoid duplicates`);
 
 // Reference values (agent-verified where available, WHO/FAO/UNU 2007 defaults otherwise)
+const seenSlugs = new Set();
+for (const f of foods) {
+  let base = f.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "food";
+  let slug = base, k = 2;
+  while (seenSlugs.has(slug)) slug = base + "-" + k++;
+  seenSlugs.add(slug);
+  f.slug = slug;
+}
+
 const atlas = {
   foods,
   who_pattern_mg_per_g_protein: (suppPack && suppPack.who_pattern_mg_per_g_protein) ||
@@ -159,4 +168,92 @@ const template = fs.readFileSync(path.join(root, "index.template.html"), "utf8")
 const out = template.replace("__INJECT_DATA__", JSON.stringify(atlas));
 fs.mkdirSync(path.join(root, "dist"), { recursive: true });
 fs.writeFileSync(path.join(root, "dist", "amino-atlas.html"), out);
-console.log(`Built dist/amino-atlas.html with ${foods.length} foods, ${warnings} warnings`);
+fs.writeFileSync(path.join(root, "dist", "index.html"), out);
+
+// ---------- /database: the same app, addressed as its own page ----------
+const BASE = "https://aminodata.org";
+const dbOut = out
+  .replace("<title>Amino Atlas: amino acid profiles of every protein source</title>",
+    "<title>Amino acid database: full profiles of " + foods.length.toLocaleString() + " foods · Amino Atlas</title>")
+  .replace('<meta name="description" content="Enter what you eat in a day and see its full amino acid profile. 4,000+ foods from USDA analytical data, scored against WHO/FAO 2007 requirements." />',
+    '<meta name="description" content="Browse the full amino acid composition of ' + foods.length.toLocaleString() + ' foods: all 18 amino acids per 100 g, WHO/FAO 2007 scores, and limiting amino acids, from USDA analytical data." />')
+  .replace('<link rel="canonical" href="https://aminodata.org/" />',
+    '<link rel="canonical" href="' + BASE + '/database" />')
+  .replace('<meta property="og:title" content="Amino Atlas" />',
+    '<meta property="og:title" content="Amino acid database · Amino Atlas" />');
+fs.writeFileSync(path.join(root, "dist", "database.html"), dbOut);
+
+// ---------- /food/<slug>: one static, crawlable page per food ----------
+const AA_LABELS = [
+  ["leucine", "Leucine", "Essential (BCAA)"], ["isoleucine", "Isoleucine", "Essential (BCAA)"], ["valine", "Valine", "Essential (BCAA)"],
+  ["lysine", "Lysine", "Essential"], ["threonine", "Threonine", "Essential"], ["phenylalanine", "Phenylalanine", "Essential"],
+  ["methionine", "Methionine", "Essential"], ["histidine", "Histidine", "Essential"], ["tryptophan", "Tryptophan", "Essential"],
+  ["glutamic_acid", "Glutamic acid", "Non-essential"], ["aspartic_acid", "Aspartic acid", "Non-essential"], ["proline", "Proline", "Non-essential"],
+  ["alanine", "Alanine", "Non-essential"], ["serine", "Serine", "Non-essential"], ["tyrosine", "Tyrosine", "Non-essential"],
+  ["arginine", "Arginine", "Non-essential"], ["cysteine", "Cysteine", "Non-essential"], ["glycine", "Glycine", "Non-essential"]
+];
+const WHO_PATTERN = atlas.who_pattern_mg_per_g_protein;
+const SCORE_KEYS = [["histidine", ["histidine"]], ["isoleucine", ["isoleucine"]], ["leucine", ["leucine"]], ["lysine", ["lysine"]],
+  ["saa", ["methionine", "cysteine"]], ["aaa", ["phenylalanine", "tyrosine"]], ["threonine", ["threonine"]],
+  ["tryptophan", ["tryptophan"]], ["valine", ["valine"]]];
+const SCORE_LABEL = { histidine: "histidine", isoleucine: "isoleucine", leucine: "leucine", lysine: "lysine",
+  saa: "methionine + cysteine", aaa: "phenylalanine + tyrosine", threonine: "threonine", tryptophan: "tryptophan", valine: "valine" };
+const esc = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function foodScore(f) {
+  let min = null;
+  for (const [id, keys] of SCORE_KEYS) {
+    const mgPerG = keys.reduce((t, k) => t + f.aa[k], 0) / f.protein_g_per_100g * 1000;
+    const ratio = mgPerG / WHO_PATTERN[id];
+    if (!min || ratio < min.ratio) min = { id, ratio };
+  }
+  return min;
+}
+
+const FOOD_CSS = `*{box-sizing:border-box}body{margin:0;background:#faf8f3;color:#1b1914;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6}.wrap{max-width:760px;margin:0 auto;padding:28px 20px 60px}nav{font-size:13px;color:#8b8577;margin-bottom:26px}nav a{color:#4f2d7f}h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(26px,5vw,38px);line-height:1.1;margin:0 0 10px}.sub{color:#575246;font-size:14.5px;margin:0 0 18px}.facts{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 26px}.facts div{background:#fffdf8;border:1px solid #cfc9bc;padding:8px 14px;font-size:13.5px}.facts b{display:block;font-size:17px}.facts .limit b{color:#b5401f}.facts .good b{color:#4f2d7f}table{border-collapse:collapse;width:100%;font-size:14.5px;font-variant-numeric:tabular-nums}th{text-align:right;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8b8577;border-bottom:2px solid #1b1914;padding:8px 10px}td{padding:7px 10px;border-bottom:1px solid #e8e4da;text-align:right}th:first-child,td:first-child{text-align:left}.cls{color:#8b8577;font-size:12px}.cta{display:inline-block;background:#4f2d7f;color:#fff;text-decoration:none;padding:11px 20px;font-weight:600;margin:26px 12px 0 0}.cta.alt{background:transparent;color:#4f2d7f;border:1px solid #4f2d7f}.note{color:#8b8577;font-size:12.5px;margin-top:26px}`;
+
+fs.mkdirSync(path.join(root, "dist", "food"), { recursive: true });
+for (const f of foods) {
+  const score = foodScore(f);
+  const complete = score.ratio >= 1;
+  const pct = Math.round(score.ratio * 100);
+  const perProt = k => (f.aa[k] / f.protein_g_per_100g * 100);
+  const rows = AA_LABELS.map(([k, label, cls]) =>
+    `<tr><td>${label} <span class="cls">${cls}</span></td><td>${f.aa[k].toFixed(2)}</td><td>${perProt(k).toFixed(1)}</td></tr>`).join("");
+  const desc = `Full amino acid profile of ${f.name}: ${f.protein_g_per_100g.toFixed(1)} g protein per 100 g, leucine ${f.aa.leucine.toFixed(2)} g, lysine ${f.aa.lysine.toFixed(2)} g. Amino acid score ${pct}%${complete ? "" : ", limited by " + SCORE_LABEL[score.id]}.`;
+  const page = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(f.name)}: amino acid profile · Amino Atlas</title>
+<meta name="description" content="${esc(desc)}">
+<link rel="canonical" href="${BASE}/food/${f.slug}">
+<style>${FOOD_CSS}</style>
+</head>
+<body><div class="wrap">
+<nav><a href="/">Amino Atlas</a> · <a href="/database">Amino acid database</a></nav>
+<h1>${esc(f.name)}</h1>
+<p class="sub">${esc(f.state)} · ${esc(f.source || "")}</p>
+<div class="facts">
+<div><span>Protein /100 g</span><b>${f.protein_g_per_100g.toFixed(1)} g</b></div>
+<div class="${complete ? "good" : "limit"}"><span>Amino acid score</span><b>${pct}%</b></div>
+<div><span>Limiting amino acid</span><b>${complete ? "none (complete)" : esc(SCORE_LABEL[score.id])}</b></div>
+</div>
+<table>
+<thead><tr><th>Amino acid</th><th>g / 100 g</th><th>g / 100 g protein</th></tr></thead>
+<tbody>${rows}</tbody>
+</table>
+<a class="cta" href="/#add=${f.slug}">Add to my day</a><a class="cta alt" href="/database#f=${f.slug}">Open interactive profile</a>
+<p class="note">Amino acid score compares this food's scarcest essential amino acid with the WHO/FAO/UNU 2007 adult pattern; 100%+ means every essential amino acid is carried in good proportion. Data: ${esc(f.source || "public analytical data")}. Educational reference, not medical advice.</p>
+</div></body></html>`;
+  fs.writeFileSync(path.join(root, "dist", "food", f.slug + ".html"), page);
+}
+
+// ---------- sitemap + robots ----------
+const urls = [BASE + "/", BASE + "/database", ...foods.map(f => BASE + "/food/" + f.slug)];
+fs.writeFileSync(path.join(root, "dist", "sitemap.xml"),
+  '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+  urls.map(u => "<url><loc>" + u + "</loc></url>").join("\n") + "\n</urlset>\n");
+fs.writeFileSync(path.join(root, "dist", "robots.txt"), "User-agent: *\nAllow: /\nSitemap: " + BASE + "/sitemap.xml\n");
+
+console.log(`Built dist: index, database, ${foods.length} food pages, sitemap (${urls.length} URLs), ${warnings} warnings`);
