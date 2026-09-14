@@ -199,6 +199,7 @@ const SCORE_KEYS = [["histidine", ["histidine"]], ["isoleucine", ["isoleucine"]]
 const SCORE_LABEL = { histidine: "histidine", isoleucine: "isoleucine", leucine: "leucine", lysine: "lysine",
   saa: "methionine + cysteine", aaa: "phenylalanine + tyrosine", threonine: "threonine", tryptophan: "tryptophan", valine: "valine" };
 const esc = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const AUTHORS_LD = [{"@type": "Person", "name": "Logan King", "url": "https://logantalkshealth.com/"}, {"@type": "Person", "name": "Paul T Morgan", "honorificPrefix": "Dr", "url": "https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan", "jobTitle": "Senior Lecturer in Human Nutrition and Metabolism", "worksFor": {"@type": "CollegeOrUniversity", "name": "Manchester Metropolitan University", "url": "https://www.mmu.ac.uk/"}, "description": "Registered Sport and Exercise Nutritionist (SENr), CASES Accredited Physiologist, and Fellow of the Higher Education Academy. Programme Lead for MSc Performance Nutrition.", "hasCredential": [{"@type": "EducationalOccupationalCredential", "name": "Registered Sport and Exercise Nutritionist (SENr)"}, {"@type": "EducationalOccupationalCredential", "name": "CASES Accredited Physiologist"}, {"@type": "EducationalOccupationalCredential", "name": "Fellow of the Higher Education Academy"}]}];
 
 function foodScore(f) {
   let min = null;
@@ -228,6 +229,25 @@ for (const f of foods) {
 <title>${esc(f.name)}: amino acid profile · Amino Atlas</title>
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${BASE}/food/${f.slug}">
+<meta name="author" content="Logan King and Dr Paul T Morgan">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-MQM54CBGV7"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-MQM54CBGV7');
+</script>
+<script type="application/ld+json">${JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: f.name + ": amino acid profile",
+  description: desc,
+  mainEntityOfPage: BASE + "/food/" + f.slug,
+  publisher: { "@type": "Organization", name: "Amino Atlas", url: BASE + "/" },
+  author: AUTHORS_LD
+})}</script>
 <style>${FOOD_CSS}</style>
 </head>
 <body><div class="wrap">
@@ -244,6 +264,7 @@ for (const f of foods) {
 <tbody>${rows}</tbody>
 </table>
 <a class="cta" href="/#add=${f.slug}">Add to my day</a><a class="cta alt" href="/database/${f.slug}">Open interactive profile</a>
+<p class="note">By <a href="https://logantalkshealth.com/" rel="author">Logan King</a> and <a href="https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan" rel="author">Dr Paul T Morgan</a>, Senior Lecturer in Human Nutrition and Metabolism, Manchester Metropolitan University.</p>
 <p class="note">Amino acid score compares this food's scarcest essential amino acid with the WHO/FAO/UNU 2007 adult pattern; 100%+ means every essential amino acid is carried in good proportion. Data: ${esc(f.source || "public analytical data")}. Educational reference, not medical advice.</p>
 </div></body></html>`;
   fs.writeFileSync(path.join(root, "dist", "food", f.slug + ".html"), page);
