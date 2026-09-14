@@ -22,7 +22,7 @@
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", "yiacqhhkjn");
 </script>
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "Amino Atlas", "alternateName": "aminodata.org", "url": "https://aminodata.org/", "description": "Amino acid profiles of 4,000+ foods from USDA analytical data, scored against WHO/FAO/UNU 2007 requirements.", "author": [{"@type": "Person", "name": "Logan King", "url": "https://logantalkshealth.com/"}, {"@type": "Person", "name": "Paul T Morgan", "honorificPrefix": "Dr", "url": "https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan", "jobTitle": "Senior Lecturer in Human Nutrition and Metabolism", "worksFor": {"@type": "CollegeOrUniversity", "name": "Manchester Metropolitan University", "url": "https://www.mmu.ac.uk/"}, "description": "Registered Sport and Exercise Nutritionist (SENr), CASES Accredited Physiologist, and Fellow of the Higher Education Academy. Programme Lead for MSc Performance Nutrition.", "hasCredential": [{"@type": "EducationalOccupationalCredential", "name": "Registered Sport and Exercise Nutritionist (SENr)"}, {"@type": "EducationalOccupationalCredential", "name": "CASES Accredited Physiologist"}, {"@type": "EducationalOccupationalCredential", "name": "Fellow of the Higher Education Academy"}]}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "Amino Atlas", "alternateName": "aminodata.org", "url": "https://aminodata.org/", "description": "Amino acid profiles of 4,000+ foods from USDA analytical data, scored against WHO/FAO/UNU 2007 requirements.", "author": [{"@type": "Person", "name": "Logan King", "url": "https://logantalkshealth.com/", "image": "https://aminodata.org/assets/logan-king.jpg"}, {"@type": "Person", "name": "Paul T Morgan", "honorificPrefix": "Dr", "url": "https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan", "image": "https://aminodata.org/assets/paul-morgan.jpg", "jobTitle": "Senior Lecturer in Human Nutrition and Metabolism", "worksFor": {"@type": "CollegeOrUniversity", "name": "Manchester Metropolitan University", "url": "https://www.mmu.ac.uk/"}, "description": "Registered Sport and Exercise Nutritionist (SENr), CASES Accredited Physiologist, and Fellow of the Higher Education Academy. Programme Lead for MSc Performance Nutrition.", "hasCredential": [{"@type": "EducationalOccupationalCredential", "name": "Registered Sport and Exercise Nutritionist (SENr)"}, {"@type": "EducationalOccupationalCredential", "name": "CASES Accredited Physiologist"}, {"@type": "EducationalOccupationalCredential", "name": "Fellow of the Higher Education Academy"}]}]}</script>
 <title>Amino Atlas: amino acid profiles of every protein source</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -539,6 +539,10 @@
   .method p { color: var(--ink-2); font-size: 14.5px; margin: 0 0 10px; }
   footer.site { border-top: 1px solid var(--line); padding: 22px 0 40px; color: var(--ink-3); font-size: 12px; }
   footer.site a { color: var(--ink-2); }
+  footer.site .avatar {
+    width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
+    vertical-align: middle; margin-right: 5px; border: 1px solid var(--line-strong);
+  }
 
   /* tooltip */
   .tip {
@@ -666,7 +670,7 @@
 
 <footer class="site">
   <div class="wrap">
-    Made by <a href="https://logantalkshealth.com/" rel="author">Logan King</a> and <a href="https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan" rel="author">Dr Paul T Morgan</a>, Senior Lecturer in Human Nutrition and Metabolism at Manchester Metropolitan University, Registered Sport and Exercise Nutritionist (SENr).<br>
+    <img class="avatar" src="/assets/logan-king.jpg" alt="Logan King" width="30" height="30" loading="lazy"><img class="avatar" src="/assets/paul-morgan.jpg" alt="Dr Paul T Morgan" width="30" height="30" loading="lazy"> Made by <a href="https://logantalkshealth.com/" rel="author">Logan King</a> and <a href="https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan" rel="author">Dr Paul T Morgan</a>, Senior Lecturer in Human Nutrition and Metabolism at Manchester Metropolitan University, Registered Sport and Exercise Nutritionist (SENr).<br>
     Amino Atlas · Educational reference, not medical advice. Compiled from public analytical data; corrections welcome.<br>
     <span style="font-family:var(--font-mono);font-size:11px">Cite: Amino Atlas (2026), aminodata.org · Data: USDA FoodData Central, SR Legacy · Scoring: WHO/FAO/UNU (2007)</span>
   </div>
