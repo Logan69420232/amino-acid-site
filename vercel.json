@@ -4,6 +4,6 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/database/:slug", "destination": "/database.html" }
+    { "source": "/database/:slug", "destination": "/database" }
   ]
 }
