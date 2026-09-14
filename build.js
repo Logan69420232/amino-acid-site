@@ -231,13 +231,13 @@ for (const f of foods) {
 <link rel="canonical" href="${BASE}/food/${f.slug}">
 <meta name="author" content="Logan King and Dr Paul T Morgan">
 <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-MQM54CBGV7"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DD4277KQ5Z"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
-  gtag('config', 'G-MQM54CBGV7');
+  gtag('config', 'G-DD4277KQ5Z');
 </script>
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
