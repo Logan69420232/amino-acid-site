@@ -1103,16 +1103,24 @@ const sheet = document.getElementById("sheet");
 const currentUnit = "food";
 let lastFocus = null;
 
-function openDetail(id) {
+function openDetail(id, push) {
   lastFocus = document.activeElement;
   overlay.hidden = false;   /* unhide first: fitBloom needs a measurable SVG */
   renderDetail(id);
   document.body.style.overflow = "hidden";
   sheet.querySelector(".close").focus();
+  /* every profile is a real, shareable URL */
+  const f = ATLAS.foods[id];
+  if (push !== false && f && f.slug && history.pushState) {
+    try { history.pushState({ p: f.slug }, "", "/database/" + f.slug); } catch (e) {}
+  }
 }
-function closeDetail() {
+function closeDetail(push) {
   overlay.hidden = true; hideTip(); openDetailId = null;
   document.body.style.overflow = "";
+  if (push !== false && /^\/database\//.test(location.pathname) && history.pushState) {
+    try { history.pushState({ v: "atlas" }, "", document.body.dataset.view === "atlas" ? "/database" : "/"); } catch (e) {}
+  }
   if (lastFocus) lastFocus.focus();
 }
 overlay.addEventListener("click", e => { if (e.target === overlay) closeDetail(); });
@@ -1874,6 +1882,12 @@ function showView(v, push) {
   }
 }
 window.addEventListener("popstate", () => {
+  const m = location.pathname.match(/^\/database\/([a-z0-9-]+)/);
+  if (m) {
+    const f = ATLAS.foods.find(x => x.slug === m[1]);
+    if (f) { showView("atlas", false); openDetail(f.id, false); return; }
+  }
+  if (!overlay.hidden) closeDetail(false);
   showView(/^\/database/.test(location.pathname) ? "atlas" : "day", false);
 });
 
@@ -2125,10 +2139,14 @@ window.addEventListener("popstate", () => {
   if (/^\/database/.test(location.pathname) || document.title.indexOf("database") !== -1) {
     showView("atlas", false);
   }
-  let m = location.hash.match(/^#f=([a-z0-9-]+)/);
+  let m = location.pathname.match(/^\/database\/([a-z0-9-]+)/) || location.hash.match(/^#f=([a-z0-9-]+)/);
   if (m) {
     const f = ATLAS.foods.find(x => x.slug === m[1]);
-    if (f) { showView("atlas", false); openDetail(f.id); }
+    if (f) {
+      showView("atlas", false);
+      openDetail(f.id, false);
+      if (location.hash) history.replaceState({ p: f.slug }, "", "/database/" + f.slug);
+    }
     return;
   }
   m = location.hash.match(/^#add=([a-z0-9-]+)/);

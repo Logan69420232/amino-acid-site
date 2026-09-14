@@ -243,7 +243,7 @@ for (const f of foods) {
 <thead><tr><th>Amino acid</th><th>g / 100 g</th><th>g / 100 g protein</th></tr></thead>
 <tbody>${rows}</tbody>
 </table>
-<a class="cta" href="/#add=${f.slug}">Add to my day</a><a class="cta alt" href="/database#f=${f.slug}">Open interactive profile</a>
+<a class="cta" href="/#add=${f.slug}">Add to my day</a><a class="cta alt" href="/database/${f.slug}">Open interactive profile</a>
 <p class="note">Amino acid score compares this food's scarcest essential amino acid with the WHO/FAO/UNU 2007 adult pattern; 100%+ means every essential amino acid is carried in good proportion. Data: ${esc(f.source || "public analytical data")}. Educational reference, not medical advice.</p>
 </div></body></html>`;
   fs.writeFileSync(path.join(root, "dist", "food", f.slug + ".html"), page);
