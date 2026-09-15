@@ -15,15 +15,23 @@ const suppFoods = suppPack ? suppPack.foods : [];
 
 // Typical serving sizes (g) for the calculator
 const SERVINGS = [
-  [/whey|casein|isolate|protein powder|collagen|hemp protein|rice protein|egg white protein/i, 30],
-  [/milk/i, 250], [/yogurt/i, 170], [/cheese|cheddar|mozzarella|parmesan|cottage/i, 30],
-  [/egg white \(raw\)/i, 33], [/whole egg/i, 50],
-  [/chicken|beef|pork|lamb|turkey|salmon|tuna|cod|mackerel/i, 150],
-  [/shrimp/i, 100], [/sardine/i, 92],
+  // first match wins, so specific and small servings come before broad ones
+  [/whey|casein|isolate|concentrate|protein powder|collagen|hemp protein|rice protein|egg white protein/i, 30],
+  [/\b(dry|dried|dehydrated|powder|powdered)\b/i, 30],
+  [/bacon/i, 30], [/jerky/i, 30],
+  [/cheese|cheddar|mozzarella|parmesan|cottage|ricotta|feta|halloumi/i, 30],
+  [/yogurt/i, 170],
+  [/^milk\b/i, 250], [/soymilk|soy milk|almond milk|oat milk/i, 250],
+  [/^egg\b|egg white \(raw\)|whole egg/i, 50],
+  [/fish|salmon|tuna|cod|mackerel|sardine|trout|tilapia|halibut|haddock|herring|anchov|bass|snapper|pollock|catfish|swordfish|whale|seal/i, 150],
+  [/shrimp|prawn|crab|lobster|crayfish|oyster|clam|mussel|scallop|squid|octopus|shellfish/i, 100],
+  [/sausage|frankfurter|salami|bologna|ham\b|luncheon/i, 75],
+  [/chicken|turkey|beef|pork|lamb|veal|venison|bison|buffalo|duck|goose|game meat|emu|ostrich|rabbit|goat|mutton/i, 150],
   [/tofu|tempeh/i, 100], [/edamame/i, 80],
-  [/lentils|chickpeas|beans|peas/i, 120],
-  [/quinoa|rice, |brown rice/i, 150], [/oats/i, 40],
-  [/peanuts|almonds|walnuts|seeds/i, 30],
+  [/lentils|chickpeas|beans|peas|hummus/i, 120],
+  [/oats/i, 40], [/quinoa|rice, |brown rice|pasta|noodle|couscous|bulgur|barley/i, 150],
+  [/bread|bagel|tortilla|roll\b/i, 60],
+  [/peanut|almond|walnut|cashew|pistachio|pecan|hazelnut|macadamia|nuts|seeds/i, 30],
   [/spirulina/i, 10], [/yeast/i, 15], [/gluten|seitan/i, 90]
 ];
 function servingFor(f) {

@@ -196,6 +196,19 @@
   .v2-stat.good .v { color: var(--c-bcaa); }
   .v2-sec { font-family: var(--font-serif); font-weight: 700; font-size: 18px; margin: 14px 0 8px; }
   .v2-note { color: var(--ink-3); font-size: 12.5px; margin: 10px 0 0; max-width: 70ch; }
+  .v2-gaps { background: var(--surface-2); border-radius: 14px; padding: 16px 18px 18px; margin: 0 0 20px; }
+  .v2-gaps .v2-sec { margin-top: 0; }
+  .gap-list { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--ink-2); }
+  .gap-list li b:first-child { color: var(--c-limit); }
+  .sugg-lead { margin-bottom: 10px; }
+  .sugg { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .sugg-card { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .sugg-name { font-weight: 600; line-height: 1.25; }
+  .sugg-sub { font-size: 12.5px; color: var(--ink-3); }
+  .sugg-rich { font-size: 13px; color: var(--c-bcaa); font-weight: 600; }
+  .sugg-rich span { color: var(--ink-3); font-weight: 400; }
+  .sugg-add { align-self: flex-start; margin-top: 4px; border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; }
+  .v2-done { color: var(--c-bcaa); font-weight: 600; }
   .v2-share { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 22px; }
   .v2-share-btn { border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px; padding: 10px 18px; font-size: 14px; font-weight: 700; }
   .v2-share-sec { border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 9px 14px; font-size: 13.5px; }
@@ -918,6 +931,56 @@ CAT_FILTERS.forEach(([id, label]) => {
 const solidSource = f => f.protein_g_per_100g >= 8 && !SEARCH_DEMOTE_GROUPS.test(f.source || "") && !SEARCH_BRAND.test(f.name);
 const balanced = f => f.metrics.score >= 0.6;
 const PLANT_CATS = ["legume", "soy", "grain", "nuts_seeds"];
+/* Suggest up to three real foods whose typical serving best closes the day's gaps */
+const ANIMAL_WORDS = /\b(whey|casein|collagen|gelatin|egg|eggs|milk|cheese|yogurt|yoghurt|butter|cream|beef|veal|pork|ham|bacon|chicken|turkey|duck|goose|lamb|mutton|goat|venison|bison|buffalo|game|fish|salmon|tuna|cod|shrimp|prawn|crab|lobster|oyster|clam|mussel|squid|anchov|sardine|honey|bone|broth|lard|tallow|meat|sausage|frankfurter|salami|liver|kidney)\b/i;
+const isVeganFood = f => !["meat", "seafood", "dairy", "egg"].includes(f.category) && !ANIMAL_WORDS.test(f.name);
+function suggestFoods(day, gaps, protGap, protRoom, vegan) {
+  const have = new Set(day.map(e => e.name));
+  const heads = new Set(day.map(e => e.name.split(",")[0].toLowerCase()));
+  const haveCats = new Set(day.map(e => (foodByName(e.name) || {}).category));
+  const totalGap = gaps.reduce((s, g) => s + g.gap, 0) || 1;
+  const cands = [];
+  for (const f of ATLAS.foods) {
+    if (!solidSource(f) || have.has(f.name)) continue;
+    if (vegan && !isVeganFood(f)) continue;
+    if (f.category !== "nuts_seeds" && /\braw\b/i.test(f.name) && f.tier !== "featured") continue;   // suggest what people actually eat: cooked forms
+    if (/\b(flour|meal|bran|germ|starch|extract|frozen|unprepared)\b/i.test(f.name)) continue;
+    if (f.tier !== "featured" && /\b(dry|dried|dehydrated|powder|jerky|variety meats|by-products|pickled)\b/i.test(f.name)) continue;
+    // size the portion to the job: enough to close the biggest gap, within half to one-and-a-half typical servings
+    const typical = f.serving_g || 100;
+    let needG = 0;
+    for (const g of gaps) { const perG = g.keys.reduce((t2, k) => t2 + f.aa[k], 0) / 100; if (perG > 0) needG = Math.max(needG, g.gap / perG); }
+    if (!gaps.length) needG = protGap / (f.protein_g_per_100g / 100);
+    const serve = Math.round(Math.max(typical * 0.5, Math.min(typical * 1.5, needG || typical)) / 5) * 5;
+    const factor = serve / 100, protAdd = f.protein_g_per_100g * factor;
+    let score = 0; const closes = [], contrib = []; let richSum = 0;
+    if (gaps.length) {
+      for (const g of gaps) {
+        const per100 = g.keys.reduce((t, k) => t + f.aa[k], 0);
+        const add = per100 * factor, frac = Math.min(1, add / g.gap);
+        const rich = (per100 / f.protein_g_per_100g * 100) / (WHO[g.rid] / 10);   // vs the WHO pattern, per 100 g protein
+        score += frac * (g.gap / totalGap); richSum += rich;
+        contrib.push({ label: g.label, add, rich, frac });
+        if (frac >= 0.999) closes.push(g.label);
+      }
+      score += 0.15 * Math.min(2, richSum / gaps.length) / 2;             // genuinely rich in the missing amino acids
+    } else score = Math.min(1, protAdd / Math.max(protGap, 1));
+    if (protAdd > protRoom + 15) score *= 0.5;                       // would blow past the protein target
+    score += 0.04 * Math.min(1, f.metrics.score) + (f.tier === "featured" ? 0.05 : 0) + (haveCats.has(f.category) ? 0 : 0.04)
+           + (protRoom > 0 ? 0.03 * Math.min(1, protAdd / protRoom) : 0);
+    cands.push({ f, score, serve, protAdd, closes, contrib: contrib.sort((x, y) => y.rich - x.rich) });
+  }
+  cands.sort((a, b) => b.score - a.score);
+  const out = [], cats = {};
+  for (const c of cands) {
+    const head = c.f.name.split(",")[0].toLowerCase();
+    if (heads.has(head) || (cats[c.f.category] || 0) >= 2) continue;
+    heads.add(head); cats[c.f.category] = (cats[c.f.category] || 0) + 1;
+    out.push(c); if (out.length === 3) break;
+  }
+  return out;
+}
+
 const QUICK = [
   ["complete", "Complete proteins", f => solidSource(f) && f.metrics.score >= 1, "protein", "amino acid score of 100% or more, among foods with at least 8 g protein per 100 g; most protein-dense first"],
   ["leucine", "High in leucine", f => solidSource(f) && balanced(f) && f.metrics.leu >= 8.5, "leucineFood", "8.5 g leucine or more per 100 g protein, among balanced sources; ranked by leucine per 100 g as eaten"],
@@ -1986,7 +2049,7 @@ window.addEventListener("popstate", () => {
 
   const short = label => label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr");
   const clamp = (v, lo, hi, d) => { v = +v; return v > 0 ? Math.max(lo, Math.min(hi, v)) : d; };
-  let last = null, sharedNotice = false;
+  let last = null, sharedNotice = false, lastSugg = [];
 
   /* ----- share link: the day, weight and target live in the URL hash ----- */
   function dayLink() {
@@ -2138,6 +2201,25 @@ window.addEventListener("popstate", () => {
     const verdict = shortOn.length
       ? `Against your target you're still short on <span class="short">${shortOn.join(", ")}</span>. Add a source rich in ${shortOn[0]}, or increase a portion.`
       : "Every essential amino acid target is covered for the day.";
+    const gaps = SCORE_ROWS.map(([rid, label, keys]) => { const got = keys.reduce((t, k) => t + totals[k], 0), need = WHO_KG[rid] * weight * aaScale / 1000; return { rid, label, keys, got, need, gap: Math.max(0, need - got) }; }).filter(g => g.gap > 0.005);
+    const protGap = Math.max(0, protThrive - prot);
+    const vegan = store.getItem("aa_diet") === "vegan";
+    lastSugg = suggestFoods(day, gaps, protGap, protThrive - prot, vegan);
+    const bcaaGaps = gaps.filter(g => ["leucine", "isoleucine", "valine"].includes(g.rid)), otherGaps = gaps.filter(g => !["leucine", "isoleucine", "valine"].includes(g.rid));
+    const gapPhrase = [bcaaGaps.length ? `<b>BCAAs</b> (${bcaaGaps.map(g => short(g.label).toLowerCase() + " " + g.gap.toFixed(1) + " g").join(", ")})` : "",
+                       otherGaps.length ? `<b>essential amino acids</b> (${otherGaps.map(g => short(g.label).toLowerCase() + " " + g.gap.toFixed(1) + " g").join(", ")})` : ""].filter(Boolean).join(" and ");
+    const gapsHtml = (gaps.length || protGap > 0) ? `<div class="v2-gaps">
+        <div class="v2-sec">${gaps.length ? "What you're missing" : "Almost there"}</div>
+        ${gaps.length
+          ? `<ul class="gap-list">${gaps.map(g => `<li><b>${short(g.label)}</b> ${Math.round(g.got / g.need * 100)}% covered, <b>${g.gap.toFixed(1)} g</b> short</li>`).join("")}</ul>`
+          : `<p class="v2-p">Every essential amino acid is covered. You're ${protGap.toFixed(0)} g short of your protein target.</p>`}
+        ${lastSugg.length ? `<p class="v2-p sugg-lead">${gaps.length ? `You are short on ${gapPhrase}. ${vegan ? "Plant" : "Protein"} sources rich in those:` : `${vegan ? "Plant" : "Protein"} sources to make up the difference:`}</p>
+        <div class="sugg">${lastSugg.map((c, i) => `<div class="sugg-card">
+          <div class="sugg-name">${c.f.name}</div>
+          ${c.contrib.length ? `<div class="sugg-rich">Rich in ${c.contrib.slice(0, 2).map(x => short(x.label).toLowerCase()).join(" and ")} <span>(${c.contrib[0].rich.toFixed(1)}× the WHO pattern for ${short(c.contrib[0].label).toLowerCase()})</span></div>` : ""}
+          <div class="sugg-sub">${c.serve} g adds ${c.contrib.slice(0, 3).map(x => x.add.toFixed(1) + " g " + short(x.label).toLowerCase()).join(", ")}${c.contrib.length ? " and " : ""}${c.protAdd.toFixed(0)} g protein${c.closes.length === gaps.length && gaps.length ? " · closes every gap" : c.closes.length ? " · closes " + c.closes.map(x => short(x).toLowerCase()).join(", ") : ""}</div>
+          <button type="button" class="sugg-add" data-i="${i}">Add ${c.serve} g</button></div>`).join("")}</div>` : `<p class="v2-p">No ${vegan ? "plant " : ""}source in the atlas closes this in one serving. Try adding a bit more of what you already eat.</p>`}
+      </div>` : `<p class="v2-p v2-done">Every essential amino acid and your protein target are covered. Nice day.</p>`;
 
     // static bloom: strip the hover class so tooltips never look up a pseudo food
     const bloom = renderBloom(pseudo, { unit: "protein", band: false }).replace(/ class="ray"[^>]*?(?=\/>)/g, "");
@@ -2153,10 +2235,12 @@ window.addEventListener("popstate", () => {
         <label>Body weight <input id="v2W" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="1" value="${displayWeight}"></label>
         <select id="v2U" aria-label="Weight unit"><option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option><option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option></select>
         <label>Daily protein target <input id="v2T" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}"> g</label>
+        <label>Diet <select id="v2Diet" aria-label="Diet"><option value="all"${vegan ? "" : " selected"}>Everything</option><option value="vegan"${vegan ? " selected" : ""}>Vegan</option></select></label>
         <button class="v2-clear" id="v2Clear">Start over</button>
       </div>
       <p class="v2-sum">${day.length} source${day.length === 1 ? "" : "s"} · <b>${prot.toFixed(0)} g protein</b> · ${Math.round(prot / protThrive * 100)}% of your ${protThrive.toFixed(0)} g target</p>
       <p class="v2-verdict">${verdict}</p>
+      ${gapsHtml}
       <div class="v2-share">
         <button class="v2-share-btn" id="shareBtn">Share my profile</button>
         <button class="v2-share-sec" id="copyLinkBtn">Copy link</button>
@@ -2185,7 +2269,7 @@ window.addEventListener("popstate", () => {
           <div class="v2-sec">Against your daily needs</div>
           <div class="covbars">${covRow2("Protein", prot, protFloor, protThrive, undefined, "protein")}</div>
           <div class="covbars" style="margin-top:10px">${eaaRows}</div>
-          <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten.</p>
+          <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar is the one to watch for quantity; the amino acid bars tell you whether that protein was the right kind.</p>
         </div>
       </div>`;
 
@@ -2196,7 +2280,9 @@ window.addEventListener("popstate", () => {
     });
     $("v2U").addEventListener("change", e => { store.setItem("aa_wunit", e.target.value); render(); });
     $("v2T").addEventListener("change", e => { const v = +e.target.value; store.setItem("aa_thrive_g", v > 0 ? Math.max(30, Math.min(500, v)) : ""); render(); });
+    $("v2Diet").addEventListener("change", e => { store.setItem("aa_diet", e.target.value); render(); });
     $("v2Clear").addEventListener("click", () => { saveDay([]); render(); });
+    result.querySelectorAll(".sugg-add").forEach(b => b.addEventListener("click", () => { const c = lastSugg[+b.dataset.i]; addToDay(c.f.name, c.serve); render(); }));
     const msg = t => { const m = $("shareMsg"); m.textContent = t; m.hidden = false; };
     $("copyLinkBtn").addEventListener("click", async () => msg((await copyText(dayLink())) ? "Link copied. It opens your day exactly as it is now." : "Could not copy. The link is: " + dayLink()));
     $("dlCardBtn").addEventListener("click", async () => {
