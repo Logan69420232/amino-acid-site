@@ -225,6 +225,10 @@
     border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2);
     border-radius: 2px; padding: 5px 13px; font-size: 12.5px;
   }
+  .chips.quick { flex-basis: 100%; align-items: center; padding-top: 4px; }
+  .quick-lbl { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-right: 4px; }
+  .chips.quick .chip { border-style: dashed; }
+  .chips.quick .chip[aria-pressed="true"] { border-style: solid; }
   .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .sort-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); }
   .menu-wrap { position: relative; }
@@ -606,6 +610,13 @@
         <option value="leucine">Leucine (per 100 g protein)</option>
         <option value="eaa">Essential AA density</option>
         <option value="score">Amino acid score</option>
+        <option value="bcaa">BCAAs (per 100 g protein)</option>
+        <option value="lysine">Lysine (per 100 g protein)</option>
+        <option value="glycine">Glycine (per 100 g protein)</option>
+        <option value="leucineFood">Leucine (per 100 g as eaten)</option>
+        <option value="bcaaFood">BCAAs (per 100 g as eaten)</option>
+        <option value="lysineFood">Lysine (per 100 g as eaten)</option>
+        <option value="glycineFood">Glycine (per 100 g as eaten)</option>
         <option value="name">A → Z</option>
       </select>
     </div>
@@ -900,6 +911,40 @@ CAT_FILTERS.forEach(([id, label]) => {
   chipsEl.appendChild(b);
 });
 
+/* Quick filters: one-tap highlights (thresholds are per 100 g of protein unless stated) */
+/* Highlights only make sense among real protein sources: enough protein per 100 g,
+   not a fast-food, restaurant, snack or bakery item, and (for "high in" lists) a
+   reasonably balanced profile, so corn flakes cannot top "high in leucine". */
+const solidSource = f => f.protein_g_per_100g >= 8 && !SEARCH_DEMOTE_GROUPS.test(f.source || "") && !SEARCH_BRAND.test(f.name);
+const balanced = f => f.metrics.score >= 0.6;
+const PLANT_CATS = ["legume", "soy", "grain", "nuts_seeds"];
+const QUICK = [
+  ["complete", "Complete proteins", f => solidSource(f) && f.metrics.score >= 1, "protein", "amino acid score of 100% or more, among foods with at least 8 g protein per 100 g; most protein-dense first"],
+  ["leucine", "High in leucine", f => solidSource(f) && balanced(f) && f.metrics.leu >= 8.5, "leucineFood", "8.5 g leucine or more per 100 g protein, among balanced sources; ranked by leucine per 100 g as eaten"],
+  ["bcaa", "High in BCAAs", f => solidSource(f) && balanced(f) && f.metrics.bcaa >= 19, "bcaaFood", "19 g BCAAs or more per 100 g protein, among balanced sources; ranked by BCAAs per 100 g as eaten"],
+  ["lysine", "High in lysine", f => solidSource(f) && perProtein(f, "lysine") >= 9, "lysineFood", "9 g lysine or more per 100 g protein, the amino acid grains fall short on; ranked by lysine per 100 g as eaten"],
+  ["glycine", "High in glycine", f => solidSource(f) && perProtein(f, "glycine") >= 6, "glycineFood", "6 g glycine or more per 100 g protein, collagen-type sources; ranked by glycine per 100 g as eaten"],
+  ["dense", "Protein dense", f => f.protein_g_per_100g >= 25 && !SEARCH_DEMOTE_GROUPS.test(f.source || "") && !SEARCH_BRAND.test(f.name), "protein", "25 g protein or more per 100 g as eaten"],
+  ["plantcomplete", "Complete plant proteins", f => solidSource(f) && f.metrics.score >= 1 && PLANT_CATS.includes(f.category), "protein", "legumes, soy, grains, nuts and seeds with an amino acid score of 100% or more; most protein-dense first"]
+];
+state.quick = null;
+const quickEl = document.createElement("div");
+quickEl.className = "chips quick"; quickEl.id = "quick"; quickEl.setAttribute("role", "group"); quickEl.setAttribute("aria-label", "Quick filters");
+quickEl.innerHTML = '<span class="quick-lbl">Highlights</span>';
+QUICK.forEach(([id, label, , sortKey]) => {
+  const b = document.createElement("button");
+  b.className = "chip"; b.textContent = label; b.setAttribute("aria-pressed", "false");
+  b.addEventListener("click", () => {
+    const on = state.quick === id;
+    state.quick = on ? null : id;
+    quickEl.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", "false"));
+    if (!on) { b.setAttribute("aria-pressed", "true"); state.sort = sortKey; document.getElementById("sort").value = sortKey; }
+    renderGrid();
+  });
+  quickEl.appendChild(b);
+});
+chipsEl.insertAdjacentElement("afterend", quickEl);
+
 document.getElementById("search").addEventListener("input", e => { state.q = e.target.value.trim().toLowerCase(); renderGrid(); });
 document.getElementById("sort").addEventListener("change", e => { state.sort = e.target.value; renderGrid(); });
 
@@ -957,12 +1002,20 @@ function rankFoods(q, limit) {
 function visibleFoods() {
   let list = ATLAS.foods.slice();
   if (state.cat !== "all") list = list.filter(f => FILTER_MAP[state.cat].includes(f.category));
+  if (state.quick) list = list.filter(QUICK.find(q => q[0] === state.quick)[2]);
   if (state.q) { const allowed = new Set(list); return rankFoods(state.q).filter(f => allowed.has(f)); } // relevance order while searching
   const key = {
     protein: f => -f.protein_g_per_100g,
     leucine: f => -f.metrics.leu,
     eaa: f => -f.metrics.eaa,
     score: f => -f.metrics.score,
+    bcaa: f => -f.metrics.bcaa,
+    lysine: f => -perProtein(f, "lysine"),
+    glycine: f => -perProtein(f, "glycine"),
+    leucineFood: f => -f.aa.leucine,
+    bcaaFood: f => -(f.aa.leucine + f.aa.isoleucine + f.aa.valine),
+    lysineFood: f => -f.aa.lysine,
+    glycineFood: f => -f.aa.glycine,
     name: f => f.name.toLowerCase()
   }[state.sort];
   list.sort((a, b) => { const ka = key(a), kb = key(b); return ka < kb ? -1 : ka > kb ? 1 : 0; });
@@ -1012,7 +1065,7 @@ function renderTable(list) {
 }
 function renderGrid() {
   const list = visibleFoods();
-  const isDefault = !state.q && state.cat === "all";
+  const isDefault = !state.q && state.cat === "all" && !state.quick;
   const shown = isDefault ? list.filter(f => f.tier !== "bulk") : list.slice(0, MAX_ROWS);
   grid.innerHTML = "";
   emptyEl.hidden = list.length > 0;
@@ -1021,7 +1074,8 @@ function renderGrid() {
     : list.length > shown.length
       ? `Showing ${shown.length} of ${list.length.toLocaleString()} matches. Refine your search to narrow it down`
       : `${list.length} match${list.length === 1 ? "" : "es"} · click any row for the full profile`;
-  countLine.innerHTML = text + (isDefault ? "" : ` <button class="csv-btn" id="csvBtn">Download CSV</button>`);
+  const q = state.quick && QUICK.find(x => x[0] === state.quick);
+  countLine.innerHTML = (q ? `<b>${q[1]}</b> (${q[4]}) · ` : "") + text + (isDefault ? "" : ` <button class="csv-btn" id="csvBtn">Download CSV</button>`);
   const csvBtn = document.getElementById("csvBtn");
   if (csvBtn) csvBtn.addEventListener("click", () => downloadCSV("amino-atlas-results.csv", foodsCSV(list)));
   if (!isDefault) { renderTable(list); refreshKbd(); return; }
