@@ -943,39 +943,49 @@ function suggestFoods(day, gaps, protGap, protRoom, vegan) {
   for (const f of ATLAS.foods) {
     if (!solidSource(f) || have.has(f.name)) continue;
     if (vegan && !isVeganFood(f)) continue;
+    if (["meat", "seafood", "egg"].includes(f.category) && /\braw\b/i.test(f.name)) continue;          // never raw meat, fish or egg
     if (f.category !== "nuts_seeds" && /\braw\b/i.test(f.name) && f.tier !== "featured") continue;   // suggest what people actually eat: cooked forms
     if (/\b(flour|meal|bran|germ|starch|extract|frozen|unprepared)\b/i.test(f.name)) continue;
-    if (/^Spices?,|\(Spices and Herbs\)|cottonseed|sisymbrium/i.test(f.name + " " + (f.source || ""))) continue;
+    if (/^Spices?,|\(Spices and Herbs\)|cottonseed|sisymbrium|papad|cracker|chips|crisps|snack/i.test(f.name + " " + (f.source || ""))) continue;
     if (f.tier !== "featured" && /\b(dry|dried|dehydrated|powder|jerky|variety meats|by-products|pickled)\b/i.test(f.name)) continue;
-    // size the portion to the job: enough to close the biggest gap, within half to one-and-a-half typical servings
-    const typical = f.serving_g || 100;
+    // how rich is this food, per gram of protein, in each amino acid we are short of? (1.0 = the WHO pattern)
+    const contrib = gaps.map(g => {
+      const per100 = g.keys.reduce((t2, k) => t2 + f.aa[k], 0);
+      return { label: g.label, rid: g.rid, keys: g.keys, per100, gap: g.gap, rich: (per100 / f.protein_g_per_100g * 100) / (WHO[g.rid] / 10) };
+    });
+    const biggest = contrib.length ? contrib.reduce((a, b) => b.gap > a.gap ? b : a) : null;
+    // only balanced proteins, or ones exceptionally rich in the amino acid you are most short of
+    if (f.metrics.score < 0.75 && !(biggest && biggest.rich >= 1.5)) continue;
+    // size the portion to the job: enough to close the biggest gap, within half to one-and-a-half typical
+    // servings, and never more protein than the day has room for
+    const typical = f.serving_g || 100, perGProt = f.protein_g_per_100g / 100;
     let needG = 0;
-    for (const g of gaps) { const perG = g.keys.reduce((t2, k) => t2 + f.aa[k], 0) / 100; if (perG > 0) needG = Math.max(needG, g.gap / perG); }
-    if (!gaps.length) needG = protGap / (f.protein_g_per_100g / 100);
+    for (const c of contrib) { const perG = c.per100 / 100; if (perG > 0) needG = Math.max(needG, c.gap / perG); }
+    if (!gaps.length) needG = protGap / perGProt;
     const maxMult = f.category === "nuts_seeds" ? 1 : 1.5;                     // nobody eats 150 g of seeds
-    const serve = Math.round(Math.max(typical * 0.5, Math.min(typical * maxMult, needG || typical)) / 5) * 5;
+    const roomG = Math.max(20, Math.min(40, protRoom + 10)) / perGProt;         // a meal's worth of protein at most, and never past the target
+    let serve = Math.max(typical * 0.5, Math.min(typical * maxMult, needG || typical));
+    serve = Math.round(Math.min(serve, roomG) / 5) * 5;
+    if (serve < 20) continue;
     const factor = serve / 100, protAdd = f.protein_g_per_100g * factor;
-    let score = 0; const closes = [], contrib = []; let richSum = 0;
+    if (protAdd < 6) continue;                                                  // a token portion is not a recommendation
+    let score = 0; const closes = [];
     if (gaps.length) {
-      for (const g of gaps) {
-        const per100 = g.keys.reduce((t, k) => t + f.aa[k], 0);
-        const add = per100 * factor, frac = Math.min(1, add / g.gap);
-        const rich = (per100 / f.protein_g_per_100g * 100) / (WHO[g.rid] / 10);   // vs the WHO pattern, per 100 g protein
-        score += frac * (g.gap / totalGap); richSum += rich;
-        contrib.push({ label: g.label, add, rich, frac });
-        if (frac >= 0.999) closes.push(g.label);
+      let closeScore = 0, richSum = 0;
+      for (const c of contrib) {
+        c.add = c.per100 * factor; c.frac = Math.min(1, c.add / c.gap);
+        closeScore += c.frac * (c.gap / totalGap); richSum += Math.min(2, c.rich);
+        if (c.frac >= 0.999) closes.push(c.label);
       }
-      score += 0.15 * Math.min(2, richSum / gaps.length) / 2;             // genuinely rich in the missing amino acids
+      score = 0.55 * closeScore + 0.45 * Math.min(1, (richSum / contrib.length) / 1.5);   // rich in what is missing counts as much as closing it
     } else score = Math.min(1, protAdd / Math.max(protGap, 1));
-    if (protAdd > protRoom + 15) score *= 0.5;                       // would blow past the protein target
-    score += 0.04 * Math.min(1, f.metrics.score) + (f.tier === "featured" ? 0.05 : 0) + (haveCats.has(f.category) ? 0 : 0.04)
-           + (protRoom > 0 ? 0.03 * Math.min(1, protAdd / protRoom) : 0);
+    score += 0.05 * Math.min(1, f.metrics.score) + (f.tier === "featured" ? 0.05 : 0) + (haveCats.has(f.category) ? 0 : 0.04) - (f.category === "supplement" ? 0.06 : 0);   // whole foods first, powders as a fallback
     cands.push({ f, score, serve, protAdd, closes, contrib: contrib.sort((x, y) => y.rich - x.rich) });
   }
   cands.sort((a, b) => b.score - a.score);
   const out = [], cats = {};
   for (const c of cands) {
-    const head = c.f.name.split(",")[0].toLowerCase();
+    const head = c.f.name.split(",")[0].toLowerCase().replace(/\s*\(usda\)\s*$/, "");
     if (heads.has(head) || (cats[c.f.category] || 0) >= 2) continue;
     heads.add(head); cats[c.f.category] = (cats[c.f.category] || 0) + 1;
     out.push(c); if (out.length === 3) break;
