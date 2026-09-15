@@ -2242,7 +2242,6 @@ window.addEventListener("popstate", () => {
       </div>
       <p class="v2-sum">${day.length} source${day.length === 1 ? "" : "s"} · <b>${prot.toFixed(0)} g protein</b> · ${Math.round(prot / protThrive * 100)}% of your ${protThrive.toFixed(0)} g target</p>
       <p class="v2-verdict">${verdict}</p>
-      ${gapsHtml}
       <div class="v2-share">
         <button class="v2-share-btn" id="shareBtn">Share my profile</button>
         <button class="v2-share-sec" id="copyLinkBtn">Copy link</button>
@@ -2273,7 +2272,8 @@ window.addEventListener("popstate", () => {
           <div class="covbars" style="margin-top:10px">${eaaRows}</div>
           <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar is the one to watch for quantity; the amino acid bars tell you whether that protein was the right kind.</p>
         </div>
-      </div>`;
+      </div>
+      ${gapsHtml}`;
 
     $("v2W").addEventListener("change", e => {
       const unit = store.getItem("aa_wunit") || "kg";
