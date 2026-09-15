@@ -932,7 +932,7 @@ const solidSource = f => f.protein_g_per_100g >= 8 && !SEARCH_DEMOTE_GROUPS.test
 const balanced = f => f.metrics.score >= 0.6;
 const PLANT_CATS = ["legume", "soy", "grain", "nuts_seeds"];
 /* Suggest up to three real foods whose typical serving best closes the day's gaps */
-const ANIMAL_WORDS = /\b(whey|casein|collagen|gelatin|egg|eggs|milk|cheese|yogurt|yoghurt|butter|cream|beef|veal|pork|ham|bacon|chicken|turkey|duck|goose|lamb|mutton|goat|venison|bison|buffalo|game|fish|salmon|tuna|cod|shrimp|prawn|crab|lobster|oyster|clam|mussel|squid|anchov|sardine|honey|bone|broth|lard|tallow|meat|sausage|frankfurter|salami|liver|kidney)\b/i;
+const ANIMAL_WORDS = /\b(whey|casein|collagen|gelatin|egg|eggs|milk|cheese|yogurt|yoghurt|butter|cream|beef|veal|pork|ham|bacon|chicken|turkey|duck|goose|hen|quail|pheasant|grouse|lamb|mutton|goat|venison|deer|elk|moose|caribou|reindeer|antelope|bison|buffalo|bear|rabbit|squirrel|muskrat|beaver|seal|whale|walrus|game|fish|salmon|tuna|cod|halibut|herring|trout|smelt|roe|caviar|shrimp|prawn|crab|lobster|oyster|clam|mussel|squid|octopus|anchov|sardine|honey|bone|broth|lard|tallow|blubber|meat|sausage|frankfurter|salami|liver|kidney|heart|tongue|tripe|steak|roast|fillet|filet|breast|thigh|drumstick|wing|loin|ribs?|chop|chops|brisket|jerky)\b/i;
 const isVeganFood = f => !["meat", "seafood", "dairy", "egg"].includes(f.category) && !ANIMAL_WORDS.test(f.name);
 function suggestFoods(day, gaps, protGap, protRoom, vegan) {
   const have = new Set(day.map(e => e.name));
@@ -945,13 +945,15 @@ function suggestFoods(day, gaps, protGap, protRoom, vegan) {
     if (vegan && !isVeganFood(f)) continue;
     if (f.category !== "nuts_seeds" && /\braw\b/i.test(f.name) && f.tier !== "featured") continue;   // suggest what people actually eat: cooked forms
     if (/\b(flour|meal|bran|germ|starch|extract|frozen|unprepared)\b/i.test(f.name)) continue;
+    if (/^Spices?,|\(Spices and Herbs\)|cottonseed|sisymbrium/i.test(f.name + " " + (f.source || ""))) continue;
     if (f.tier !== "featured" && /\b(dry|dried|dehydrated|powder|jerky|variety meats|by-products|pickled)\b/i.test(f.name)) continue;
     // size the portion to the job: enough to close the biggest gap, within half to one-and-a-half typical servings
     const typical = f.serving_g || 100;
     let needG = 0;
     for (const g of gaps) { const perG = g.keys.reduce((t2, k) => t2 + f.aa[k], 0) / 100; if (perG > 0) needG = Math.max(needG, g.gap / perG); }
     if (!gaps.length) needG = protGap / (f.protein_g_per_100g / 100);
-    const serve = Math.round(Math.max(typical * 0.5, Math.min(typical * 1.5, needG || typical)) / 5) * 5;
+    const maxMult = f.category === "nuts_seeds" ? 1 : 1.5;                     // nobody eats 150 g of seeds
+    const serve = Math.round(Math.max(typical * 0.5, Math.min(typical * maxMult, needG || typical)) / 5) * 5;
     const factor = serve / 100, protAdd = f.protein_g_per_100g * factor;
     let score = 0; const closes = [], contrib = []; let richSum = 0;
     if (gaps.length) {
