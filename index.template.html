@@ -979,16 +979,20 @@ function suggestFoods(day, gaps, protGap, protRoom, vegan) {
       }
       score = 0.55 * closeScore + 0.45 * Math.min(1, (richSum / contrib.length) / 1.5);   // rich in what is missing counts as much as closing it
     } else score = Math.min(1, protAdd / Math.max(protGap, 1));
-    score += 0.05 * Math.min(1, f.metrics.score) + (f.tier === "featured" ? 0.05 : 0) + (haveCats.has(f.category) ? 0 : 0.04) - (f.category === "supplement" ? 0.06 : 0);   // whole foods first, powders as a fallback
+    score += 0.05 * Math.min(1, f.metrics.score) + (f.tier === "featured" ? 0.08 : 0) + (haveCats.has(f.category) ? 0 : 0.04) - (f.category === "supplement" ? 0.06 : 0);   // whole foods first, powders as a fallback
     cands.push({ f, score, serve, protAdd, closes, contrib: contrib.sort((x, y) => y.rich - x.rich) });
   }
   cands.sort((a, b) => b.score - a.score);
-  const out = [], cats = {};
-  for (const c of cands) {
-    const head = c.f.name.split(",")[0].toLowerCase().replace(/\s*\(usda\)\s*$/, "");
-    if (heads.has(head) || (cats[c.f.category] || 0) >= 2) continue;
-    heads.add(head); cats[c.f.category] = (cats[c.f.category] || 0) + 1;
-    out.push(c); if (out.length === 3) break;
+  // variety: one food per category first; allow a second per category only if that is all there is
+  const out = [], cats = {}, used = new Set();
+  for (const perCat of [1, 2]) {
+    for (const c of cands) {
+      if (out.length === 3) break;
+      const head = c.f.name.split(",")[0].toLowerCase().replace(/\s*\(usda\)\s*$/, "");
+      if (used.has(c) || heads.has(head) || (cats[c.f.category] || 0) >= perCat) continue;
+      heads.add(head); cats[c.f.category] = (cats[c.f.category] || 0) + 1; used.add(c);
+      out.push(c);
+    }
   }
   return out;
 }

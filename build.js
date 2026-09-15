@@ -17,6 +17,7 @@ const suppFoods = suppPack ? suppPack.foods : [];
 const SERVINGS = [
   // first match wins, so specific and small servings come before broad ones
   [/whey|casein|isolate|concentrate|protein powder|collagen|hemp protein|rice protein|egg white protein/i, 30],
+  [/spirulina/i, 10], [/yeast/i, 15],
   [/\b(dry|dried|dehydrated|powder|powdered)\b/i, 30],
   [/bacon/i, 30], [/jerky/i, 30],
   [/cheese|cheddar|mozzarella|parmesan|cottage|ricotta|feta|halloumi/i, 30],
@@ -31,8 +32,8 @@ const SERVINGS = [
   [/lentils|chickpeas|beans|peas|hummus/i, 120],
   [/oats/i, 40], [/quinoa|rice, |brown rice|pasta|noodle|couscous|bulgur|barley/i, 150],
   [/bread|bagel|tortilla|roll\b/i, 60],
-  [/peanut|almond|walnut|cashew|pistachio|pecan|hazelnut|macadamia|nuts|seeds/i, 30],
-  [/spirulina/i, 10], [/yeast/i, 15], [/gluten|seitan/i, 90]
+  [/peanut|almond|walnut|cashew|pistachio|pecan|hazelnut|macadamia|brazil|hemp|chia|flax|sunflower|sesame|pumpkin|nuts|seeds?\b/i, 30],
+  [/gluten|seitan/i, 90]
 ];
 function servingFor(f) {
   for (const [re, g] of SERVINGS) if (re.test(f.name)) return g;
