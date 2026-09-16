@@ -267,6 +267,8 @@
   .pick-block h3 { font-family: var(--font-serif); font-weight: 600; font-size: 20px; margin: 0 0 4px; }
   .pick-block .pb-sub { font-size: 13.5px; color: var(--ink-3); margin: 0 0 12px; }
   .pick-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pick-row .v2-search { flex: 1 1 200px; min-width: 180px; }
+  .pick-row .v2-search input { width: 100%; }
   .pick-row input {
     flex: 1 1 180px; background: var(--surface); border: 1px solid var(--line-strong);
     border-radius: 2px; padding: 9px 12px; font-size: 14px; color: var(--ink); min-width: 0;
@@ -1622,6 +1624,38 @@ function wireAAPickers(root) {
 }
 
 /* ================= compare picker page ================= */
+/* The home page's relevance type-ahead, attachable to any food input. */
+function attachFoodTypeahead(wrap) {
+  const input = wrap.querySelector("input"), dd = wrap.querySelector(".v2-dd");
+  let items = [], idx = -1, timer = null;
+  const hide = () => { dd.hidden = true; dd.innerHTML = ""; items = []; idx = -1; };
+  const pick = f => { input.value = f.name; hide(); };
+  const show = () => {
+    const q = input.value.trim();
+    if (q.length < 2) return hide();
+    items = rankFoods(q, 8);
+    if (!items.length) return hide();
+    idx = 0;
+    dd.innerHTML = items.map((f, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${i === 0}">
+      <span><span class="nm">${f.name}</span>${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
+      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${CAT_LABEL[f.category] || ""}</span></button>`).join("");
+    dd.hidden = false;
+    dd.querySelectorAll("button").forEach(b => b.addEventListener("mousedown", ev => { ev.preventDefault(); pick(items[+b.dataset.i]); }));
+  };
+  input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(show, 60); });
+  input.addEventListener("focus", show);
+  input.addEventListener("blur", () => setTimeout(hide, 120));
+  input.addEventListener("keydown", e => {
+    if (dd.hidden) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      idx = (idx + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+      dd.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-selected", String(i === idx)));
+    } else if (e.key === "Escape") { hide(); }
+    else if (e.key === "Enter") { e.preventDefault(); pick(items[idx >= 0 ? idx : 0]); }
+  });
+}
+
 function openComparePicker() {
   lastFocus = document.activeElement;
   sheet.innerHTML = `
@@ -1634,9 +1668,9 @@ function openComparePicker() {
       <h3>Two foods</h3>
       <p class="pb-sub">Start typing: every one of the ${ATLAS.foods.length.toLocaleString()} foods in the atlas is available. A third is optional.</p>
       <div class="pick-row">
-        <input type="text" class="food-pick" list="dayFoodList" placeholder="e.g. Whey protein isolate" aria-label="First food">
-        <input type="text" class="food-pick" list="dayFoodList" placeholder="e.g. Lentils, cooked" aria-label="Second food">
-        <input type="text" class="food-pick" list="dayFoodList" placeholder="Optional third" aria-label="Third food (optional)">
+        <span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="e.g. Whey protein isolate" aria-label="First food" autocomplete="off"><div class="v2-dd" hidden></div></span>
+        <span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="e.g. Lentils, cooked" aria-label="Second food" autocomplete="off"><div class="v2-dd" hidden></div></span>
+        <span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="Optional third" aria-label="Third food (optional)" autocomplete="off"><div class="v2-dd" hidden></div></span>
         <button class="go-cmp" id="foodPickGo">Compare foods</button>
       </div>
       <p class="pick-hint" id="foodPickHint"></p>
@@ -1653,9 +1687,11 @@ function openComparePicker() {
     </div>`;
   sheet.querySelector(".close").addEventListener("click", closeDetail);
   wireAAPickers(sheet);
+  sheet.querySelectorAll(".fp-wrap").forEach(attachFoodTypeahead);
   sheet.querySelector("#foodPickGo").addEventListener("click", () => {
     const names = [...sheet.querySelectorAll(".food-pick")].map(i => i.value.trim()).filter(Boolean);
-    const foods = [...new Set(names)].map(foodByName).filter(Boolean);
+    const matched = names.map(n => foodByName(n) || rankFoods(n, 1)[0]).filter(Boolean);
+    const foods = [...new Map(matched.map(f => [f.id, f])).values()];
     const hint = sheet.querySelector("#foodPickHint");
     if (foods.length < 2) {
       const bad = names.filter(n => !foodByName(n));
