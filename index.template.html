@@ -1517,7 +1517,7 @@ function openCompare(foodsArg) {
       return `<div class="covrow ${isLimit ? "is-limit" : ""}">
         <span class="aa-name">${r.label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr")}</span>
         <span class="track"><span class="fill" style="width:${w}%"></span><span class="goal" style="left:${100 / 160 * 100}%"></span></span>
-        <span class="pct">${Math.round(r.ratio * 100)}%</span></div>`;
+        <span class="pct">${(r.mgPerG / 10).toFixed(1)} g</span></div>`;
     }).join("");
     return `<div class="cmp-col">
       ${renderBloom(f, { mini: true })}
@@ -1530,7 +1530,7 @@ function openCompare(foodsArg) {
     <div class="close-dock"><button class="close" aria-label="Close comparison">✕</button></div>
     <div class="sheet-top">
       <div><h2 id="sheetTitle">Side by side</h2>
-      <p class="sub">Essential amino acids per g of protein vs the WHO 2007 adult pattern; the dark line is 100%.</p></div>
+      <p class="sub">Essential amino acids in grams per 100 g of protein; the dark line marks the WHO 2007 adult requirement.</p></div>
     </div>
     <div class="cmp-cols">${cols}</div>`;
   sheet.querySelector(".close").addEventListener("click", closeDetail);
