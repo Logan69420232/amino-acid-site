@@ -144,7 +144,11 @@
   .v2-search { position: relative; flex: 1 1 340px; min-width: 240px; }
   #v2Food { width: 100%; background: var(--surface); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 12px; padding: 14px 18px; font-size: 17px; }
   .v2-dd { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 45; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
-  .v2-dd button { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; width: 100%; text-align: left; border: 0; background: none; padding: 10px 14px; font-size: 14.5px; cursor: pointer; border-top: 1px solid var(--line); }
+  .v2-dd button { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; width: 100%; text-align: left; border: 0; background: none; padding: 10px 14px; font-size: 14.5px; cursor: pointer; border-top: 1px solid var(--line); }
+  .v2-dd button > span:first-child { flex: 1 1 150px; min-width: 0; }
+  .v2-dd .sub { margin-left: auto; }
+  /* picker inputs are narrow; their dropdown should not be */
+  .fp-wrap .v2-dd { min-width: min(320px, calc(100vw - 44px)); }
   .v2-dd button:first-child { border-top: 0; }
   .v2-dd button[aria-selected="true"], .v2-dd button:hover { background: var(--surface-2); }
   .v2-dd .nm { font-weight: 600; }
@@ -2283,15 +2287,15 @@ window.addEventListener("popstate", () => {
     const protGap = Math.max(0, protThrive - prot);
     const vegan = store.getItem("aa_diet") === "vegan";
     lastSugg = suggestFoods(day, gaps, protGap, protThrive - prot, vegan);
-    const bcaaGaps = gaps.filter(g => ["leucine", "isoleucine", "valine"].includes(g.rid)), otherGaps = gaps.filter(g => !["leucine", "isoleucine", "valine"].includes(g.rid));
-    const gapPhrase = [bcaaGaps.length ? `<b>BCAAs</b> (${bcaaGaps.map(g => short(g.label).toLowerCase() + " " + g.gap.toFixed(1) + " g").join(", ")})` : "",
-                       otherGaps.length ? `<b>essential amino acids</b> (${otherGaps.map(g => short(g.label).toLowerCase() + " " + g.gap.toFixed(1) + " g").join(", ")})` : ""].filter(Boolean).join(" and ");
+    /* The bars above already carry the numbers; this is just the one-line lead. */
+    const worstGap = gaps.slice().sort((a, b) => b.gap - a.gap)[0];
+    const gapSummary = !gaps.length ? "" : gaps.length <= 3
+      ? `You're short on <b>${gaps.map(g => short(g.label).toLowerCase()).join(", ")}</b>.`
+      : `You're short on <b>${gaps.length} of the 9 essential targets</b>, with the biggest gap in ${short(worstGap.label).toLowerCase()}.`;
     const gapsHtml = (gaps.length || protGap > 0) ? `<div class="v2-gaps">
         <div class="v2-sec">${gaps.length ? "What you're missing" : "Almost there"}</div>
-        ${gaps.length
-          ? `<ul class="gap-list">${gaps.map(g => `<li><b>${short(g.label)}</b> ${Math.round(g.got / g.need * 100)}% covered, <b>${g.gap.toFixed(1)} g</b> short</li>`).join("")}</ul>`
-          : `<p class="v2-p">Every essential amino acid is covered. You're ${protGap.toFixed(0)} g short of your protein target.</p>`}
-        ${lastSugg.length ? `<p class="v2-p sugg-lead">${gaps.length ? `You are short on ${gapPhrase}. ${vegan ? "Plant" : "Protein"} sources rich in those:` : `${vegan ? "Plant" : "Protein"} sources to make up the difference:`}</p>
+        ${gaps.length ? "" : `<p class="v2-p">Every essential amino acid is covered. You're ${protGap.toFixed(0)} g short of your protein target.</p>`}
+        ${lastSugg.length ? `<p class="v2-p sugg-lead">${gaps.length ? `${gapSummary} ${vegan ? "Plant" : "Protein"} sources rich in what's missing:` : `${vegan ? "Plant" : "Protein"} sources to make up the difference:`}</p>
         <div class="sugg">${lastSugg.map((c, i) => `<div class="sugg-card">
           <div class="sugg-name">${c.f.name}</div>
           ${c.contrib.length ? `<div class="sugg-rich">Rich in ${c.contrib.slice(0, 2).map(x => short(x.label).toLowerCase()).join(" and ")} <span>(${c.contrib[0].rich.toFixed(1)}× the WHO pattern for ${short(c.contrib[0].label).toLowerCase()})</span></div>` : ""}
