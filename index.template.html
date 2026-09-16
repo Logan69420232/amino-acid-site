@@ -594,7 +594,8 @@
       <button class="burger menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
       <div class="menu-pop" hidden>
         <button data-act="atlas">Amino acid database<span class="mi-sub">Browse every food's individual amino acid profile</span></button>
-        <button data-act="compare">Compare<span class="mi-sub">Foods or amino acids, side by side</span></button>
+        <button data-act="comparefoods">Compare foods<span class="mi-sub">Any two or three, side by side</span></button>
+        <button data-act="compareaa">Compare amino acids<span class="mi-sub">Role, daily need, richest sources</span></button>
         <button data-act="method">How the numbers work</button>
       </div>
     </div>
@@ -1283,7 +1284,7 @@ function openDetail(id, push) {
 function closeDetail(push) {
   overlay.hidden = true; hideTip(); openDetailId = null;
   document.body.style.overflow = "";
-  if (push !== false && /^\/database\//.test(location.pathname) && history.pushState) {
+  if (push !== false && /^\/(database\/|compare)/.test(location.pathname) && history.pushState) {
     try { history.pushState({ v: "atlas" }, "", document.body.dataset.view === "atlas" ? "/database" : "/"); } catch (e) {}
   }
   if (lastFocus) lastFocus.focus();
@@ -1510,6 +1511,9 @@ function openCompare(foodsArg) {
   const foods = Array.isArray(foodsArg) ? foodsArg : state.compare.map(id => ATLAS.foods[id]);
   if (!foods.length) return;
   lastFocus = document.activeElement;
+  if (!/^\/compare/.test(location.pathname) && history.pushState) {
+    try { history.pushState({ v: "cmpf" }, "", "/compare"); } catch (e) {}
+  }
   const cols = foods.map(f => {
     const m = f.metrics;
     const complete = m.score >= 1;
@@ -1656,17 +1660,17 @@ function attachFoodTypeahead(wrap) {
   });
 }
 
-function openComparePicker() {
+function openCompareFoods(push) {
   lastFocus = document.activeElement;
   sheet.innerHTML = `
     <div class="close-dock"><button class="close" aria-label="Close compare">✕</button></div>
     <div class="sheet-top">
-      <div><h2 id="sheetTitle">Compare</h2>
-      <p class="sub">Put any two things side by side: whole foods, or the amino acids themselves.</p></div>
+      <div><h2 id="sheetTitle">Compare foods</h2>
+      <p class="sub">Any two side by side, with a third if you want it. Essential amino acids in grams per 100 g of protein, against the WHO 2007 requirement.</p></div>
     </div>
     <div class="pick-block">
-      <h3>Two foods</h3>
-      <p class="pb-sub">Start typing: every one of the ${ATLAS.foods.length.toLocaleString()} foods in the atlas is available. A third is optional.</p>
+      <h3>Pick your foods</h3>
+      <p class="pb-sub">Start typing: every one of the ${ATLAS.foods.length.toLocaleString()} foods in the atlas is available.</p>
       <div class="pick-row">
         <span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="e.g. Whey protein isolate" aria-label="First food" autocomplete="off"><div class="v2-dd" hidden></div></span>
         <span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="e.g. Lentils, cooked" aria-label="Second food" autocomplete="off"><div class="v2-dd" hidden></div></span>
@@ -1674,19 +1678,11 @@ function openComparePicker() {
         <button class="go-cmp" id="foodPickGo">Compare foods</button>
       </div>
       <p class="pick-hint" id="foodPickHint"></p>
-    </div>
-    <div class="pick-block">
-      <h3>Two amino acids</h3>
-      <p class="pb-sub">What each one does, how much you need a day, and which foods carry the most of it.</p>
-      <div class="pick-row">
-        <select class="aa-pick-a" aria-label="First amino acid"></select>
-        <span class="vs" style="font-family:var(--font-mono);font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em">vs</span>
-        <select class="aa-pick-b" aria-label="Second amino acid"></select>
-        <button class="go-cmp aa-pick-go">Compare amino acids</button>
-      </div>
     </div>`;
+  if (push !== false && history.pushState) {
+    try { history.pushState({ v: "cmpf" }, "", "/compare"); } catch (e) {}
+  }
   sheet.querySelector(".close").addEventListener("click", closeDetail);
-  wireAAPickers(sheet);
   sheet.querySelectorAll(".fp-wrap").forEach(attachFoodTypeahead);
   sheet.querySelector("#foodPickGo").addEventListener("click", () => {
     const names = [...sheet.querySelectorAll(".food-pick")].map(i => i.value.trim()).filter(Boolean);
@@ -1702,6 +1698,33 @@ function openComparePicker() {
     }
     openCompare(foods);
   });
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+  sheet.querySelector(".close").focus();
+}
+
+function openCompareAAs(push) {
+  lastFocus = document.activeElement;
+  sheet.innerHTML = `
+    <div class="close-dock"><button class="close" aria-label="Close compare">✕</button></div>
+    <div class="sheet-top">
+      <div><h2 id="sheetTitle">Compare amino acids</h2>
+      <p class="sub">What each one does, how much of it you need in a day, and which foods carry the most of it.</p></div>
+    </div>
+    <div class="pick-block">
+      <h3>Pick any two</h3>
+      <div class="pick-row">
+        <select class="aa-pick-a" aria-label="First amino acid"></select>
+        <span class="vs" style="font-family:var(--font-mono);font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em">vs</span>
+        <select class="aa-pick-b" aria-label="Second amino acid"></select>
+        <button class="go-cmp aa-pick-go">Compare amino acids</button>
+      </div>
+    </div>`;
+  if (push !== false && history.pushState) {
+    try { history.pushState({ v: "cmpa" }, "", "/compare-amino-acids"); } catch (e) {}
+  }
+  sheet.querySelector(".close").addEventListener("click", closeDetail);
+  wireAAPickers(sheet);
   overlay.hidden = false;
   document.body.style.overflow = "hidden";
   sheet.querySelector(".close").focus();
@@ -1726,7 +1749,8 @@ function openComparePicker() {
       if (!act) return;
       closeAll();
       if (act === "atlas") showView("atlas");
-      else if (act === "compare") openComparePicker();
+      else if (act === "comparefoods") openCompareFoods();
+      else if (act === "compareaa") openCompareAAs();
       else if (act === "method") document.getElementById("method").scrollIntoView({ behavior: "smooth" });
     });
   });
@@ -2086,6 +2110,8 @@ window.addEventListener("popstate", () => {
     const f = ATLAS.foods.find(x => x.slug === m[1]);
     if (f) { showView("atlas", false); openDetail(f.id, false); return; }
   }
+  if (/^\/compare-amino-acids/.test(location.pathname)) { openCompareAAs(false); return; }
+  if (/^\/compare/.test(location.pathname)) { openCompareFoods(false); return; }
   if (!overlay.hidden) closeDetail(false);
   showView(/^\/database/.test(location.pathname) ? "atlas" : "day", false);
 });
@@ -2360,6 +2386,14 @@ window.addEventListener("popstate", () => {
 (function bootURL() {
   if (/^\/database/.test(location.pathname) || document.title.indexOf("database") !== -1) {
     showView("atlas", false);
+  }
+  if (/^\/compare-amino-acids/.test(location.pathname) || document.title.indexOf("Compare amino acids") !== -1) {
+    openCompareAAs(false);
+    return;
+  }
+  if (/^\/compare/.test(location.pathname) || document.title.indexOf("Compare foods") !== -1) {
+    openCompareFoods(false);
+    return;
   }
   let m = location.pathname.match(/^\/database\/([a-z0-9-]+)/) || location.hash.match(/^#f=([a-z0-9-]+)/);
   if (m) {

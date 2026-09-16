@@ -192,6 +192,23 @@ const dbOut = out
     '<meta property="og:title" content="Amino acid database · Amino Atlas" />');
 fs.writeFileSync(path.join(root, "dist", "database.html"), dbOut);
 
+// ---------- /compare and /compare-amino-acids: addressed pages of the app ----------
+function pageCopy(title, desc, canonicalPath, ogTitle) {
+  return out
+    .replace("<title>Amino Atlas: amino acid profiles of every protein source</title>", "<title>" + title + "</title>")
+    .replace(/<meta name="description" content="[^"]*" \/>/, '<meta name="description" content="' + desc + '" />')
+    .replace('<link rel="canonical" href="https://aminodata.org/" />', '<link rel="canonical" href="' + BASE + canonicalPath + '" />')
+    .replace('<meta property="og:title" content="Amino Atlas" />', '<meta property="og:title" content="' + ogTitle + '" />');
+}
+fs.writeFileSync(path.join(root, "dist", "compare.html"),
+  pageCopy("Compare foods side by side: amino acid profiles · Amino Atlas",
+    "Put any two or three foods side by side: essential amino acids in grams per 100 g of protein, against the WHO/FAO 2007 requirement.",
+    "/compare", "Compare foods · Amino Atlas"));
+fs.writeFileSync(path.join(root, "dist", "compare-amino-acids.html"),
+  pageCopy("Compare amino acids: roles, daily needs, richest sources · Amino Atlas",
+    "Pick any two amino acids and compare what each does, how much you need a day, and which foods carry the most of it.",
+    "/compare-amino-acids", "Compare amino acids · Amino Atlas"));
+
 // ---------- /food/<slug>: one static, crawlable page per food ----------
 const AA_LABELS = [
   ["leucine", "Leucine", "Essential (BCAA)"], ["isoleucine", "Isoleucine", "Essential (BCAA)"], ["valine", "Valine", "Essential (BCAA)"],
@@ -287,7 +304,7 @@ for (const f of foods) {
 }
 
 // ---------- sitemap + robots ----------
-const urls = [BASE + "/", BASE + "/database", ...foods.map(f => BASE + "/food/" + f.slug)];
+const urls = [BASE + "/", BASE + "/database", BASE + "/compare", BASE + "/compare-amino-acids", ...foods.map(f => BASE + "/food/" + f.slug)];
 fs.writeFileSync(path.join(root, "dist", "sitemap.xml"),
   '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
   urls.map(u => "<url><loc>" + u + "</loc></url>").join("\n") + "\n</urlset>\n");
