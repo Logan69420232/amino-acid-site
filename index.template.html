@@ -138,6 +138,11 @@
   .auth-btn.ghost { background: transparent; color: var(--c-bcaa); }
   .auth-user { font-size: 12.5px; color: var(--ink-2); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .auth-note { font-size: 13px; color: var(--ink-3); max-width: 52ch; }
+  .auth-gate {
+    margin: 16px 0 0; padding: 12px 16px; border-radius: 12px;
+    background: var(--c-good-bg); border: 1px solid var(--c-bcaa);
+    color: var(--ink); font-size: 14.5px; font-weight: 500; max-width: 60ch;
+  }
   .auth-msg { font-weight: 600; color: var(--c-bcaa); }
   @media (max-width: 560px) { .auth-user { display: none; } }
 
@@ -146,6 +151,31 @@
   body:not([data-view="atlas"]) .toolbar, body:not([data-view="atlas"]) .atlas-head,
   body:not([data-view="atlas"]) #countLine, body:not([data-view="atlas"]) #grid, body:not([data-view="atlas"]) #empty { display: none !important; }
   body[data-view="atlas"] .v2-entry, body[data-view="atlas"] .v2-result { display: none !important; }
+  body[data-view="atlas"] .landing, body.authed .landing { display: none !important; }
+
+  /* ---------- landing ---------- */
+  .landing { margin: 6px 0 40px; }
+  .land-cta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 18px 0 8px; }
+  .land-cta {
+    border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px;
+    padding: 13px 26px; font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+  .land-cta.ghost { background: transparent; border: 1.5px solid var(--line-strong); color: var(--ink); font-weight: 600; }
+  .land-free { font-size: 13px; color: var(--ink-3); flex-basis: 100%; }
+  .land-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 30px 0 8px; }
+  .land-step { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+  .land-step .no {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%; background: var(--c-good-bg);
+    color: var(--c-bcaa); font-weight: 700; font-size: 14px; margin-bottom: 10px;
+  }
+  .land-step h3 { margin: 0 0 6px; font-size: 17px; }
+  .land-step p { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .land-feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 22px; margin: 18px 0 0; }
+  .land-feat { font-size: 14px; color: var(--ink-2); padding-left: 22px; position: relative; }
+  .land-feat::before { content: "✓"; position: absolute; left: 0; color: var(--c-bcaa); font-weight: 700; }
+  .land-feat b { color: var(--ink); }
+  .land-h { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin: 34px 0 0; }
   .atlas-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
   .atlas-head .v2-h { margin: 8px 0 0; }
   .linkish { border: 0; background: none; padding: 0; color: var(--c-bcaa); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
@@ -690,6 +720,38 @@
 </div>
 
 <main class="wrap">
+  <section class="landing" aria-label="About Amino Atlas">
+    <div class="land-cta-row">
+      <button type="button" class="land-cta" id="landSignup">Create your free account</button>
+      <button type="button" class="land-cta ghost" id="landTry">Try it first, no account</button>
+      <span class="land-free">Free forever. One email, no password. Your days sync across phone and computer.</span>
+    </div>
+    <p class="land-h">How it works</p>
+    <div class="land-steps">
+      <div class="land-step"><span class="no">1</span>
+        <h3>Log your day, meal by meal</h3>
+        <p>Search ${"${ATLAS_COUNT}"} foods and add what you actually eat to breakfast, lunch, dinner and snacks, day by day with dates and notes.</p>
+      </div>
+      <div class="land-step"><span class="no">2</span>
+        <h3>See the shape of your protein</h3>
+        <p>Every day gets an amino acid profile and a score against WHO 2007 requirements at your body weight. One number tells you if your protein was the right kind.</p>
+      </div>
+      <div class="land-step"><span class="no">3</span>
+        <h3>Close the gaps</h3>
+        <p>When an amino acid runs short, we name it and suggest real foods, with portions, that close the gap in one serving.</p>
+      </div>
+    </div>
+    <p class="land-h">What you get</p>
+    <div class="land-feats">
+      <div class="land-feat"><b>Meal-by-meal logging</b> across as many days as you like</div>
+      <div class="land-feat"><b>Amino acid score</b> and your limiting amino acid, every day</div>
+      <div class="land-feat"><b>Personal targets</b> scaled to your weight and protein goal</div>
+      <div class="land-feat"><b>Food suggestions</b> that close what you're missing</div>
+      <div class="land-feat"><b>${"${ATLAS_COUNT}"} foods</b> with full 18-amino-acid profiles and sources</div>
+      <div class="land-feat"><b>Share your day</b> as a link or an image</div>
+    </div>
+  </section>
+
   <section class="v2-entry">
     <h2 class="v2-h">What protein do you eat in a day?</h2>
     <p class="v2-p">Log each source meal by meal. We add up the amino acids across the day and show you the shape of it.</p>
@@ -1821,6 +1883,13 @@ function openCompareAAs(push) {
 const SUPABASE_URL = "https://hytzycuwgiumjyzwogqw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_zgfRyYwIUKOwxv6L6lTjiA_puo9yd0t";
 let _sbClient = null;
+let authedUser = null;
+const GATE_FREE_FOODS = 3;
+function requireAccount(msg) {
+  if (authedUser) return true;
+  openAuthSheet(msg);
+  return false;
+}
 function sbReady() {
   if (!/^https:\/\//.test(SUPABASE_URL) || !window.supabase) return null;
   if (!_sbClient) _sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1892,14 +1961,15 @@ function renderAuthSlot(session) {
     slot.querySelector("#authIn").addEventListener("click", openAuthSheet);
   }
 }
-function openAuthSheet() {
+function openAuthSheet(gateMsg) {
   lastFocus = document.activeElement;
   sheet.innerHTML = `
     <div class="close-dock"><button class="close" aria-label="Close">✕</button></div>
     <div class="sheet-top">
-      <div><h2 id="sheetTitle">Your free account</h2>
-      <p class="sub">Keep your logged days and targets, synced across your phone and computer.</p></div>
+      <div><h2 id="sheetTitle">Create your free account</h2>
+      <p class="sub">Free forever. Unlimited foods and days, notes, and everything synced across your phone and computer.</p></div>
     </div>
+    ${typeof gateMsg === "string" && gateMsg ? `<p class="auth-gate">${gateMsg}</p>` : ""}
     <div class="pick-block">
       <h3>Sign up or sign in</h3>
       <p class="pb-sub">One email, no password. We send you a link that signs this device in.</p>
@@ -1930,10 +2000,14 @@ function initAuth() {
   const c = sbReady();
   if (!c) { renderAuthSlot(null); return; }
   c.auth.onAuthStateChange((ev, session) => {
+    authedUser = session && session.user;
+    document.body.classList.toggle("authed", !!authedUser);
     renderAuthSlot(session);
-    if (ev === "SIGNED_IN") syncOnLogin();
+    if (ev === "SIGNED_IN") { syncOnLogin(); if (!overlay.hidden) closeDetail(); }
   });
   c.auth.getSession().then(({ data }) => {
+    authedUser = data.session && data.session.user;
+    document.body.classList.toggle("authed", !!authedUser);
     renderAuthSlot(data.session);
     if (data.session) syncOnLogin();
   });
@@ -1978,8 +2052,13 @@ function addToDay(name, grams, meal) {
   const log = loadLog(); const d = log.days[log.active];
   const m = MEAL_LABEL[meal] ? meal : currentMeal;
   const hit = d.entries.find(e => e.name === name && e.meal === m);
+  if (!hit && !authedUser && sbReady() && d.entries.length >= GATE_FREE_FOODS) {
+    openAuthSheet(`You can try ${GATE_FREE_FOODS} foods without an account. Create a free one to log your whole day, across meals and days.`);
+    return false;
+  }
   if (hit) hit.g += grams; else d.entries.push({ name, g: grams, meal: m });
   saveLog(log); updateDayBtn();
+  return true;
 }
 
 // Type-ahead list for the day picker, built once (4k+ options)
@@ -2464,6 +2543,9 @@ window.addEventListener("popstate", () => {
   $("dayDate").addEventListener("change", e => {
     const l = loadLog(); l.days[l.active].date = e.target.value || todayISO(); saveLog(l); render();
   });
+  $("dayNote").addEventListener("focus", e => {
+    if (sbReady() && !authedUser) { e.target.blur(); openAuthSheet("Keep notes on every day with a free account."); }
+  });
   $("dayNote").addEventListener("change", e => {
     const l = loadLog(); l.days[l.active].note = e.target.value.slice(0, 500); saveLog(l);
   });
@@ -2497,6 +2579,7 @@ window.addEventListener("popstate", () => {
       const l = loadLog(); l.active = +b.dataset.i; saveLog(l); render();
     }));
     tabs.querySelector("#dayAdd").addEventListener("click", () => {
+      if (sbReady() && !requireAccount("Track more than one day with a free account: dates, notes, and your whole week in tabs.")) return;
       const l = loadLog();
       const lastD = new Date((l.days[l.days.length - 1].date || todayISO()) + "T12:00:00");
       lastD.setDate(lastD.getDate() + 1);
@@ -2655,6 +2738,15 @@ window.addEventListener("popstate", () => {
       msg((await copyText(url)) ? "Link copied. Use Download image for a picture to post alongside it." : "Sharing is not available here. Use Copy link or Download image.");
     });
   }
+  (function wireLanding() {
+    document.querySelectorAll(".landing .land-step p, .landing .land-feat").forEach(el => {
+      el.innerHTML = el.innerHTML.replace(/\$\{ATLAS_COUNT\}/g, ATLAS.foods.length.toLocaleString());
+    });
+    const su = document.getElementById("landSignup");
+    if (su) su.addEventListener("click", () => sbReady() ? openAuthSheet() : null);
+    const tr = document.getElementById("landTry");
+    if (tr) tr.addEventListener("click", () => { document.querySelector(".v2-entry").scrollIntoView({ behavior: "smooth" }); food.focus({ preventScroll: true }); });
+  })();
   sharedNotice = loadDayFromHash();
   window.__v2Render = render;
   render();
