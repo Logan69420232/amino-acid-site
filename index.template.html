@@ -15,6 +15,7 @@
 
   gtag('config', 'G-DD4277KQ5Z');
 </script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
@@ -121,13 +122,24 @@
 
   /* ---------- top bar ---------- */
   .topbar { border-bottom: 1px solid var(--line); background: var(--bg); }
-  .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+  .topbar-inner { display: flex; align-items: center; padding: 10px 0; }
+  .topbar-inner .brand { margin-right: auto; }
   .topbar .brand {
     display: inline-flex; align-items: center; gap: 9px;
     font-family: var(--font-mono); font-size: 13px; font-weight: 600;
     letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink);
   }
   .topbar .brand .mark { color: var(--line-strong); flex: none; }
+  .auth-slot { display: inline-flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 12px; }
+  .auth-btn {
+    border: 1px solid var(--c-bcaa); background: var(--c-bcaa); color: #fff;
+    border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .auth-btn.ghost { background: transparent; color: var(--c-bcaa); }
+  .auth-user { font-size: 12.5px; color: var(--ink-2); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .auth-note { font-size: 13px; color: var(--ink-3); max-width: 52ch; }
+  .auth-msg { font-weight: 600; color: var(--c-bcaa); }
+  @media (max-width: 560px) { .auth-user { display: none; } }
 
 
   /* ---------- home views: "day" (default) and "atlas" ---------- */
@@ -626,6 +638,7 @@
 <div class="topbar">
   <div class="wrap topbar-inner">
     <span class="brand"><svg class="mark" width="13" height="20" viewBox="0 0 13 20" aria-hidden="true"><rect x="0.75" y="0.75" width="11.5" height="18.5" fill="none" stroke="currentColor" stroke-width="1"/><line x1="2.5" y1="4" x2="10.5" y2="4" stroke="currentColor" stroke-width="0.75" stroke-dasharray="1.6 1.4" opacity="0.45"/><circle cx="6.5" cy="7.6" r="2.3" fill="var(--c-bcaa)"/><circle cx="6.5" cy="12" r="1.7" fill="var(--c-bcaa)" opacity="0.6"/><circle cx="6.5" cy="15.4" r="1.2" fill="var(--c-bcaa)" opacity="0.35"/></svg>aminodata.org</span>
+    <span class="auth-slot" id="authSlot"></span>
     <div class="menu-wrap">
       <button class="burger menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
       <div class="menu-pop" hidden>
@@ -1801,6 +1814,133 @@ function openCompareAAs(push) {
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeAll(); });
 })();
 
+/* ================= free accounts: Supabase auth + cross-device sync =================
+   Dormant until SUPABASE_URL is set: with the placeholder, no UI renders and
+   the site behaves exactly as before. The publishable key is safe in the page;
+   row-level security ties every row to its owner. */
+const SUPABASE_URL = "__SUPABASE_URL__";
+const SUPABASE_KEY = "sb_publishable_zgfRyYwIUKOwxv6L6lTjiA_puo9yd0t";
+let _sbClient = null;
+function sbReady() {
+  if (!/^https:\/\//.test(SUPABASE_URL) || !window.supabase) return null;
+  if (!_sbClient) _sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  return _sbClient;
+}
+function collectSettings() {
+  return {
+    weight: store.getItem("aa_weight") || null, thrive: store.getItem("aa_thrive_g") || null,
+    unit: store.getItem("aa_wunit") || null, diet: store.getItem("aa_diet") || null,
+    meal: store.getItem("aa_meal") || null
+  };
+}
+function applySettings(st) {
+  if (!st) return;
+  [["aa_weight", st.weight], ["aa_thrive_g", st.thrive], ["aa_wunit", st.unit], ["aa_diet", st.diet], ["aa_meal", st.meal]]
+    .forEach(([k, v]) => { if (v != null && v !== "") store.setItem(k, v); });
+}
+let _pushTimer = null, _lastPushed = "";
+function schedulePush() {
+  const c = sbReady();
+  if (!c) return;
+  clearTimeout(_pushTimer);
+  _pushTimer = setTimeout(async () => {
+    try {
+      const { data: { user } } = await c.auth.getUser();
+      if (!user) return;
+      const payload = Object.assign({}, loadLog(), { settings: collectSettings() });
+      const j = JSON.stringify(payload);
+      if (j === _lastPushed) return;
+      _lastPushed = j;
+      await c.from("logs").upsert({ user_id: user.id, data: payload, updated_at: new Date().toISOString() });
+    } catch (e) {}
+  }, 1500);
+}
+function mergeLogs(remote, local) {
+  if (!remote || !Array.isArray(remote.days) || !remote.days.length) return local;
+  const localHas = local.days.some(d => d.entries.length || d.note);
+  if (!localHas) return remote;
+  const seen = new Set(remote.days.map(d => JSON.stringify([d.date, d.note, d.entries])));
+  const extra = local.days.filter(d => (d.entries.length || d.note) && !seen.has(JSON.stringify([d.date, d.note, d.entries])));
+  const merged = { days: remote.days.concat(extra), active: 0 };
+  merged.active = merged.days.length - 1;
+  return merged;
+}
+async function syncOnLogin() {
+  const c = sbReady();
+  if (!c) return;
+  try {
+    const { data } = await c.from("logs").select("data").maybeSingle();
+    const remote = data && data.data;
+    if (remote) applySettings(remote.settings);
+    const merged = mergeLogs(remote, loadLog());
+    merged.days.forEach(d => { d.entries = (d.entries || []).filter(e => foodByName(e.name)); });
+    saveLog({ days: merged.days, active: Math.min(merged.active | 0, merged.days.length - 1) });
+    if (window.__v2Render) window.__v2Render();
+    schedulePush();
+  } catch (e) {}
+}
+function renderAuthSlot(session) {
+  const slot = document.getElementById("authSlot");
+  if (!slot) return;
+  if (!sbReady()) { slot.innerHTML = ""; return; }
+  if (session && session.user) {
+    slot.innerHTML = `<span class="auth-user" title="${session.user.email}">${session.user.email}</span>
+      <button class="auth-btn ghost" id="authOut">Sign out</button>`;
+    slot.querySelector("#authOut").addEventListener("click", async () => { try { await sbReady().auth.signOut(); } catch (e) {} });
+  } else {
+    slot.innerHTML = `<button class="auth-btn" id="authIn">Free account</button>`;
+    slot.querySelector("#authIn").addEventListener("click", openAuthSheet);
+  }
+}
+function openAuthSheet() {
+  lastFocus = document.activeElement;
+  sheet.innerHTML = `
+    <div class="close-dock"><button class="close" aria-label="Close">✕</button></div>
+    <div class="sheet-top">
+      <div><h2 id="sheetTitle">Your free account</h2>
+      <p class="sub">Keep your logged days and targets, synced across your phone and computer.</p></div>
+    </div>
+    <div class="pick-block">
+      <h3>Sign up or sign in</h3>
+      <p class="pb-sub">One email, no password. We send you a link that signs this device in.</p>
+      <form class="pick-row" id="authForm">
+        <input type="email" required placeholder="you@example.com" id="authEmail" aria-label="Email address" autocomplete="email" style="flex:1 1 240px">
+        <button class="go-cmp" type="submit">Email me a sign-in link</button>
+      </form>
+      <p class="pick-hint" id="authHint"></p>
+      <p class="auth-note">Your days are stored privately against your account and nowhere else. Signing out leaves the copy on this device untouched.</p>
+    </div>`;
+  sheet.querySelector(".close").addEventListener("click", closeDetail);
+  sheet.querySelector("#authForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const hint = sheet.querySelector("#authHint");
+    const email = sheet.querySelector("#authEmail").value.trim();
+    const c = sbReady();
+    if (!c) { hint.textContent = "Accounts are not switched on yet."; return; }
+    hint.textContent = "Sending…";
+    const { error } = await c.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + "/" } });
+    hint.innerHTML = error ? ("Could not send the link: " + error.message)
+      : '<span class="auth-msg">Check your inbox.</span> Open the link on this device and you are signed in.';
+  });
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+  sheet.querySelector("#authEmail").focus();
+}
+function initAuth() {
+  const c = sbReady();
+  if (!c) { renderAuthSlot(null); return; }
+  c.auth.onAuthStateChange((ev, session) => {
+    renderAuthSlot(session);
+    if (ev === "SIGNED_IN") syncOnLogin();
+  });
+  c.auth.getSession().then(({ data }) => {
+    renderAuthSlot(data.session);
+    if (data.session) syncOnLogin();
+  });
+}
+if (window.supabase || !/^https:\/\//.test(SUPABASE_URL)) initAuth();
+else window.addEventListener("load", initAuth);
+
 /* ================= my days: meal-by-meal log across dated days =================
    Storage is aa_log { days: [{date, note, entries: [{name, g, meal}]}], active }.
    Everything downstream still reads the ACTIVE day as a flat list via loadDay(),
@@ -1828,7 +1968,7 @@ function loadLog() {
   try { legacy = (JSON.parse(store.getItem("aa_day") || "[]") || []).filter(e => foodByName(e.name)).map(e => ({ name: e.name, g: e.g, meal: "other" })); } catch (e) {}
   return { days: [{ date: todayISO(), note: "", entries: legacy }], active: 0 };
 }
-function saveLog(log) { store.setItem("aa_log", JSON.stringify(log)); }
+function saveLog(log) { store.setItem("aa_log", JSON.stringify(log)); schedulePush(); }
 function activeLogDay() { const log = loadLog(); return log.days[log.active]; }
 function loadDay() { return activeLogDay().entries; }
 function saveDay(entries) { const log = loadLog(); log.days[log.active].entries = entries; saveLog(log); updateDayBtn(); }
