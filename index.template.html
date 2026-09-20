@@ -139,6 +139,12 @@
   .auth-user { font-size: 12.5px; color: var(--ink-2); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .auth-note { font-size: 13px; color: var(--ink-3); max-width: 52ch; }
   .go-cmp.ghosted { background: transparent; border: 1.5px solid var(--c-bcaa); color: var(--c-bcaa); }
+  .acct-lab { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); }
+  .acct-lab input, .acct-lab select {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
+    border-radius: 8px; padding: 8px 10px; font-size: 15px;
+  }
+  .acct-lab input[type="number"] { width: 84px; font-variant-numeric: tabular-nums; }
   .auth-note .linkish { font-size: inherit; }
   .auth-gate {
     margin: 16px 0 0; padding: 12px 16px; border-radius: 12px;
@@ -192,6 +198,7 @@
   }
   .day-tab.on { background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 600; }
   .day-tab.add { border-style: dashed; color: var(--c-bcaa); }
+  .day-tab.add.off { color: var(--ink-3); cursor: default; }
   .meal-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 2px; }
   .meal-lab { font-size: 12.5px; color: var(--ink-3); margin-right: 2px; }
   .meal-chip {
@@ -1930,9 +1937,9 @@ function mergeLogs(remote, local) {
   if (!remote || !Array.isArray(remote.days) || !remote.days.length) return local;
   const localHas = local.days.some(d => d.entries.length || d.note);
   if (!localHas) return remote;
-  const seen = new Set(remote.days.map(d => JSON.stringify([d.date, d.note, d.entries])));
-  const extra = local.days.filter(d => (d.entries.length || d.note) && !seen.has(JSON.stringify([d.date, d.note, d.entries])));
-  const merged = { days: remote.days.concat(extra), active: 0 };
+  const seen = new Set(remote.days.map(dayKey));
+  const extra = local.days.filter(d => (d.entries.length || d.note) && !seen.has(dayKey(d)));
+  const merged = { days: dedupeDays(remote.days.concat(extra)), active: 0 };
   merged.active = merged.days.length - 1;
   return merged;
 }
@@ -1955,9 +1962,8 @@ function renderAuthSlot(session) {
   if (!slot) return;
   if (!sbReady()) { slot.innerHTML = ""; return; }
   if (session && session.user) {
-    slot.innerHTML = `<span class="auth-user" title="${session.user.email}">${session.user.email}</span>
-      <button class="auth-btn ghost" id="authOut">Sign out</button>`;
-    slot.querySelector("#authOut").addEventListener("click", async () => { try { await sbReady().auth.signOut(); } catch (e) {} });
+    slot.innerHTML = `<button class="auth-btn ghost" id="authAcct" title="Account settings">${session.user.email}</button>`;
+    slot.querySelector("#authAcct").addEventListener("click", openAccountSheet);
   } else {
     slot.innerHTML = `<button class="auth-btn" id="authIn">Free account</button>`;
     slot.querySelector("#authIn").addEventListener("click", openAuthSheet);
@@ -2026,6 +2032,116 @@ function openAuthSheet(gateMsg) {
   document.body.style.overflow = "hidden";
   sheet.querySelector("#authEmail").focus();
 }
+function openAccountSheet() {
+  lastFocus = document.activeElement;
+  const email = (authedUser && authedUser.email) || "";
+  const wUnit = store.getItem("aa_wunit") || "kg";
+  const kg = +(store.getItem("aa_weight") || 75);
+  const displayWeight = wUnit === "lb" ? Math.round(kg * LB_PER_KG) : kg;
+  const thrive = +(store.getItem("aa_thrive_g") || Math.round(kg * THRIVE_G_PER_KG));
+  const vegan = store.getItem("aa_diet") === "vegan";
+  sheet.innerHTML = `
+    <div class="close-dock"><button class="close" aria-label="Close account">✕</button></div>
+    <div class="sheet-top">
+      <div><h2 id="sheetTitle">Your account</h2>
+      <p class="sub">${email}</p></div>
+    </div>
+    <div class="pick-block">
+      <h3>Personal details</h3>
+      <p class="pb-sub">These set your daily targets everywhere and sync across your devices.</p>
+      <div class="pick-row">
+        <label class="acct-lab">Body weight <input id="acctW" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="1" value="${displayWeight}" aria-label="Body weight"></label>
+        <select id="acctU" aria-label="Weight unit"><option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option><option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option></select>
+        <label class="acct-lab">Daily protein target <input id="acctT" type="number" min="30" max="500" step="5" value="${thrive.toFixed(0)}" aria-label="Daily protein target"> g</label>
+        <label class="acct-lab">Diet <select id="acctDiet" aria-label="Diet"><option value="all"${vegan ? "" : " selected"}>Everything</option><option value="vegan"${vegan ? " selected" : ""}>Vegan</option></select></label>
+        <button type="button" class="go-cmp" id="acctSave">Save details</button>
+      </div>
+      <p class="pick-hint" id="acctMsg"></p>
+    </div>
+    <div class="pick-block">
+      <h3>Change password</h3>
+      <div class="pick-row">
+        <input type="password" minlength="6" placeholder="New password (6+ characters)" id="acctPw1" aria-label="New password" autocomplete="new-password" style="flex:1 1 200px">
+        <input type="password" minlength="6" placeholder="Repeat it" id="acctPw2" aria-label="Repeat new password" autocomplete="new-password" style="flex:1 1 160px">
+        <button type="button" class="go-cmp" id="acctPwGo">Update password</button>
+      </div>
+      <p class="pick-hint" id="acctPwMsg"></p>
+    </div>
+    <div class="pick-block">
+      <h3>Change email</h3>
+      <div class="pick-row">
+        <input type="email" placeholder="New email address" id="acctEm" aria-label="New email address" autocomplete="email" style="flex:1 1 240px">
+        <button type="button" class="go-cmp ghosted" id="acctEmGo">Change email</button>
+      </div>
+      <p class="pick-hint" id="acctEmMsg"></p>
+    </div>
+    <div class="pick-block">
+      <h3>Session and data</h3>
+      <div class="pick-row">
+        <button type="button" class="go-cmp ghosted" id="acctOut">Sign out</button>
+        <button type="button" class="dm-del" id="acctWipe">Delete my synced data</button>
+      </div>
+      <p class="pick-hint" id="acctWipeMsg"></p>
+      <p class="auth-note">Sign out keeps the copy on this device. Delete removes your synced days from your account and clears this device; it cannot be undone.</p>
+    </div>`;
+  sheet.querySelector(".close").addEventListener("click", closeDetail);
+  sheet.querySelector("#acctSave").addEventListener("click", () => {
+    const unit = sheet.querySelector("#acctU").value;
+    const raw = +sheet.querySelector("#acctW").value;
+    const kgVal = unit === "lb" ? (raw > 0 ? raw / LB_PER_KG : 75) : (raw > 0 ? raw : 75);
+    store.setItem("aa_weight", Math.round(Math.max(30, Math.min(200, kgVal)) * 10) / 10);
+    store.setItem("aa_wunit", unit);
+    const t = +sheet.querySelector("#acctT").value;
+    store.setItem("aa_thrive_g", t > 0 ? Math.max(30, Math.min(500, t)) : "");
+    store.setItem("aa_diet", sheet.querySelector("#acctDiet").value === "vegan" ? "vegan" : "");
+    schedulePush();
+    if (window.__v2Render) window.__v2Render();
+    sheet.querySelector("#acctMsg").innerHTML = '<span class="auth-msg">Saved.</span>';
+  });
+  sheet.querySelector("#acctPwGo").addEventListener("click", async () => {
+    const m = sheet.querySelector("#acctPwMsg");
+    const p1 = sheet.querySelector("#acctPw1").value, p2 = sheet.querySelector("#acctPw2").value;
+    if (p1.length < 6) { m.textContent = "At least 6 characters."; return; }
+    if (p1 !== p2) { m.textContent = "The two passwords do not match."; return; }
+    m.textContent = "Updating…";
+    const { error } = await sbReady().auth.updateUser({ password: p1 });
+    m.innerHTML = error ? "Could not update: " + error.message : '<span class="auth-msg">Password updated.</span>';
+    if (!error) { sheet.querySelector("#acctPw1").value = ""; sheet.querySelector("#acctPw2").value = ""; }
+  });
+  sheet.querySelector("#acctEmGo").addEventListener("click", async () => {
+    const m = sheet.querySelector("#acctEmMsg");
+    const em = sheet.querySelector("#acctEm").value.trim();
+    if (!em) { m.textContent = "Enter the new email address first."; return; }
+    m.textContent = "Requesting…";
+    const { error } = await sbReady().auth.updateUser({ email: em });
+    m.innerHTML = error ? "Could not change it: " + error.message
+      : '<span class="auth-msg">Confirmation sent.</span> Check the new address (and possibly the old one) and click the link to finish the change.';
+  });
+  sheet.querySelector("#acctOut").addEventListener("click", async () => {
+    try { await sbReady().auth.signOut(); } catch (e) {}
+    closeDetail();
+  });
+  let wipeArmed = false;
+  sheet.querySelector("#acctWipe").addEventListener("click", async () => {
+    const m = sheet.querySelector("#acctWipeMsg");
+    const btn = sheet.querySelector("#acctWipe");
+    if (!wipeArmed) { wipeArmed = true; btn.textContent = "Click again to delete everything"; m.textContent = "This removes every synced day. There is no undo."; return; }
+    m.textContent = "Deleting…";
+    try {
+      const { data: { user } } = await sbReady().auth.getUser();
+      if (user) await sbReady().from("logs").delete().eq("user_id", user.id);
+      store.removeItem("aa_log"); store.removeItem("aa_day");
+      _lastPushed = "";
+      if (window.__v2Render) window.__v2Render();
+      m.innerHTML = '<span class="auth-msg">Deleted.</span> You have a fresh, empty log.';
+      btn.textContent = "Delete my synced data"; wipeArmed = false;
+    } catch (e) { m.textContent = "Could not delete: " + e.message; }
+  });
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+  sheet.querySelector(".close").focus();
+}
+
 function initAuth() {
   const c = sbReady();
   if (!c) { renderAuthSlot(null); return; }
@@ -2055,6 +2171,16 @@ function foodByName(n) { return ATLAS.foods.find(f => f.name === n) || ATLAS.foo
 function updateDayBtn() {}
 function todayISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
 function blankLogDay(date) { return { date: date || todayISO(), note: "", entries: [] }; }
+const WEEK_DAYS = 7;
+function dayKey(d) {
+  return (d.date || "") + "|" + (d.note || "") + "|" +
+    (d.entries || []).map(e => e.name + "~" + e.g + "~" + (e.meal || "")).sort().join(",");
+}
+function dedupeDays(days) {
+  const seen = new Set();
+  const out = days.filter(d => { const k = dayKey(d); if (seen.has(k)) return false; seen.add(k); return true; });
+  return out.length > WEEK_DAYS ? out.slice(-WEEK_DAYS) : out;
+}
 function loadLog() {
   try {
     const raw = JSON.parse(store.getItem("aa_log") || "null");
@@ -2063,6 +2189,7 @@ function loadLog() {
         d.entries = (d.entries || []).filter(e => foodByName(e.name)).map(e => ({ name: e.name, g: e.g, meal: MEAL_LABEL[e.meal] ? e.meal : "other" }));
         d.note = d.note || ""; d.date = d.date || todayISO();
       });
+      raw.days = dedupeDays(raw.days);
       raw.active = Math.min(Math.max(0, raw.active | 0), raw.days.length - 1);
       return raw;
     }
@@ -2604,11 +2731,15 @@ window.addEventListener("popstate", () => {
     const tabs = $("dayTabs");
     tabs.innerHTML = log.days.map((d, i) =>
       `<button type="button" class="day-tab${i === log.active ? " on" : ""}" role="tab" aria-selected="${i === log.active}" data-i="${i}">${fmtDay(d.date)}${d.entries.length ? " · " + d.entries.length : ""}</button>`).join("")
-      + `<button type="button" class="day-tab add" id="dayAdd">+ Add day</button>`;
+      + (log.days.length < WEEK_DAYS
+        ? `<button type="button" class="day-tab add" id="dayAdd">+ Add day</button>`
+        : `<span class="day-tab add off" title="A week at a time: remove a day to add another">Week full</span>`);
     tabs.querySelectorAll(".day-tab[data-i]").forEach(b => b.addEventListener("click", () => {
       const l = loadLog(); l.active = +b.dataset.i; saveLog(l); render();
     }));
-    tabs.querySelector("#dayAdd").addEventListener("click", () => {
+    const addBtn = tabs.querySelector("#dayAdd");
+    if (addBtn) addBtn.addEventListener("click", () => {
+      if (loadLog().days.length >= WEEK_DAYS) return;
       if (sbReady() && !requireAccount("Track more than one day with a free account: dates, notes, and your whole week in tabs.")) return;
       const l = loadLog();
       const lastD = new Date((l.days[l.days.length - 1].date || todayISO()) + "T12:00:00");
