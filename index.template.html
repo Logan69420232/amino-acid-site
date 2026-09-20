@@ -285,6 +285,8 @@
   @media (max-width: 860px) { .v2-two { grid-template-columns: 1fr; } }
   .v2-bloom { max-width: 640px; }
   .v2-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 0 0 18px; }
+  .v2-stats-4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 560px) { .v2-stats-4 { grid-template-columns: repeat(2, 1fr); } }
   .v2-stat { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; }
   .v2-stat .k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
   .v2-stat .v { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -2948,6 +2950,13 @@ window.addEventListener("popstate", () => {
             <div class="v2-stat"><div class="k">Leucine</div><div class="v">${perP("leucine").toFixed(1)}<small> g /100 g protein</small></div></div>
             <div class="v2-stat ${complete ? "good" : "limit"}"><div class="k">Amino acid score</div><div class="v">${Math.round(min.ratio * 100)}%<small> ${complete ? "complete" : "limited by " + min.label.toLowerCase()}</small></div></div>
           </div>
+          ${kcalTot > 0 ? `<div class="v2-sec">Calories and macros · day total</div>
+          <div class="v2-stats v2-stats-4">
+            <div class="v2-stat"><div class="k">Calories</div><div class="v">${Math.round(kcalTot)}<small> kcal</small></div></div>
+            <div class="v2-stat"><div class="k">Protein</div><div class="v">${prot.toFixed(0)}<small> g</small></div></div>
+            <div class="v2-stat"><div class="k">Carbs</div><div class="v">${carbTot.toFixed(0)}<small> g</small></div></div>
+            <div class="v2-stat"><div class="k">Fat</div><div class="v">${fatTot.toFixed(0)}<small> g</small></div></div>
+          </div>` : ""}
           <div class="v2-sec">Against your daily needs</div>
           <div class="covbars">${covRow2("Protein", prot, protFloor, protThrive, undefined, "protein")}</div>
           <div class="covbars" style="margin-top:10px">${eaaRows}</div>
