@@ -733,7 +733,6 @@
   <section class="landing" aria-label="About Amino Atlas">
     <div class="land-cta-row">
       <button type="button" class="land-cta" id="landSignup">Create your free account</button>
-      <button type="button" class="land-cta ghost" id="landTry">Try it first, no account</button>
       <span class="land-free">Free forever. Takes thirty seconds. Your days sync across phone and computer.</span>
     </div>
     <p class="land-h">How it works</p>
@@ -1894,6 +1893,7 @@ const SUPABASE_URL = "https://hytzycuwgiumjyzwogqw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_zgfRyYwIUKOwxv6L6lTjiA_puo9yd0t";
 let _sbClient = null;
 let authedUser = null;
+const ACCOUNTS_ON = /^https:\/\//.test(SUPABASE_URL);
 const GATE_FREE_FOODS = 3;
 function requireAccount(msg) {
   if (authedUser) return true;
@@ -1961,7 +1961,7 @@ async function syncOnLogin() {
 function renderAuthSlot(session) {
   const slot = document.getElementById("authSlot");
   if (!slot) return;
-  if (!sbReady()) { slot.innerHTML = ""; return; }
+  if (!ACCOUNTS_ON) { slot.innerHTML = ""; return; }
   if (session && session.user) {
     slot.innerHTML = `<button class="auth-btn ghost" id="authAcct" title="Account settings">${session.user.email}</button>`;
     slot.querySelector("#authAcct").addEventListener("click", openAccountSheet);
@@ -2150,12 +2150,14 @@ function initAuth() {
     authedUser = session && session.user;
     document.body.classList.toggle("authed", !!authedUser);
     renderAuthSlot(session);
+    if (window.__v2Render) window.__v2Render();
     if (ev === "SIGNED_IN") { syncOnLogin(); if (!overlay.hidden) closeDetail(); }
   });
   c.auth.getSession().then(({ data }) => {
     authedUser = data.session && data.session.user;
     document.body.classList.toggle("authed", !!authedUser);
     renderAuthSlot(data.session);
+    if (window.__v2Render) window.__v2Render();
     if (data.session) syncOnLogin();
   });
 }
@@ -2210,7 +2212,7 @@ function addToDay(name, grams, meal) {
   const log = loadLog(); const d = log.days[log.active];
   const m = MEAL_LABEL[meal] ? meal : currentMeal;
   const hit = d.entries.find(e => e.name === name && e.meal === m);
-  if (!hit && !authedUser && sbReady() && d.entries.length >= GATE_FREE_FOODS) {
+  if (!hit && !authedUser && ACCOUNTS_ON && d.entries.length >= GATE_FREE_FOODS) {
     openAuthSheet(`You can try ${GATE_FREE_FOODS} foods without an account. Create a free one to log your whole day, across meals and days.`);
     return false;
   }
@@ -2707,7 +2709,7 @@ window.addEventListener("popstate", () => {
     const l = loadLog(); l.days[l.active].date = e.target.value || todayISO(); saveLog(l); render();
   });
   $("dayNote").addEventListener("focus", e => {
-    if (sbReady() && !authedUser) { e.target.blur(); openAuthSheet("Keep notes on every day with a free account."); }
+    if (ACCOUNTS_ON && !authedUser) { e.target.blur(); openAuthSheet("Keep notes on every day with a free account."); }
   });
   $("dayNote").addEventListener("change", e => {
     const l = loadLog(); l.days[l.active].note = e.target.value.slice(0, 500); saveLog(l);
@@ -2736,7 +2738,7 @@ window.addEventListener("popstate", () => {
     const log = loadLog();
     const tabs = $("dayTabs");
     /* Signed out you get today; the add button is the invitation to sign up. */
-    const soloDay = sbReady() && !authedUser;
+    const soloDay = ACCOUNTS_ON && !authedUser;
     const shownDays = soloDay ? [[log.days[log.active], log.active]] : log.days.map((d, i) => [d, i]);
     tabs.innerHTML = shownDays.map(([d, i]) =>
       `<button type="button" class="day-tab${i === log.active ? " on" : ""}" role="tab" aria-selected="${i === log.active}" data-i="${i}">${fmtDay(d.date)}${d.entries.length ? " · " + d.entries.length : ""}</button>`).join("")
@@ -2748,7 +2750,7 @@ window.addEventListener("popstate", () => {
     }));
     const addBtn = tabs.querySelector("#dayAdd");
     if (addBtn) addBtn.addEventListener("click", () => {
-      if (sbReady() && !requireAccount("Track more than one day with a free account: dates, notes, and your whole week in tabs.")) return;
+      if (ACCOUNTS_ON && !requireAccount("Track more than one day with a free account: dates, notes, and your whole week in tabs.")) return;
       if (loadLog().days.length >= WEEK_DAYS) return;
       const l = loadLog();
       const lastD = new Date((l.days[l.days.length - 1].date || todayISO()) + "T12:00:00");
@@ -2816,7 +2818,7 @@ window.addEventListener("popstate", () => {
     const gapSummary = !gaps.length ? "" : gaps.length <= 3
       ? `You're short on <b>${gaps.map(g => short(g.label).toLowerCase()).join(", ")}</b>.`
       : `You're short on <b>${gaps.length} of the 9 essential targets</b>, with the biggest gap in ${short(worstGap.label).toLowerCase()}.`;
-    const lockSugg = sbReady() && !authedUser;
+    const lockSugg = ACCOUNTS_ON && !authedUser;
     const gapsHtml = (gaps.length || protGap > 0) ? (lockSugg ? `<div class="v2-gaps">
         <div class="v2-sec">What you're missing</div>
         <p class="v2-p">${gapSummary || `You're ${protGap.toFixed(0)} g short of your protein target.`} Sign up for a free account to see which foods close your gaps, with exact portions, plus a full week of days and notes.</p>
@@ -2879,7 +2881,7 @@ window.addEventListener("popstate", () => {
           <div class="v2-sec">Against your daily needs</div>
           <div class="covbars">${covRow2("Protein", prot, protFloor, protThrive, undefined, "protein")}</div>
           <div class="covbars" style="margin-top:10px">${eaaRows}</div>
-          <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar is the one to watch for quantity; the amino acid bars tell you whether that protein was the right kind.</p>
+          <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it. The grey band at each bar's tip is the confidence in the food composition data itself, about ±10%: lab analyses of the same food vary with breed, feed, season and processing. To be sure a target is truly met, get the whole band past the dark line, which in practice means aiming about 10% over it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar is the one to watch for quantity; the amino acid bars tell you whether that protein was the right kind.</p>
         </div>
       </div>
       ${gapsHtml}`;
@@ -2921,8 +2923,6 @@ window.addEventListener("popstate", () => {
     });
     const su = document.getElementById("landSignup");
     if (su) su.addEventListener("click", () => sbReady() ? openAuthSheet() : null);
-    const tr = document.getElementById("landTry");
-    if (tr) tr.addEventListener("click", () => { document.querySelector(".v2-entry").scrollIntoView({ behavior: "smooth" }); food.focus({ preventScroll: true }); });
   })();
   sharedNotice = loadDayFromHash();
   window.__v2Render = render;

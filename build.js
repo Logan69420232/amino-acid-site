@@ -88,7 +88,7 @@ const NAME_RULES = [
   [/, cooked, broiled/gi, ", grilled"], [/, cooked, pan-broiled/gi, ", pan-fried"],
   [/, cooked, (roasted|grilled|braised|fried|stewed|baked|simmered|poached|steamed|microwaved|pan-fried)/gi, ", $1"],
   [/, cooked, (hard-boiled|scrambled|poached|pan-browned|omelet)/gi, ", $1"],
-  [/^Beef, ground, (\d+)% lean meat \/ \d+% fat/i, "Beef mince, $1% lean"],
+  [/^Beef, ground, (\d+)% lean meat \/ (\d+)% fat/i, "Beef mince, $2% fat ($1% lean)"],
   [/^(Pork|Turkey|Chicken|Lamb|Venison|Bison), ground, /i, "$1 mince, "],
   [/pan-broiled/gi, "pan-fried"],
   [/, cooked, dry heat/gi, ", cooked"], [/, cooked, moist heat/gi, ", cooked"],
