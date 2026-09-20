@@ -680,6 +680,18 @@
   tr.info-row .cls { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 3px; }
   .rng { color: var(--ink-3); font-size: 11px; }
   .src-note { font-size: 13px; color: var(--ink-3); margin-top: 16px; max-width: 74ch; }
+  .st-tag {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
+    border-radius: 999px; padding: 2px 7px; margin-left: 6px; vertical-align: 1px;
+    background: var(--c-good-bg); color: var(--c-bcaa); white-space: nowrap;
+  }
+  .st-tag.raw { background: var(--c-limit-bg); color: var(--c-limit); }
+  .pp-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .pp-chip {
+    border: 1px dashed var(--line-strong); background: transparent; color: var(--ink-2);
+    border-radius: 999px; padding: 5px 12px; font-size: 12.5px; cursor: pointer;
+  }
+  .pp-chip:hover { border-color: var(--c-bcaa); color: var(--c-bcaa); }
   .src-link { color: inherit; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 2px; }
   .src-link:hover { color: var(--ink); text-decoration-color: var(--ink-3); }
 
@@ -1267,14 +1279,38 @@ function tokenHits(words, t) {
   const sing = t.length > 3 && t.endsWith("s") ? t.slice(0, -1) : null;
   return words.some(w => w.startsWith(t) || (sing && w.startsWith(sing)));
 }
-function searchScore(f, toks, q) {
+/* One-typo tolerance: a dropped, added, swapped or wrong letter still matches.
+   Only consulted when the exact pass finds nothing, so the fast path stays fast. */
+function editLE1(a, b) {
+  if (a === b) return true;
+  const la = a.length, lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  while (i < la && i < lb && a[i] === b[i]) i++;
+  if (la === lb) {
+    if (a.slice(i + 1) === b.slice(i + 1)) return true;                                  // substitution
+    return i + 1 < la && a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2); // transposition
+  }
+  const [s, l] = la < lb ? [a, b] : [b, a];
+  return s.slice(i) === l.slice(i + 1);                                                  // insertion / deletion
+}
+function fuzzyHits(words, t) {
+  if (t.length < 4) return false;
+  // compare against both prefix lengths, so a dropped letter mid-word still matches
+  return words.some(w => w.length >= t.length - 1 && (editLE1(w.slice(0, t.length), t) || editLE1(w.slice(0, t.length + 1), t)));
+}
+function searchScore(f, toks, q, fuzzy) {
   const name = f.name.toLowerCase();
   const hay = name + " " + (f.aliases || "").toLowerCase() + " " + (CAT_LABEL[f.category] || "").toLowerCase();
   const words = hay.split(/[^a-z0-9]+/);
   const headWords = name.split(",")[0].split(/[^a-z0-9]+/);
   let s = 0;
   for (const t of toks) {
-    if (!tokenHits(words, t)) return null;    // every word you type must match
+    if (!tokenHits(words, t)) {
+      if (!fuzzy || !fuzzyHits(words, t)) return null; // every word you type must match, one typo forgiven on the retry
+      s -= 6;
+      continue;
+    }
     if (tokenHits(headWords, t)) s += 20;      // ...ideally in the food's own name, not a qualifier
     if (words.includes(t)) s += 8;             // exact word beats a mere prefix
   }
@@ -1301,8 +1337,11 @@ function rankFoods(q, limit) {
   q = (q || "").trim().toLowerCase();
   const toks = searchTokens(q);
   if (!toks.length) return [];
-  const out = [];
+  let out = [];
   for (const f of ATLAS.foods) { const sc = searchScore(f, toks, q); if (sc !== null) out.push([sc, f]); }
+  if (!out.length) { // nothing exact: retry forgiving one typo per word ("chickn" finds chicken)
+    for (const f of ATLAS.foods) { const sc = searchScore(f, toks, q, true); if (sc !== null) out.push([sc, f]); }
+  }
   out.sort((a, b) => b[0] - a[0] || a[1].name.length - b[1].name.length);
   const list = out.map(x => x[1]);
   return limit ? list.slice(0, limit) : list;
@@ -1345,6 +1384,36 @@ function sourceAnchor(f, text) {
   const t = text || f.source || "";
   return url ? `<a class="src-link" href="${url}" target="_blank" rel="noopener">${t}</a>` : t;
 }
+/* Raw/cooked at a glance, so the many variants of one food group visually. */
+const COOKED_RE = /\b(cooked|grilled|roasted|braised|broiled|baked|fried|pan-fried|stewed|simmered|poached|steamed|boiled|hard-boiled|scrambled|microwaved)\b/i;
+function stateTag(f) { return /\braw\b/i.test(f.name) ? "raw" : COOKED_RE.test(f.name) ? "cooked" : ""; }
+function stateTagHTML(f) { const t = stateTag(f); return t ? ` <span class="st-tag${t === "raw" ? " raw" : ""}">${t}</span>` : ""; }
+/* Practical portions for foods nobody weighs: eggs, scoops, cups, spoons. Rough
+   household figures, shown beside grams, never instead of them. */
+const PORTION_HINTS = [
+  [/^Egg white/i, [["1 egg's white", 33]]],
+  [/^Egg yolk/i, [["1 yolk", 17]]],
+  [/^(whole )?egg\b/i, [["1 medium egg", 44], ["1 large egg", 50]]],
+  [/whey|casein|collagen|protein isolate|protein concentrate|protein powder|pea protein|rice protein|hemp protein|soy protein|egg white protein/i, [["1 scoop", 30]]],
+  [/peanut butter|almond butter|tahini/i, [["1 tbsp", 16], ["2 tbsp", 32]]],
+  [/^Milk\b|^Milk,/i, [["1 glass", 244]]],
+  [/yogurt|skyr|quark|fromage frais/i, [["1 small pot", 150]]],
+  [/cottage cheese/i, [["half a tub", 150]]],
+  [/cheddar|mozzarella|parmesan|^Cheese,/i, [["1 slice", 20], ["small block", 30]]],
+  [/rice,.*\b(cooked|boiled|steamed)\b/i, [["1 cup cooked", 160]]],
+  [/(lentils|chickpeas|beans|peas, split),.*\b(cooked|boiled)\b/i, [["1 cup cooked", 200]]],
+  [/(pasta|spaghetti|macaroni|noodles),.*\b(cooked|boiled)\b/i, [["1 cup cooked", 140]]],
+  [/^Oats\b|oatmeal|porridge/i, [["half cup dry", 40]]],
+  [/^Bread\b|^Bread,/i, [["1 slice", 40]]],
+  [/^Tofu\b/i, [["half a block", 175]]],
+  [/tuna,.*canned|canned.*tuna|salmon,.*canned/i, [["1 small can, drained", 100]]],
+  [/^Chicken breast/i, [["1 small breast", 120], ["1 large breast", 175]]],
+  [/^Bacon\b/i, [["2 rashers", 30]]]
+];
+function practicalPortions(f) {
+  for (const [re, list] of PORTION_HINTS) if (re.test(f.name)) return list;
+  return [];
+}
 function srcShort(f) {
   const m = (f.source || "").match(/FDC(?: ID)? (\d+)/);
   if (m) return "FDC " + m[1];
@@ -1366,7 +1435,7 @@ function renderTable(list) {
     const lim = complete ? "" : m.min.label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr");
     const w = (Math.min(m.score, 1.6) / 1.6 * 100).toFixed(0);
     return `<tr data-fid="${f.id}">
-      <td class="name">${f.name}</td>
+      <td class="name">${f.name}${stateTagHTML(f)}</td>
       <td class="num" data-l="Protein /100 g">${f.protein_g_per_100g.toFixed(1)}</td>
       <td class="num" data-l="Leucine">${m.leu.toFixed(1)}</td>
       <td class="num" data-l="EAA">${m.eaa.toFixed(0)}</td>
@@ -1624,6 +1693,7 @@ function renderDetail(id) {
         <div class="ctl-group">
           <span class="ctl-label">This portion</span>
           <label><input id="calcPortion" type="number" min="5" max="1000" step="5" value="${portion}" aria-label="Portion in grams" /> g of ${f.name.split("(")[0].trim().toLowerCase()}</label>
+          ${practicalPortions(f).length ? `<div class="pp-row">${practicalPortions(f).map(p => `<button type="button" class="pp-chip" data-g="${p[1]}">${p[0]} · ${p[1]} g</button>`).join("")}</div>` : ""}
         </div>
       </div>
       <div class="prot-targets">
@@ -1664,6 +1734,10 @@ function renderDetail(id) {
     store.setItem("aa_portion_" + f.id, Math.max(5, Math.min(1000, +e.target.value || 100)));
     renderDetail(id);
   });
+  sheet.querySelectorAll(".pp-chip").forEach(b => b.addEventListener("click", () => {
+    store.setItem("aa_portion_" + f.id, +b.dataset.g);
+    renderDetail(id);
+  }));
   sheet.querySelector("#addDayBtn").addEventListener("click", e => {
     addToDay(f.name, portion);
     e.target.textContent = "Added ✓";
@@ -1885,8 +1959,8 @@ function attachFoodTypeahead(wrap) {
     if (!items.length) return hide();
     idx = 0;
     dd.innerHTML = items.map((f, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${i === 0}">
-      <span><span class="nm">${f.name}</span>${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
-      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${CAT_LABEL[f.category] || ""}</span></button>`).join("");
+      <span><span class="nm">${f.name}</span>${stateTagHTML(f)}${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
+      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${CAT_LABEL[f.category] || ""}${practicalPortions(f).length ? ` · ${practicalPortions(f)[0][0]} ≈ ${practicalPortions(f)[0][1]} g` : ""}</span></button>`).join("");
     dd.hidden = false;
     dd.querySelectorAll("button").forEach(b => b.addEventListener("mousedown", ev => { ev.preventDefault(); pick(items[+b.dataset.i]); }));
   };
@@ -2888,8 +2962,8 @@ window.addEventListener("popstate", () => {
     if (!ddItems.length) return hideDD();
     ddIdx = 0;
     dd.innerHTML = ddItems.map((f, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${i === 0}">
-      <span><span class="nm">${f.name}</span>${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
-      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${CAT_LABEL[f.category] || ""}</span></button>`).join("");
+      <span><span class="nm">${f.name}</span>${stateTagHTML(f)}${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
+      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${CAT_LABEL[f.category] || ""}${practicalPortions(f).length ? ` · ${practicalPortions(f)[0][0]} ≈ ${practicalPortions(f)[0][1]} g` : ""}</span></button>`).join("");
     dd.hidden = false;
     dd.querySelectorAll("button").forEach(b => b.addEventListener("mousedown", ev => { ev.preventDefault(); pick(ddItems[+b.dataset.i]); }));
   }

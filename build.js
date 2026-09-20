@@ -129,7 +129,25 @@ const ALIASES = [
   [/frankfurter/i, "hot dog sausage"],
   [/crustaceans, crayfish/i, "crawfish"],
   [/cereals ready-to-eat/i, "breakfast cereal"],
-  [/milk|cheddar|mozzarella|parmesan|cottage/i, "cheese dairy"]
+  [/milk|cheddar|mozzarella|parmesan|cottage/i, "cheese dairy"],
+  // UK / US names for the same food
+  [/eggplant/i, "aubergine"],
+  [/zucchini/i, "courgette"],
+  [/arugula/i, "rocket"],
+  [/cilantro/i, "coriander"],
+  [/\bcorn\b/i, "sweetcorn maize"],
+  [/garbanzo/i, "chickpeas"],
+  [/snap beans/i, "green beans"],
+  [/broadbeans|fava/i, "broad beans fava"],
+  [/rutabaga/i, "swede"],
+  [/\bbeets\b/i, "beetroot"],
+  [/scallions/i, "spring onion"],
+  [/shrimp/i, "prawn"],
+  [/, ground,|mince,/i, "ground minced"],
+  [/peanut butter/i, "pb spread"],
+  [/peppers, sweet/i, "bell pepper capsicum"],
+  [/^Fish, tuna/i, "tinned"],
+  [/canned/i, "tinned tin can"]
 ];
 function aliasesFor(f) {
   return ALIASES.filter(([re]) => re.test(f.name)).map(([, t]) => t).join(" ");
