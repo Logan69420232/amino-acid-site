@@ -145,6 +145,13 @@
     border-radius: 8px; padding: 8px 10px; font-size: 15px;
   }
   .acct-lab input[type="number"] { width: 84px; font-variant-numeric: tabular-nums; }
+  .seg { display: inline-flex; border: 1.5px solid var(--line-strong); border-radius: 10px; overflow: hidden; }
+  .seg button {
+    background: transparent; border: 0; color: var(--ink-2); font: inherit; font-size: 14.5px;
+    padding: 9px 16px; cursor: pointer;
+  }
+  .seg button + button { border-left: 1.5px solid var(--line-strong); }
+  .seg button.on { background: var(--c-bcaa); color: #fff; font-weight: 600; }
   .auth-note .linkish { font-size: inherit; }
   .auth-gate {
     margin: 16px 0 0; padding: 12px 16px; border-radius: 12px;
@@ -1923,13 +1930,29 @@ function collectSettings() {
   return {
     weight: store.getItem("aa_weight") || null, thrive: store.getItem("aa_thrive_g") || null,
     unit: store.getItem("aa_wunit") || null, diet: store.getItem("aa_diet") || null,
-    meal: store.getItem("aa_meal") || null
+    meal: store.getItem("aa_meal") || null,
+    atype: store.getItem("aa_acct_type") || null, role: store.getItem("aa_acct_role") || null
   };
 }
 function applySettings(st) {
   if (!st) return;
-  [["aa_weight", st.weight], ["aa_thrive_g", st.thrive], ["aa_wunit", st.unit], ["aa_diet", st.diet], ["aa_meal", st.meal]]
+  [["aa_weight", st.weight], ["aa_thrive_g", st.thrive], ["aa_wunit", st.unit], ["aa_diet", st.diet], ["aa_meal", st.meal],
+   ["aa_acct_type", st.atype], ["aa_acct_role", st.role]]
     .forEach(([k, v]) => { if (v != null && v !== "") store.setItem(k, v); });
+}
+const PRO_ROLES = [
+  ["pt", "Personal trainer"], ["coach", "Coach"], ["nutritionist", "Dietitian or nutritionist"],
+  ["researcher", "Researcher or academic"], ["clinician", "Doctor or clinician"],
+  ["physio", "Physiotherapist"], ["student", "Student"], ["other", "Other professional"]
+];
+const roleOptionsHTML = sel => PRO_ROLES.map(([v, l]) => `<option value="${v}"${v === sel ? " selected" : ""}>${l}</option>`).join("");
+function saveAccountType(atype, role) {
+  store.setItem("aa_acct_type", atype === "pro" ? "pro" : "");
+  store.setItem("aa_acct_role", atype === "pro" ? role : "");
+  const c = sbReady();
+  if (c && authedUser) c.auth.updateUser({
+    data: { account_type: atype === "pro" ? "professional" : "individual", profession: atype === "pro" ? role : null }
+  }).catch(() => {});
 }
 let onboardAfterAuth = false;
 let _pushTimer = null, _lastPushed = "";
@@ -2058,6 +2081,8 @@ function openAccountSheet() {
   const displayWeight = wUnit === "lb" ? Math.round(kg * LB_PER_KG) : kg;
   const thrive = +(store.getItem("aa_thrive_g") || Math.round(kg * THRIVE_G_PER_KG));
   const vegan = store.getItem("aa_diet") === "vegan";
+  const isPro = store.getItem("aa_acct_type") === "pro";
+  const proRole = store.getItem("aa_acct_role") || "pt";
   sheet.innerHTML = `
     <div class="close-dock"><button class="close" aria-label="Close account">✕</button></div>
     <div class="sheet-top">
@@ -2072,6 +2097,10 @@ function openAccountSheet() {
         <select id="acctU" aria-label="Weight unit"><option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option><option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option></select>
         <label class="acct-lab">Daily protein target <input id="acctT" type="number" min="30" max="500" step="5" value="${thrive.toFixed(0)}" aria-label="Daily protein target"> g</label>
         <label class="acct-lab">Diet <select id="acctDiet" aria-label="Diet"><option value="all"${vegan ? "" : " selected"}>Everything</option><option value="vegan"${vegan ? " selected" : ""}>Vegan</option></select></label>
+      </div>
+      <div class="pick-row" style="margin-top:10px">
+        <label class="acct-lab">Account type <select id="acctType" aria-label="Account type"><option value=""${isPro ? "" : " selected"}>Individual</option><option value="pro"${isPro ? " selected" : ""}>Professional</option></select></label>
+        <label class="acct-lab" id="acctRoleWrap"${isPro ? "" : " hidden"}>Role <select id="acctRole" aria-label="Professional role">${roleOptionsHTML(proRole)}</select></label>
         <button type="button" class="go-cmp" id="acctSave">Save details</button>
       </div>
       <p class="pick-hint" id="acctMsg"></p>
@@ -2103,7 +2132,11 @@ function openAccountSheet() {
       <p class="auth-note">Sign out keeps the copy on this device. Delete removes your synced days from your account and clears this device; it cannot be undone.</p>
     </div>`;
   sheet.querySelector(".close").addEventListener("click", closeDetail);
+  sheet.querySelector("#acctType").addEventListener("change", e => {
+    sheet.querySelector("#acctRoleWrap").hidden = e.target.value !== "pro";
+  });
   sheet.querySelector("#acctSave").addEventListener("click", () => {
+    saveAccountType(sheet.querySelector("#acctType").value, sheet.querySelector("#acctRole").value);
     const unit = sheet.querySelector("#acctU").value;
     const raw = +sheet.querySelector("#acctW").value;
     const kgVal = unit === "lb" ? (raw > 0 ? raw / LB_PER_KG : 75) : (raw > 0 ? raw : 75);
@@ -2168,8 +2201,19 @@ function openOnboardSheet() {
   sheet.innerHTML = `
     <div class="close-dock"><button class="close" aria-label="Close">✕</button></div>
     <div class="sheet-top">
-      <div><h2 id="sheetTitle">Welcome. Two quick details.</h2>
+      <div><h2 id="sheetTitle">Welcome. A few quick details.</h2>
       <p class="sub">Your daily amino acid targets are calculated from these. You can change them any time in your account.</p></div>
+    </div>
+    <div class="pick-block">
+      <h3>Signing up as</h3>
+      <div class="pick-row">
+        <div class="seg" id="obSeg" role="radiogroup" aria-label="Account type">
+          <button type="button" data-v="" class="on" aria-pressed="true">An individual</button>
+          <button type="button" data-v="pro" aria-pressed="false">A professional</button>
+        </div>
+        <label class="acct-lab" id="obRoleWrap" hidden>Role <select id="obRole" aria-label="Professional role">${roleOptionsHTML("pt")}</select></label>
+      </div>
+      <p class="auth-note">Professional covers personal trainers, coaches, dietitians, researchers, clinicians and students working with clients or study participants.</p>
     </div>
     <div class="pick-block">
       <h3>About you</h3>
@@ -2189,7 +2233,13 @@ function openOnboardSheet() {
     </div>`;
   sheet.querySelector(".close").addEventListener("click", closeDetail);
   sheet.querySelector("#obSkip").addEventListener("click", closeDetail);
+  const obSeg = sheet.querySelector("#obSeg");
+  obSeg.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    obSeg.querySelectorAll("button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+    sheet.querySelector("#obRoleWrap").hidden = b.dataset.v !== "pro";
+  }));
   sheet.querySelector("#obSave").addEventListener("click", () => {
+    saveAccountType(obSeg.querySelector("button.on").dataset.v, sheet.querySelector("#obRole").value);
     const unit = sheet.querySelector("#obU").value;
     const raw = +sheet.querySelector("#obW").value;
     const kgVal = unit === "lb" ? (raw > 0 ? raw / LB_PER_KG : 75) : (raw > 0 ? raw : 75);
