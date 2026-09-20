@@ -465,6 +465,7 @@
     box-shadow: var(--shadow); min-width: 240px; padding: 6px;
   }
   .menu-pop[hidden] { display: none; }
+  .menu-pop [hidden] { display: none !important; }
   .menu-pop button {
     display: block; width: 100%; text-align: left; border: 0; background: transparent;
     color: var(--ink); font-size: 14.5px; font-weight: 600; padding: 10px 12px; border-radius: 2px;
@@ -871,14 +872,14 @@
       <button class="burger menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
       <div class="menu-pop" hidden>
         <button data-act="addfoods">Add foods<span class="mi-sub">Log today, meal by meal</span></button>
-        <button data-act="history">Previous days<span class="mi-sub">Analyse your diet over time</span></button>
+        <button data-act="history" data-account-only hidden>Previous days<span class="mi-sub">Analyse your diet over time</span></button>
         <hr class="mi-rule">
         <button data-act="atlas">Amino acid database<span class="mi-sub">Browse every food's individual amino acid profile</span></button>
         <button data-act="comparefoods">Compare foods<span class="mi-sub">Any two or three, side by side</span></button>
         <button data-act="compareaa">Compare amino acids<span class="mi-sub">Role, daily need, richest sources</span></button>
         <button data-act="method">How the numbers work</button>
         <hr class="mi-rule">
-        <div class="menu-auth" id="menuAuth"><button data-act="account">Account<span class="mi-sub">Targets, password, your data</span></button></div>
+        <div class="menu-auth" id="menuAuth" hidden></div>
       </div>
     </div>
   </div>
@@ -2283,11 +2284,14 @@ async function syncOnLogin() {
   } catch (e) {}
 }
 function renderAuthSlot(session) {
+  const signedIn = !!(session && session.user);
+  document.querySelectorAll(".menu-pop [data-account-only]").forEach(item => { item.hidden = ACCOUNTS_ON && !signedIn; });
+  const menuAuth = document.getElementById("menuAuth");
+  if (menuAuth) menuAuth.hidden = !ACCOUNTS_ON;
   const slot = document.getElementById("authSlot");
   if (!slot) return;
   if (!ACCOUNTS_ON) { slot.innerHTML = ""; return; }
-  const menuAuth = document.getElementById("menuAuth");
-  if (session && session.user) {
+  if (signedIn) {
     slot.innerHTML = `<button class="auth-btn ghost" id="authAcct" title="Account settings">${session.user.email}</button>`;
     slot.querySelector("#authAcct").addEventListener("click", openAccountSheet);
     if (menuAuth) menuAuth.innerHTML = '<button data-act="account">Account<span class="mi-sub">Targets, password, your data</span></button>';
