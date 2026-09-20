@@ -391,6 +391,26 @@
   }
   .menu-pop button:hover { background: var(--surface-2); }
   .menu-pop .mi-sub { display: block; font-size: 11.5px; font-weight: 400; color: var(--ink-3); margin-top: 1px; }
+  .menu-pop .mi-rule { border: 0; border-top: 1px solid var(--line); margin: 6px 4px; }
+  /* ---------- previous days ---------- */
+  .hist-summary { font-size: 14.5px; color: var(--ink-2); margin: 14px 0 4px; }
+  .hist-summary b { color: var(--c-bcaa); }
+  .hist-chart { position: relative; display: flex; gap: 10px; align-items: flex-end; height: 168px; padding-bottom: 22px; margin: 10px 0 2px; }
+  .hc-col { flex: 1; max-width: 72px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; position: relative; }
+  .hc-val { font-size: 11px; color: var(--ink-3); margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+  .hc-bar { width: 100%; max-width: 44px; border-radius: 4px 4px 0 0; background: var(--c-limit); opacity: 0.8; }
+  .hc-bar.good { background: var(--c-bcaa); }
+  .hc-day { position: absolute; bottom: -22px; font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
+  .hist-target { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--ink); opacity: 0.35; pointer-events: none; }
+  .hist-chart-note { font-size: 12px; color: var(--ink-3); margin: 0 0 6px; }
+  .hist-card { background: var(--surface-2); border-radius: 12px; padding: 14px 16px; margin-top: 10px; }
+  .hist-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .hist-date { font-family: var(--font-serif); font-weight: 700; font-size: 18px; }
+  .hist-now { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; background: var(--c-good-bg); color: var(--c-bcaa); border-radius: 999px; padding: 3px 9px; }
+  .hist-open { margin-left: auto; }
+  .hist-stats { font-size: 13.5px; color: var(--ink-2); margin: 6px 0 0; }
+  .hist-foods { font-size: 12.5px; color: var(--ink-3); margin: 3px 0 0; }
+  .hist-note { font-size: 13px; color: var(--ink-3); font-style: italic; margin: 5px 0 0; }
 
   /* compare picker page */
   .pick-block { background: var(--surface-2); border-radius: 3px; padding: 18px; margin-top: 18px; }
@@ -770,10 +790,15 @@
     <div class="menu-wrap">
       <button class="burger menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
       <div class="menu-pop" hidden>
+        <button data-act="addfoods">Add foods<span class="mi-sub">Log today, meal by meal</span></button>
+        <button data-act="history">Previous days<span class="mi-sub">Your week of entries, day by day</span></button>
+        <hr class="mi-rule">
         <button data-act="atlas">Amino acid database<span class="mi-sub">Browse every food's individual amino acid profile</span></button>
         <button data-act="comparefoods">Compare foods<span class="mi-sub">Any two or three, side by side</span></button>
         <button data-act="compareaa">Compare amino acids<span class="mi-sub">Role, daily need, richest sources</span></button>
         <button data-act="method">How the numbers work</button>
+        <hr class="mi-rule">
+        <button data-act="account">Account<span class="mi-sub">Targets, password, your data</span></button>
       </div>
     </div>
   </div>
@@ -2067,6 +2092,16 @@ function openCompareAAs(push) {
       if (!act) return;
       closeAll();
       if (act === "atlas") showView("atlas");
+      else if (act === "addfoods") {
+        if (!overlay.hidden) closeDetail();
+        showView("day");
+        setTimeout(() => { const el = document.getElementById("v2Food"); if (el) el.focus(); }, 450);
+      }
+      else if (act === "history") {
+        if (ACCOUNTS_ON && !authedUser) openAuthSheet("Your previous days live in your free account: a week of dated logs with totals and notes, on every device.");
+        else openHistorySheet();
+      }
+      else if (act === "account") { authedUser ? openAccountSheet() : openAuthSheet(); }
       else if (act === "comparefoods") openCompareFoods();
       else if (act === "compareaa") openCompareAAs();
       else if (act === "method") document.getElementById("method").scrollIntoView({ behavior: "smooth" });
@@ -2358,6 +2393,78 @@ function openAccountSheet() {
       btn.textContent = "Delete my synced data"; wipeArmed = false;
     } catch (e) { m.textContent = "Could not delete: " + e.message; }
   });
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+  sheet.querySelector(".close").focus();
+}
+
+/* ================= previous days: the week in review ================= */
+function dayIntake(d) {
+  let prot = 0, kcal = 0, kcalKnown = false;
+  const totals = {}; AA_META.forEach(m => totals[m[0]] = 0);
+  (d.entries || []).forEach(e => {
+    const f = foodByName(e.name);
+    if (!f) return;
+    prot += f.protein_g_per_100g * e.g / 100;
+    if (f.kcal != null) { kcal += f.kcal * e.g / 100; kcalKnown = true; }
+    AA_META.forEach(m => totals[m[0]] += f.aa[m[0]] * e.g / 100);
+  });
+  const balance = prot > 0
+    ? Math.min(...SCORE_ROWS.map(([id, , keys]) => keys.reduce((s, k) => s + totals[k], 0) / prot * 1000 / WHO[id]))
+    : 0;
+  return { prot, kcal: kcalKnown ? kcal : null, balance };
+}
+function openHistorySheet() {
+  lastFocus = document.activeElement;
+  const log = loadLog();
+  const target = getThriveG(getWeight());
+  const fmt = iso => { const d = new Date(iso + "T12:00:00"); return isNaN(d) ? iso : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }); };
+  const fmtShort = iso => { const d = new Date(iso + "T12:00:00"); return isNaN(d) ? iso : d.toLocaleDateString(undefined, { weekday: "short" }); };
+  const days = log.days.map((d, i) => ({ d, i, ...dayIntake(d) }));
+  const logged = days.filter(x => x.d.entries.length);
+  const chrono = days.slice().sort((a, b) => (a.d.date < b.d.date ? -1 : a.d.date > b.d.date ? 1 : 0));
+  const newestFirst = chrono.slice().reverse();
+  const maxP = Math.max(target, ...days.map(x => x.prot), 1);
+  const px = v => Math.round(v / maxP * 120);
+  const avg = logged.length ? logged.reduce((s, x) => s + x.prot, 0) / logged.length : 0;
+  const hit = logged.filter(x => x.prot >= target).length;
+  const summary = logged.length
+    ? `${logged.length} day${logged.length === 1 ? "" : "s"} logged · average <b>${avg.toFixed(0)} g protein</b> a day · target of ${target.toFixed(0)} g reached on ${hit} of ${logged.length}`
+    : "Nothing logged yet. Add foods to today and it appears here.";
+  sheet.innerHTML = `
+    <div class="close-dock"><button class="close" aria-label="Close previous days">✕</button></div>
+    <div class="sheet-top">
+      <div><h2 id="sheetTitle">Previous days</h2>
+      <p class="sub">The last ${WEEK_DAYS} days you logged, synced to your account. Open any day to view or edit it.</p></div>
+    </div>
+    <p class="hist-summary">${summary}</p>
+    ${logged.length ? `<div class="hist-chart">
+      <span class="hist-target" style="bottom:${22 + px(target)}px" title="Your ${target.toFixed(0)} g daily target"></span>
+      ${chrono.map(x => `<div class="hc-col">
+        <span class="hc-val">${x.prot > 0 ? x.prot.toFixed(0) : ""}</span>
+        <span class="hc-bar${x.prot >= target ? " good" : ""}" style="height:${Math.max(px(x.prot), 2)}px"></span>
+        <span class="hc-day">${fmtShort(x.d.date)}</span>
+      </div>`).join("")}
+    </div>
+    <p class="hist-chart-note">Protein per day, g. Green bars reached your target; the dashed line is the target itself.</p>` : ""}
+    ${newestFirst.map(x => `<div class="hist-card">
+      <div class="hist-h">
+        <span class="hist-date">${fmt(x.d.date)}</span>
+        ${x.i === log.active ? '<span class="hist-now">editing now</span>' : ""}
+        <button type="button" class="v2-share-sec hist-open" data-i="${x.i}">Open this day</button>
+      </div>
+      ${x.d.entries.length ? `<p class="hist-stats"><b>${x.prot.toFixed(0)} g protein</b> · ${Math.round(x.prot / target * 100)}% of target${x.kcal != null ? ` · ${Math.round(x.kcal)} kcal` : ""} · balance ${Math.round(x.balance * 100)}% · ${x.d.entries.length} source${x.d.entries.length === 1 ? "" : "s"}</p>
+      <p class="hist-foods">${x.d.entries.slice(0, 4).map(e => `${e.g} g ${e.name.split(",")[0]}`).join(" · ")}${x.d.entries.length > 4 ? ` · +${x.d.entries.length - 4} more` : ""}</p>` : '<p class="hist-stats">Nothing logged this day.</p>'}
+      ${x.d.note ? `<p class="hist-note">"${x.d.note}"</p>` : ""}
+    </div>`).join("")}`;
+  sheet.querySelector(".close").addEventListener("click", closeDetail);
+  sheet.querySelectorAll(".hist-open").forEach(b => b.addEventListener("click", () => {
+    const l = loadLog(); l.active = +b.dataset.i; saveLog(l);
+    closeDetail();
+    if (window.__v2Render) window.__v2Render();
+    const entry = document.querySelector(".v2-entry");
+    if (entry) entry.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
   overlay.hidden = false;
   document.body.style.overflow = "hidden";
   sheet.querySelector(".close").focus();
