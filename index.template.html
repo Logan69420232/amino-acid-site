@@ -138,6 +138,8 @@
   .auth-btn.ghost { background: transparent; color: var(--c-bcaa); }
   .auth-user { font-size: 12.5px; color: var(--ink-2); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .auth-note { font-size: 13px; color: var(--ink-3); max-width: 52ch; }
+  .go-cmp.ghosted { background: transparent; border: 1.5px solid var(--c-bcaa); color: var(--c-bcaa); }
+  .auth-note .linkish { font-size: inherit; }
   .auth-gate {
     margin: 16px 0 0; padding: 12px 16px; border-radius: 12px;
     background: var(--c-good-bg); border: 1px solid var(--c-bcaa);
@@ -724,7 +726,7 @@
     <div class="land-cta-row">
       <button type="button" class="land-cta" id="landSignup">Create your free account</button>
       <button type="button" class="land-cta ghost" id="landTry">Try it first, no account</button>
-      <span class="land-free">Free forever. One email, no password. Your days sync across phone and computer.</span>
+      <span class="land-free">Free forever. Takes thirty seconds. Your days sync across phone and computer.</span>
     </div>
     <p class="land-h">How it works</p>
     <div class="land-steps">
@@ -1972,25 +1974,53 @@ function openAuthSheet(gateMsg) {
     ${typeof gateMsg === "string" && gateMsg ? `<p class="auth-gate">${gateMsg}</p>` : ""}
     <div class="pick-block">
       <h3>Sign up or sign in</h3>
-      <p class="pb-sub">One email, no password. We send you a link that signs this device in.</p>
-      <form class="pick-row" id="authForm">
-        <input type="email" required placeholder="you@example.com" id="authEmail" aria-label="Email address" autocomplete="email" style="flex:1 1 240px">
-        <button class="go-cmp" type="submit">Email me a sign-in link</button>
+      <p class="pb-sub">An email and a password. New here? Same form, use the Create account button.</p>
+      <form class="pick-row auth-form" id="authForm">
+        <input type="email" required placeholder="you@example.com" id="authEmail" aria-label="Email address" autocomplete="email" style="flex:1 1 220px">
+        <input type="password" required minlength="6" placeholder="Password (6+ characters)" id="authPw" aria-label="Password" autocomplete="current-password" style="flex:1 1 200px">
+        <button class="go-cmp" type="submit">Sign in</button>
+        <button class="go-cmp ghosted" type="button" id="authUp">Create free account</button>
       </form>
       <p class="pick-hint" id="authHint"></p>
+      <p class="auth-note">Forgot your password, or prefer not to have one? <button type="button" class="linkish" id="authOtp">Email me a one-time sign-in link</button> instead.</p>
       <p class="auth-note">Your days are stored privately against your account and nowhere else. Signing out leaves the copy on this device untouched.</p>
     </div>`;
   sheet.querySelector(".close").addEventListener("click", closeDetail);
+  const authHint = t => { sheet.querySelector("#authHint").innerHTML = t; };
+  const authVals = () => ({ email: sheet.querySelector("#authEmail").value.trim(), pw: sheet.querySelector("#authPw").value });
   sheet.querySelector("#authForm").addEventListener("submit", async e => {
     e.preventDefault();
-    const hint = sheet.querySelector("#authHint");
-    const email = sheet.querySelector("#authEmail").value.trim();
     const c = sbReady();
-    if (!c) { hint.textContent = "Accounts are not switched on yet."; return; }
-    hint.textContent = "Sending…";
+    if (!c) { authHint("Accounts are not switched on yet."); return; }
+    const { email, pw } = authVals();
+    if (!email || pw.length < 6) { authHint("Enter your email and a password of at least 6 characters."); return; }
+    authHint("Signing in…");
+    const { error } = await c.auth.signInWithPassword({ email, password: pw });
+    if (error) authHint(/invalid/i.test(error.message)
+      ? "Wrong email or password. New here? Use <b>Create free account</b>. Signed up by email link before? Use the one-time link below."
+      : "Could not sign in: " + error.message);
+  });
+  sheet.querySelector("#authUp").addEventListener("click", async () => {
+    const c = sbReady();
+    if (!c) { authHint("Accounts are not switched on yet."); return; }
+    const { email, pw } = authVals();
+    if (!email || pw.length < 6) { authHint("Enter your email and a password of at least 6 characters."); return; }
+    authHint("Creating your account…");
+    const { data, error } = await c.auth.signUp({ email, password: pw });
+    if (error) authHint(/already registered/i.test(error.message)
+      ? "That email already has an account. Use <b>Sign in</b>, or the one-time link below."
+      : "Could not create the account: " + error.message);
+    else if (!data.session) authHint('<span class="auth-msg">Almost there.</span> Check your inbox to confirm your email, then come back and sign in.');
+  });
+  sheet.querySelector("#authOtp").addEventListener("click", async () => {
+    const c = sbReady();
+    if (!c) { authHint("Accounts are not switched on yet."); return; }
+    const { email } = authVals();
+    if (!email) { authHint("Enter your email first, then request the link."); return; }
+    authHint("Sending…");
     const { error } = await c.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + "/" } });
-    hint.innerHTML = error ? ("Could not send the link: " + error.message)
-      : '<span class="auth-msg">Check your inbox.</span> Open the link on this device and you are signed in.';
+    authHint(error ? ("Could not send the link: " + error.message)
+      : '<span class="auth-msg">Check your inbox.</span> Open the link on this device and you are signed in.');
   });
   overlay.hidden = false;
   document.body.style.overflow = "hidden";
