@@ -206,9 +206,14 @@
     border-radius: 999px; padding: 5px 13px; font-size: 13px; cursor: pointer;
   }
   .meal-chip[aria-pressed="true"] { background: var(--c-bcaa); border-color: var(--c-bcaa); color: #fff; font-weight: 600; }
+  .meal-group {
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 14px; padding: 12px 14px 12px; margin: 14px 0 0;
+  }
+  .meal-group .v2-item { margin-top: 8px; }
   .meal-h {
     display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-    margin: 14px 0 4px; padding-bottom: 3px; border-bottom: 1px solid var(--line-strong);
+    margin: 0 0 2px; padding-bottom: 5px; border-bottom: 1px solid var(--line-strong);
     font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600;
   }
   .meal-h b { color: var(--ink-2); font-variant-numeric: tabular-nums; letter-spacing: 0; text-transform: none; font-weight: 600; }
@@ -738,6 +743,7 @@
   <section class="landing" aria-label="About Amino Atlas">
     <div class="land-cta-row">
       <button type="button" class="land-cta" id="landSignup">Create your free account</button>
+      <button type="button" class="land-cta ghost" id="landLogin">Log in</button>
       <span class="land-free">Free forever. Takes thirty seconds. Your days sync across phone and computer.</span>
     </div>
     <p class="land-h">How it works</p>
@@ -2837,7 +2843,10 @@ window.addEventListener("popstate", () => {
       const idxs = day.map((e, i) => [e, i]).filter(([e]) => e.meal === mk);
       if (!idxs.length) return "";
       const mp = idxs.reduce((t, [e]) => t + foodByName(e.name).protein_g_per_100g * e.g / 100, 0);
-      return `<div class="meal-h"><span>${ml}</span><b>${mp.toFixed(1)} g protein</b></div>` + idxs.map(([e, i]) => rowHtml(e, i)).join("");
+      return `<div class="meal-group meal-${mk}">
+        <div class="meal-h"><span>${ml}</span><b>${mp.toFixed(1)} g protein</b></div>
+        ${idxs.map(([e, i]) => rowHtml(e, i)).join("")}
+      </div>`;
     }).join("");
     list.querySelectorAll("input").forEach(inp => inp.addEventListener("change", ev => {
       const d = loadDay(); d[+ev.target.dataset.i].g = clamp(ev.target.value, 5, 2000, 100); saveDay(d); render();
@@ -2980,6 +2989,8 @@ window.addEventListener("popstate", () => {
     });
     const su = document.getElementById("landSignup");
     if (su) su.addEventListener("click", () => sbReady() ? openAuthSheet() : null);
+    const li = document.getElementById("landLogin");
+    if (li) li.addEventListener("click", () => sbReady() ? openAuthSheet() : null);
   })();
   sharedNotice = loadDayFromHash();
   window.__v2Render = render;
