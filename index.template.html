@@ -214,28 +214,42 @@
   body[data-view="atlas"] .landing, body.authed .landing { display: none !important; }
 
   /* ---------- landing ---------- */
-  .landing { margin: 6px 0 40px; }
-  .land-cta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 18px 0 8px; }
-  .land-cta {
-    border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px;
-    padding: 13px 26px; font-size: 16px; font-weight: 700; cursor: pointer;
+  body:not([data-view="atlas"]):not(.authed) .reference-intro { display: none; }
+  .landing { text-align: center; padding: 46px 0 42px; }
+  .landing .eyebrow { color: var(--c-bcaa); font-size: 12px; margin-bottom: 24px; }
+  .landing h1 {
+    font-size: clamp(36px, 5.5vw, 66px); line-height: 1.08; letter-spacing: -0.04em;
+    font-weight: 600; max-width: 1000px; margin: 0 auto 22px; text-wrap: balance;
   }
-  .land-cta.ghost { background: transparent; border: 1.5px solid var(--line-strong); color: var(--ink); font-weight: 600; }
-  .land-free { font-size: 13px; color: var(--ink-3); flex-basis: 100%; }
-  .land-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 30px 0 8px; }
-  .land-step { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
-  .land-step .no {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 28px; height: 28px; border-radius: 50%; background: var(--c-good-bg);
-    color: var(--c-bcaa); font-weight: 700; font-size: 14px; margin-bottom: 10px;
+  .landing h1 em { color: var(--c-bcaa); font-style: normal; }
+  .land-description { max-width: 48ch; margin: 0 auto 30px; color: var(--ink-2); font-size: 18px; line-height: 1.6; }
+  .land-signup { max-width: 560px; margin: 0 auto; text-align: left; }
+  .land-signup label { display: block; color: var(--ink-2); font-size: 14px; margin-bottom: 8px; }
+  .land-signup-row { display: flex; gap: 6px; background: var(--surface); border: 1.5px solid var(--line-strong); border-radius: 12px; padding: 5px; }
+  .land-signup input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; padding: 12px; border-radius: 7px; }
+  .land-signup input::placeholder { color: var(--ink-2); }
+  .land-signup button { border: 0; border-radius: 8px; background: var(--c-bcaa); color: #fff; padding: 13px 22px; font-size: 16px; font-weight: 600; white-space: nowrap; }
+  .land-signup button:hover { filter: brightness(1.12); }
+  .land-free { font-size: 14px; color: var(--ink-2); margin: 14px 0 20px; }
+  .land-explore { color: var(--c-bcaa); font-size: 15px; text-underline-offset: 4px; }
+  .land-benefits { list-style: none; padding: 0; margin: 38px 0 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 28px; font-size: 14px; color: var(--ink-2); }
+  .land-benefits li::before { content: "✓"; color: var(--c-bcaa); margin-right: 8px; }
+  @media (min-width: 1080px) {
+    body:not([data-view="atlas"]):not(.authed) .landing { padding-right: 400px; text-align: left; }
+    body:not([data-view="atlas"]):not(.authed) .landing h1 { font-size: 50px; font-weight: 700; margin-left: 0; }
+    body:not([data-view="atlas"]):not(.authed) .land-description,
+    body:not([data-view="atlas"]):not(.authed) .land-signup { margin-left: 0; }
+    body:not([data-view="atlas"]):not(.authed) .land-benefits { justify-content: flex-start; }
+    body:not([data-view="atlas"]):not(.authed) #heroAnim { top: 72px; }
   }
-  .land-step h3 { margin: 0 0 6px; font-size: 17px; }
-  .land-step p { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
-  .land-feats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 22px; margin: 18px 0 0; }
-  .land-feat { font-size: 14px; color: var(--ink-2); padding-left: 22px; position: relative; }
-  .land-feat::before { content: "✓"; position: absolute; left: 0; color: var(--c-bcaa); font-weight: 700; }
-  .land-feat b { color: var(--ink); }
-  .land-h { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin: 34px 0 0; }
+  @media (max-width: 560px) {
+    .landing { padding: 18px 0 32px; }
+    .landing h1 { font-size: clamp(34px, 9vw, 44px); }
+    .land-description { font-size: 16px; }
+    .land-signup-row { flex-direction: column; }
+    .land-signup button { min-height: 48px; }
+    .land-benefits { margin-top: 28px; gap: 8px 18px; }
+  }
   .atlas-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
   .atlas-head .v2-h { margin: 8px 0 0; }
   .linkish { border: 0; background: none; padding: 0; color: var(--c-bcaa); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
@@ -851,6 +865,26 @@
 <header class="site">
   <div class="wrap">
     <canvas id="heroAnim" aria-hidden="true"></canvas>
+  <section class="landing" aria-labelledby="landTitle">
+    <p class="eyebrow">A clearer picture of your protein</p>
+    <h1 id="landTitle">Stop tracking protein.<br>Start tracking <em>amino acids.</em></h1>
+    <p class="land-description">Log what you eat. See your amino acid profile.<br>Find foods that help you reach your targets.</p>
+    <form class="land-signup" id="landSignupForm">
+      <label for="landEmail">Your email address</label>
+      <div class="land-signup-row">
+        <input id="landEmail" name="email" type="email" autocomplete="email" required placeholder="you@example.com" aria-describedby="landFree">
+        <button type="submit">Sign up for free</button>
+      </div>
+    </form>
+    <p class="land-free" id="landFree">Free forever. Your food diary, synced across devices.</p>
+    <a class="land-explore" href="/database" id="landAtlas">Explore the database first</a>
+    <ul class="land-benefits">
+      <li><span id="landFoodCount">4,000+</span> foods</li>
+      <li>Your daily amino acid profile</li>
+      <li>Practical food suggestions</li>
+    </ul>
+  </section>
+  <div class="reference-intro">
     <p class="eyebrow">An open reference</p>
     <h1 class="masthead">Stop tracking protein.<br />Start tracking <em>amino acids.</em></h1>
     <p class="standfirst">
@@ -858,6 +892,7 @@
       very different mixes of them. Amino Atlas maps the full profile of 4,000+ foods against
       your daily needs, so you can see what you are actually getting.
     </p>
+  </div>
   </div>
 </header>
 
@@ -890,38 +925,6 @@
 </div>
 
 <main class="wrap">
-  <section class="landing" aria-label="About Amino Atlas">
-    <div class="land-cta-row">
-      <button type="button" class="land-cta" id="landSignup">Create your free account</button>
-      <button type="button" class="land-cta ghost" id="landLogin">Log in</button>
-      <span class="land-free">Free forever. Takes thirty seconds. Your days sync across phone and computer.</span>
-    </div>
-    <p class="land-h">How it works</p>
-    <div class="land-steps">
-      <div class="land-step"><span class="no">1</span>
-        <h3>Log your day, meal by meal</h3>
-        <p>Search __N_FOODS__ foods and add what you actually eat to breakfast, lunch, dinner and snacks, day by day with dates and notes.</p>
-      </div>
-      <div class="land-step"><span class="no">2</span>
-        <h3>See the shape of your protein</h3>
-        <p>Every day gets an amino acid profile and a score against WHO 2007 requirements at your body weight. One number tells you if your protein was the right kind.</p>
-      </div>
-      <div class="land-step"><span class="no">3</span>
-        <h3>Close the gaps</h3>
-        <p>When an amino acid runs short, we name it and suggest real foods, with portions, that close the gap in one serving.</p>
-      </div>
-    </div>
-    <p class="land-h">What you get</p>
-    <div class="land-feats">
-      <div class="land-feat"><b>Meal-by-meal logging</b> across as many days as you like</div>
-      <div class="land-feat"><b>Amino acid score</b> and your limiting amino acid, every day</div>
-      <div class="land-feat"><b>Personal targets</b> scaled to your weight and protein goal</div>
-      <div class="land-feat"><b>Food suggestions</b> that close what you're missing</div>
-      <div class="land-feat"><b>__N_FOODS__ foods</b> with full 18-amino-acid profiles and sources</div>
-      <div class="land-feat"><b>Share your day</b> as a link or an image</div>
-    </div>
-  </section>
-
   <section class="v2-entry">
     <h2 class="v2-h">What protein do you eat in a day?</h2>
     <p class="v2-p">Log each source meal by meal. We add up the amino acids across the day and show you the shape of it.</p>
@@ -2265,7 +2268,7 @@ function renderAuthSlot(session) {
       <button class="menu-login" data-act="login">Log in</button>`;
   }
 }
-function openAuthSheet(gateMsg, mode) {
+function openAuthSheet(gateMsg, mode, initialEmail = "") {
   lastFocus = document.activeElement;
   /* Two clean views, sign up first: one stacked column, one big button, and a
      single line to swap to the other, instead of one form doing both jobs. */
@@ -2281,7 +2284,7 @@ function openAuthSheet(gateMsg, mode) {
         <input type="password" required minlength="6" placeholder="Password (6+ characters)" id="authPw" aria-label="Password" autocomplete="${signup ? "new-password" : "current-password"}">
         <button class="auth-primary" type="submit">${signup ? "Sign up for free" : "Log in"}</button>
       </form>
-      <p class="pick-hint" id="authHint"></p>
+      <p class="pick-hint" id="authHint" role="status" aria-live="polite"></p>
       <p class="auth-note auth-swap-line">${signup
         ? 'Already have an account? <button type="button" class="linkish" id="authSwap">Log in</button>'
         : 'New here? <button type="button" class="linkish" id="authSwap">Create a free account</button>'}</p>
@@ -2291,7 +2294,8 @@ function openAuthSheet(gateMsg, mode) {
   sheet.querySelector(".close").addEventListener("click", closeDetail);
   const authHint = t => { sheet.querySelector("#authHint").innerHTML = t; };
   const authVals = () => ({ email: sheet.querySelector("#authEmail").value.trim(), pw: sheet.querySelector("#authPw").value });
-  sheet.querySelector("#authSwap").addEventListener("click", () => openAuthSheet(gateMsg, signup ? "login" : "signup"));
+  sheet.querySelector("#authEmail").value = initialEmail;
+  sheet.querySelector("#authSwap").addEventListener("click", () => openAuthSheet(gateMsg, signup ? "login" : "signup", authVals().email));
   sheet.querySelector("#authForm").addEventListener("submit", async e => {
     e.preventDefault();
     const c = sbReady();
@@ -2308,7 +2312,7 @@ function openAuthSheet(gateMsg, mode) {
         : "Could not create the account: " + error.message);
       else if (!data.session) authHint('<span class="auth-msg">Almost there.</span> Check your inbox to confirm your email, then come back and log in.');
       const swap2 = sheet.querySelector("#authSwap2");
-      if (swap2) swap2.addEventListener("click", () => openAuthSheet(gateMsg, "login"));
+      if (swap2) swap2.addEventListener("click", () => openAuthSheet(gateMsg, "login", authVals().email));
     } else {
       authHint("Logging in…");
       const { error } = await c.auth.signInWithPassword({ email, password: pw });
@@ -2317,7 +2321,7 @@ function openAuthSheet(gateMsg, mode) {
           ? 'Wrong email or password. New here? <button type="button" class="linkish" id="authSwap2">Create a free account</button>. Signed up by email link before? Use the one-time link below.'
           : "Could not log you in: " + error.message);
         const swap2 = sheet.querySelector("#authSwap2");
-        if (swap2) swap2.addEventListener("click", () => openAuthSheet(gateMsg, "signup"));
+        if (swap2) swap2.addEventListener("click", () => openAuthSheet(gateMsg, "signup", authVals().email));
       }
     }
   });
@@ -2333,7 +2337,7 @@ function openAuthSheet(gateMsg, mode) {
   });
   overlay.hidden = false;
   document.body.style.overflow = "hidden";
-  sheet.querySelector("#authEmail").focus();
+  sheet.querySelector(initialEmail ? "#authPw" : "#authEmail").focus();
 }
 function openAccountSheet() {
   lastFocus = document.activeElement;
@@ -3385,13 +3389,15 @@ window.addEventListener("popstate", () => {
     });
   }
   (function wireLanding() {
-    document.querySelectorAll(".landing .land-step p, .landing .land-feat").forEach(el => {
-      el.innerHTML = el.innerHTML.replace(/__N_FOODS__/g, ATLAS.foods.length.toLocaleString());
+    document.getElementById("landFoodCount").textContent = ATLAS.foods.length.toLocaleString();
+    document.getElementById("landSignupForm").addEventListener("submit", e => {
+      e.preventDefault();
+      openAuthSheet(undefined, "signup", document.getElementById("landEmail").value.trim());
     });
-    const su = document.getElementById("landSignup");
-    if (su) su.addEventListener("click", () => sbReady() ? openAuthSheet(undefined, "signup") : null);
-    const li = document.getElementById("landLogin");
-    if (li) li.addEventListener("click", () => sbReady() ? openAuthSheet(undefined, "login") : null);
+    document.getElementById("landAtlas").addEventListener("click", e => {
+      e.preventDefault();
+      showView("atlas");
+    });
   })();
   sharedNotice = loadDayFromHash();
   window.__v2Render = render;
