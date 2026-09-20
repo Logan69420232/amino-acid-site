@@ -3469,10 +3469,9 @@ window.addEventListener("popstate", () => {
   render();
 })();
 
-/* The demo loads only when played. Mobile and reduced-motion users opt in. */
+/* Autoplay the muted demo when visible on any screen; respect reduced motion. */
 (function wireDemo() {
   const video = document.getElementById("diaryDemo"), button = document.getElementById("demoToggle");
-  const desktop = matchMedia("(min-width: 768px)");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   let visible = false, manualPlay = false, userPaused = false;
   function play() {
@@ -3482,7 +3481,7 @@ window.addEventListener("popstate", () => {
   }
   function sync() {
     const shown = visible && !document.hidden && !document.body.dataset.view && !document.body.classList.contains("authed");
-    if (shown && !userPaused && (manualPlay || (desktop.matches && !reduced.matches))) play();
+    if (shown && !userPaused && (manualPlay || !reduced.matches)) play();
     else video.pause();
   }
   button.addEventListener("click", () => {
@@ -3499,7 +3498,6 @@ window.addEventListener("popstate", () => {
   new IntersectionObserver(entries => { visible = entries[0].isIntersecting; sync(); }, { threshold: 0.25 }).observe(video);
   new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ["class", "data-view"] });
   document.addEventListener("visibilitychange", sync);
-  desktop.addEventListener("change", () => { manualPlay = false; sync(); });
   reduced.addEventListener("change", () => { manualPlay = false; sync(); });
 })();
 
