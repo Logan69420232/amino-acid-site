@@ -145,6 +145,7 @@
     border-radius: 8px; padding: 8px 10px; font-size: 15px;
   }
   .acct-lab input[type="number"] { width: 84px; font-variant-numeric: tabular-nums; }
+  .acct-lab[hidden] { display: none; }
   .seg { display: inline-flex; border: 1.5px solid var(--line-strong); border-radius: 10px; overflow: hidden; }
   .seg button {
     background: transparent; border: 0; color: var(--ink-2); font: inherit; font-size: 14.5px;
@@ -282,6 +283,12 @@
   .v2-sum { font-family: var(--font-serif); font-size: clamp(22px, 2.8vw, 30px); line-height: 1.2; margin: 6px 0 4px; letter-spacing: -0.01em; }
   .v2-sum b { color: var(--c-bcaa); }
   .v2-sum .v2-clear { vertical-align: 4px; margin-left: 12px; }
+  .v2-hero { display: flex; align-items: center; gap: 20px; background: var(--surface-2); border-radius: 14px; padding: 16px 20px; margin: 12px 0 14px; }
+  .v2-hero-num { font-size: clamp(40px, 5vw, 54px); font-weight: 700; line-height: 1; color: var(--c-limit); font-variant-numeric: tabular-nums; }
+  .v2-hero-num.good { color: var(--c-bcaa); }
+  .v2-hero-body { flex: 1; min-width: 0; }
+  .v2-hero-lab { font-size: 13.5px; color: var(--ink-2); margin-bottom: 8px; }
+  .v2-balance-note { margin: -8px 0 16px; }
   .v2-macros { font-size: 14px; color: var(--ink-2); margin: 0 0 2px; font-variant-numeric: tabular-nums; }
   .v2-macros span { color: var(--ink-3); font-size: 12.5px; }
   .v2-targets-line { font-size: 13.5px; color: var(--ink-3); margin: 2px 0 14px; }
@@ -2754,7 +2761,7 @@ window.addEventListener("popstate", () => {
     x.fillStyle = col.ink; x.font = "700 96px " + serif; x.fillText(last.prot.toFixed(0) + " g", rx, 420);
     x.fillStyle = col.ink2; x.font = "500 28px " + sans; x.fillText("protein from " + last.day.length + " source" + (last.day.length === 1 ? "" : "s"), rx, 462);
     x.fillStyle = last.complete ? col.b : col.limit; x.font = "700 72px " + serif; x.fillText(Math.round(last.score * 100) + "%", rx, 580);
-    x.fillStyle = col.ink2; x.font = "500 28px " + sans; x.fillText(last.complete ? "amino acid score, complete" : "score, limited by " + last.minLabel.toLowerCase(), rx, 622);
+    x.fillStyle = col.ink2; x.font = "500 28px " + sans; x.fillText(last.complete ? "amino acid balance, well balanced" : "balance limited by " + last.minLabel.toLowerCase(), rx, 622);
     x.fillStyle = col.ink; x.font = "700 60px " + serif; x.fillText(last.eaa.toFixed(0) + " g", rx, 730);
     x.fillStyle = col.ink2; x.font = "500 28px " + sans; x.font = "500 24px " + sans; x.fillText("essential amino acids / 100 g protein", rx, 770);
     // legend + foods
@@ -2772,7 +2779,7 @@ window.addEventListener("popstate", () => {
   }
   window.__aaShareCard = shareCard;
   async function copyText(t) { try { await navigator.clipboard.writeText(t); return true; } catch (e) { return false; } }
-  function shareText() { return `My day in amino acids: ${last.prot.toFixed(0)} g protein from ${last.day.length} source${last.day.length === 1 ? "" : "s"}, amino acid score ${Math.round(last.score * 100)}%. See the shape of yours:`; }
+  function shareText() { return `My day in amino acids: ${last.prot.toFixed(0)} g protein from ${last.day.length} source${last.day.length === 1 ? "" : "s"}, amino acid balance ${Math.round(last.score * 100)}%. See the shape of yours:`; }
 
 
   const dd = $("v2DD");
@@ -2971,7 +2978,14 @@ window.addEventListener("popstate", () => {
     result.hidden = false;
     result.innerHTML = `
       ${sharedNotice ? '<p class="v2-shared">You are looking at a day someone shared. Edit it, or press Start over to build your own.</p>' : ""}
-      <p class="v2-sum">${fmtDay(activeLogDay().date)} · ${day.length} source${day.length === 1 ? "" : "s"} · <b>${prot.toFixed(0)} g protein</b>${kcalTot > 0 ? ` · ${Math.round(kcalTot)} kcal` : ""} · ${Math.round(prot / protThrive * 100)}% of your ${protThrive.toFixed(0)} g target <button class="v2-clear" id="v2Clear">Start over</button></p>
+      <p class="v2-sum">${fmtDay(activeLogDay().date)} · ${day.length} source${day.length === 1 ? "" : "s"} · <b>${prot.toFixed(0)} g protein</b>${kcalTot > 0 ? ` · ${Math.round(kcalTot)} kcal` : ""} <button class="v2-clear" id="v2Clear">Start over</button></p>
+      <div class="v2-hero">
+        <div class="v2-hero-num${prot >= protThrive ? " good" : ""}">${Math.round(prot / protThrive * 100)}%</div>
+        <div class="v2-hero-body">
+          <div class="v2-hero-lab">Daily progress · ${prot.toFixed(0)} g of your ${protThrive.toFixed(0)} g protein target</div>
+          <div class="covbars">${covRow2("Protein", prot, protFloor, protThrive, undefined, "protein")}</div>
+        </div>
+      </div>
       ${kcalTot > 0 ? `<p class="v2-macros">Carbs ${carbTot.toFixed(0)} g · Fat ${fatTot.toFixed(0)} g · Protein ${prot.toFixed(0)} g${macroMiss ? ` <span>(macros unknown for ${macroMiss} item${macroMiss === 1 ? "" : "s"})</span>` : ""}</p>` : ""}
       <p class="v2-targets-line">Targets for ${displayWeight} ${wUnit}, ${protThrive.toFixed(0)} g protein a day${vegan ? ", vegan sources" : ""}. ${authedUser ? `<button type="button" class="linkish" id="v2ToAcct">Edit in your account</button>` : `<button type="button" class="linkish" id="v2ToSignup">Set yours with a free account</button>`}</p>
       <p class="v2-verdict">${verdict}</p>
@@ -2998,8 +3012,9 @@ window.addEventListener("popstate", () => {
             <div class="v2-stat"><div class="k">Essential AAs</div><div class="v">${eaa.toFixed(0)}<small> g /100 g protein</small></div></div>
             <div class="v2-stat"><div class="k">BCAAs</div><div class="v">${bcaa.toFixed(1)}<small> g /100 g protein</small></div></div>
             <div class="v2-stat"><div class="k">Leucine</div><div class="v">${perP("leucine").toFixed(1)}<small> g /100 g protein</small></div></div>
-            <div class="v2-stat ${complete ? "good" : "limit"}"><div class="k">Amino acid score</div><div class="v">${Math.round(min.ratio * 100)}%<small> ${complete ? "complete" : "limited by " + min.label.toLowerCase()}</small></div></div>
+            <div class="v2-stat ${complete ? "good" : "limit"}"><div class="k">Amino acid balance</div><div class="v">${Math.round(min.ratio * 100)}%<small> ${complete ? "well balanced" : "limited by " + min.label.toLowerCase()}</small></div></div>
           </div>
+          <p class="v2-note v2-balance-note">Amino acid balance measures the proportions in your protein, not how much of your daily target you've eaten. Your daily progress is the big number at the top and the bars below.</p>
           ${kcalTot > 0 ? `<div class="v2-sec">Calories and macros · day total</div>
           <div class="v2-stats v2-stats-4">
             <div class="v2-stat"><div class="k">Calories</div><div class="v">${Math.round(kcalTot)}<small> kcal</small></div></div>
@@ -3008,9 +3023,8 @@ window.addEventListener("popstate", () => {
             <div class="v2-stat"><div class="k">Fat</div><div class="v">${fatTot.toFixed(0)}<small> g</small></div></div>
           </div>` : ""}
           <div class="v2-sec">Against your daily needs</div>
-          <div class="covbars">${covRow2("Protein", prot, protFloor, protThrive, undefined, "protein")}</div>
-          <div class="covbars" style="margin-top:10px">${eaaRows}</div>
-          <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it. The grey band at each bar's tip is the confidence in the food composition data itself, about ±10%: lab analyses of the same food vary with breed, feed, season and processing. To be sure a target is truly met, get the whole band past the dark line, which in practice means aiming about 10% over it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar is the one to watch for quantity; the amino acid bars tell you whether that protein was the right kind.</p>
+          <div class="covbars">${eaaRows}</div>
+          <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it. The grey band at each bar's tip is the confidence in the food composition data itself, about ±10%: lab analyses of the same food vary with breed, feed, season and processing. To be sure a target is truly met, get the whole band past the dark line, which in practice means aiming about 10% over it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar at the top of your results is the one to watch for quantity; the amino acid bars here tell you whether that protein was the right kind.</p>
         </div>
       </div>
       ${gapsHtml}`;
