@@ -357,6 +357,23 @@
   .chips.quick .chip[aria-pressed="true"] { border-style: solid; }
   .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .sort-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); }
+  /* Desktop: the filters container is layout-transparent so nothing changes.
+     Phones: it folds behind the Filters button and only the search row stays sticky. */
+  .filters-toggle { display: none; }
+  .toolbar-filters { display: contents; }
+  @media (max-width: 640px) {
+    .toolbar { padding: 8px 0; }
+    .search { flex: 1 1 0; min-width: 0; max-width: none; }
+    .filters-toggle {
+      display: block; flex: none; border: 1px solid var(--line-strong); background: var(--surface);
+      color: var(--ink-2); border-radius: 2px; padding: 11px 14px; font-size: 13.5px; white-space: nowrap;
+    }
+    .filters-toggle[aria-expanded="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .toolbar-filters { display: none; flex-basis: 100%; }
+    .toolbar-filters.open { display: block; padding-top: 6px; }
+    .toolbar-filters .chips { margin-bottom: 10px; }
+    .toolbar-filters .sort-wrap { margin-left: 0; margin-top: 4px; }
+  }
   .menu-wrap { position: relative; }
   .burger {
     border: 1px solid var(--line-strong); background: var(--surface); border-radius: 2px;
@@ -445,6 +462,26 @@
   table.atlas-tbl td.src { text-align: left; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
   table.atlas-tbl tbody tr { cursor: pointer; }
   table.atlas-tbl tbody tr:hover { background: var(--c-good-bg); box-shadow: inset 2px 0 0 var(--c-bcaa); }
+  /* Phones: each result becomes a compact card, so names wrap freely and nothing scrolls sideways. */
+  @media (max-width: 640px) {
+    .table-wrap { overflow-x: visible; border-top: 0; }
+    table.atlas-tbl, table.atlas-tbl tbody { display: block; }
+    table.atlas-tbl thead { display: none; }
+    table.atlas-tbl tbody tr {
+      display: flex; flex-wrap: wrap; gap: 2px 18px; align-items: baseline;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+      padding: 10px 12px; margin: 0 0 8px;
+    }
+    table.atlas-tbl td { display: block; border: 0; padding: 0; text-align: left; }
+    table.atlas-tbl td.name { flex: 1 1 100%; font-size: 15px; font-weight: 600; white-space: normal; margin-bottom: 4px; }
+    table.atlas-tbl td[data-l]::before {
+      content: attr(data-l); display: block; font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3);
+    }
+    table.atlas-tbl td.lim:empty { display: none; }
+    table.atlas-tbl td.src { flex: 1 1 100%; white-space: normal; margin-top: 4px; }
+    .scorebar { min-width: 64px; }
+  }
   .kbd-sel { background: var(--c-good-bg) !important; box-shadow: inset 2px 0 0 var(--c-bcaa) !important; }
   .scorebar {
     display: inline-block; min-width: 84px; padding: 1px 5px; text-align: right;
@@ -490,12 +527,18 @@
   /* Bloom ring labels live in SVG user units, so these scale with the viewBox. */
   .bl-label { font-size: 12px; fill: var(--ink-2); font-family: var(--font-sans); }
   .bl-val { font-size: 11px; fill: var(--ink-3); font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+  .bloom-legend { display: none; }
   @media (max-width: 700px) {
-    /* Narrow screens: let the bloom use the full sheet width and enlarge the
-       ring labels, which would otherwise render at ~5px once the SVG scales down. */
+    /* Narrow screens: the bloom drops its in-chart labels (unreadable at this
+       scale even enlarged) and the plain list below carries the numbers instead. */
     .bloom-holder { margin-inline: calc(-1 * clamp(20px, 4vw, 44px)); width: auto; }
-    .bl-label { font-size: 17px; }
-    .bl-val { font-size: 15px; }
+    .bloom-holder .bl-label, .bloom-holder .bl-val { display: none; }
+    .bloom-legend { display: block; margin: 2px 0 10px; }
+    .bl-legend-h { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 6px; }
+    .bl-legend-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px 18px; }
+    .bl-item { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink-2); }
+    .bl-item b { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
+    .bl-item .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
   }
   .statrow {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -720,7 +763,7 @@
 <header class="site">
   <div class="wrap">
     <canvas id="heroAnim" aria-hidden="true"></canvas>
-    <p class="eyebrow">An open reference · draft for review</p>
+    <p class="eyebrow">An open reference</p>
     <h1 class="masthead">Stop tracking protein.<br />Start tracking <em>amino acids.</em></h1>
     <p class="standfirst">
       Every gram of protein you eat is built from 20 amino acids, and different foods carry
@@ -733,6 +776,8 @@
 <div class="toolbar">
   <div class="wrap toolbar-inner">
     <input class="search" id="search" type="search" placeholder="Search a food… (e.g. lentils, whey, egg)" aria-label="Search foods" />
+    <button type="button" class="filters-toggle" id="filtersToggle" aria-expanded="false" aria-controls="toolbarFilters">Filters</button>
+    <div class="toolbar-filters" id="toolbarFilters">
     <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
     <div class="sort-wrap">
       <label for="sort">Sort</label>
@@ -750,6 +795,7 @@
         <option value="glycineFood">Glycine (per 100 g as eaten)</option>
         <option value="name">A → Z</option>
       </select>
+    </div>
     </div>
     <span class="kbd-hints" aria-hidden="true">/ search · ↑↓ select · ↵ open · c compare</span>
   </div>
@@ -1061,6 +1107,15 @@ function renderBloom(f, opts) {
   return `<svg width="100%" viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${H}" role="img" aria-label="${label}" style="color:var(--ink-3)">${s}</svg>`;
 }
 
+/* Phone widths swap the bloom's in-chart labels for this plain list, largest first. */
+function bloomLegendHTML(f, unit) {
+  const col = COL();
+  const vals = bloomValues(f, unit).slice().sort((a, b) => b.val - a.val);
+  return `<p class="bl-legend-h">Amino acids, g per 100 g ${unit === "food" ? stateWord(f) : "protein"} · largest first</p>
+    <div class="bl-legend-grid">${vals.map(d =>
+      `<span class="bl-item"><span class="dot" style="background:${col[d.cls]}"></span>${d.label}<b>${d.val.toFixed(1)}</b></span>`).join("")}</div>`;
+}
+
 /* ================= grid ================= */
 const state = { q: "", cat: "all", sort: "protein", compare: [] };
 const grid = document.getElementById("grid");
@@ -1184,6 +1239,17 @@ chipsEl.insertAdjacentElement("afterend", quickEl);
 document.getElementById("search").addEventListener("input", e => { state.q = e.target.value.trim().toLowerCase(); renderGrid(); });
 document.getElementById("sort").addEventListener("change", e => { state.sort = e.target.value; renderGrid(); });
 
+/* Phone widths tuck the category and highlight filters behind this button; the count shows what is active while they are folded away. */
+const filtersToggle = document.getElementById("filtersToggle");
+filtersToggle.addEventListener("click", () => {
+  const open = document.getElementById("toolbarFilters").classList.toggle("open");
+  filtersToggle.setAttribute("aria-expanded", open ? "true" : "false");
+});
+function filtersBadge() {
+  const n = (state.cat !== "all" ? 1 : 0) + (state.quick ? 1 : 0);
+  filtersToggle.textContent = n ? `Filters · ${n}` : "Filters";
+}
+
 
 /* ================= relevance search ================= */
 const SEARCH_NOISE = /\b(kids'? menu|platter|sandwich|entree|entrees|frozen|breaded|battered|nuggets?|pot pie|spread|casserole|dinner|meal|pizza|burrito|taco|soup|salad|gravy|with added solution|fast foods?|restaurant|luncheon|bologna|hot dog|sausage|prepackaged|imitation|deli|sliced|roll|fat-free|seasoned|flavou?r|separable fat|breakfast strips)\b/i;
@@ -1281,11 +1347,11 @@ function renderTable(list) {
     const w = (Math.min(m.score, 1.6) / 1.6 * 100).toFixed(0);
     return `<tr data-fid="${f.id}">
       <td class="name">${f.name}</td>
-      <td class="num">${f.protein_g_per_100g.toFixed(1)}</td>
-      <td class="num">${m.leu.toFixed(1)}</td>
-      <td class="num">${m.eaa.toFixed(0)}</td>
-      <td class="lim">${lim}</td>
-      <td class="num"><span class="scorebar${complete ? "" : " short"}" style="--w:${w}%">${Math.round(m.score * 100)}%</span></td>
+      <td class="num" data-l="Protein /100 g">${f.protein_g_per_100g.toFixed(1)}</td>
+      <td class="num" data-l="Leucine">${m.leu.toFixed(1)}</td>
+      <td class="num" data-l="EAA">${m.eaa.toFixed(0)}</td>
+      <td class="lim" data-l="Limited by">${lim}</td>
+      <td class="num" data-l="Score"><span class="scorebar${complete ? "" : " short"}" style="--w:${w}%">${Math.round(m.score * 100)}%</span></td>
       <td class="src" title="${(f.source || "").replace(/"/g, "&quot;")}">${srcShort(f)}</td>
     </tr>`;
   }).join("");
@@ -1300,6 +1366,7 @@ function renderTable(list) {
   grid.querySelectorAll("tbody tr").forEach(tr => tr.addEventListener("click", () => openDetail(+tr.dataset.fid)));
 }
 function renderGrid() {
+  filtersBadge();
   const list = visibleFoods();
   const isDefault = !state.q && state.cat === "all" && !state.quick;
   const shown = isDefault ? list.filter(f => f.tier !== "bulk") : list.slice(0, MAX_ROWS);
@@ -1517,6 +1584,7 @@ function renderDetail(id) {
 
     <p class="unit-note">Amounts are per 100 g ${stateWord(f)}: what you'd weigh on the scales, not what's digested or absorbed.</p>
     <div class="bloom-holder" id="bloomHolder">${renderBloom(f, { unit: currentUnit, compact: isCompact() })}</div>
+    <div class="bloom-legend">${bloomLegendHTML(f, currentUnit)}</div>
 
     <div class="statrow">
       <div class="stat"><div class="k">Essential AAs</div><div class="v">${m.eaa.toFixed(0)}<small> g /100 g protein</small></div></div>
