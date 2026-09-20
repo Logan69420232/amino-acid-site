@@ -13,6 +13,70 @@ const meatDairy = load("meat_dairy.json") || [];
 const suppPack = load("supplements.json"); // {foods, who_*, ...}
 const suppFoods = suppPack ? suppPack.foods : [];
 
+// ---------- macros for curated entries ----------
+const macrosLookup = load("macros_lookup.json") || { byFdc: {}, byNdb: {}, byTok: {} };
+// label-typical values for powders with no USDA record; kcal derived by Atwater
+const SUPP_MACROS = {
+  "Whey protein isolate": { fat: 1.0, carb: 1.5 },
+  "Micellar casein": { fat: 1.5, carb: 4.0 },
+  "Collagen peptides": { fat: 0.0, carb: 0.0 },
+  "Pea protein isolate": { fat: 5.5, carb: 3.0 },
+  "Brown rice protein": { fat: 2.5, carb: 6.0 },
+  "Hemp protein powder": { fat: 11.0, carb: 14.0 },
+  "Soy protein isolate": { fat: 3.5, carb: 2.0 }
+};
+/* standard USDA reference values for the few curated names whose citations
+   do not line up with an SR record; review welcome */
+const NAME_MACROS = {
+  "Shrimp (raw)": { kcal: 85, fat: 0.5, carb: 0.9 },
+  "Chickpeas, cooked": { kcal: 164, fat: 2.6, carb: 27.4 },
+  "Kidney beans, cooked": { kcal: 127, fat: 0.5, carb: 22.8 },
+  "Brown rice, cooked": { kcal: 123, fat: 1.0, carb: 25.6 },
+  "Walnuts, raw": { kcal: 654, fat: 65.2, carb: 13.7 },
+  "Nutritional yeast": { kcal: 330, fat: 4.0, carb: 37.0 }
+};
+const tokKey = desc => desc.toLowerCase().split(",").map(t => t.trim()).filter(Boolean).sort().join("|");
+function attachMacros(f) {
+  if (f.kcal != null) return;
+  const src = f.source || "";
+  let m = null, x;
+  if ((x = /FDC (?:ID )?(\d+)/.exec(src))) m = macrosLookup.byFdc[x[1]];
+  if (!m && (x = /NDB (\d+)/.exec(src))) m = macrosLookup.byNdb[x[1]] || macrosLookup.byNdb[String(+x[1])];
+  if (!m) {
+    let nm = null;
+    if ((x = /USDA SR Legacy, (.+?) \(via nutritionvalue/.exec(src))) nm = x[1];
+    else if ((x = /USDA SR Legacy \((.+?)\)/.exec(src))) nm = x[1];
+    else if ((x = /USDA SR Legacy, (.+)$/.exec(src))) nm = x[1].replace(/ \([^)]*\)\s*$/, "");
+    if (nm) {
+      m = macrosLookup.byTok[tokKey(nm)];
+      if (!m) {
+        /* curated citations abbreviate the USDA names; accept the record whose
+           token set contains all of ours with the fewest extras */
+        const toks = new Set(nm.toLowerCase().split(",").map(t => t.trim()).filter(Boolean));
+        let best = null, bestExtra = 9;
+        for (const [k, mm] of Object.entries(macrosLookup.byTok)) {
+          const kt = k.split("|");
+          if (kt.length < toks.size) continue;
+          const ks = new Set(kt);
+          let ok = true;
+          for (const t of toks) if (!ks.has(t)) { ok = false; break; }
+          if (!ok) continue;
+          const extra = kt.length - toks.size;
+          if (extra < bestExtra) { bestExtra = extra; best = mm; }
+        }
+        if (bestExtra <= 3) m = best;
+      }
+    }
+  }
+  if (!m && NAME_MACROS[f.name]) m = NAME_MACROS[f.name];
+  if (!m && SUPP_MACROS[f.name]) {
+    const t = SUPP_MACROS[f.name];
+    m = { kcal: Math.round(4 * (f.protein_g_per_100g + t.carb) + 9 * t.fat), fat: t.fat, carb: t.carb };
+  }
+  if (m) { f.kcal = m.kcal; if (m.fat != null) f.fat = m.fat; if (m.carb != null) f.carb = m.carb; }
+}
+[...meatDairy, ...seafoodPlants, ...suppFoods].forEach(attachMacros);
+
 // Typical serving sizes (g) for the calculator
 const SERVINGS = [
   // first match wins, so specific and small servings come before broad ones
@@ -289,6 +353,7 @@ for (const f of foods) {
 <p class="sub">${esc(f.state)} · ${esc(f.source || "")}</p>
 <div class="facts">
 <div><span>Protein /100 g</span><b>${f.protein_g_per_100g.toFixed(1)} g</b></div>
+${f.kcal != null ? `<div><span>Energy /100 g</span><b>${f.kcal} kcal</b></div><div><span>Carbs /100 g</span><b>${f.carb != null ? f.carb.toFixed(1) + " g" : "n/a"}</b></div><div><span>Fat /100 g</span><b>${f.fat != null ? f.fat.toFixed(1) + " g" : "n/a"}</b></div>` : ""}
 <div class="${complete ? "good" : "limit"}"><span>Amino acid score</span><b>${pct}%</b></div>
 <div><span>Limiting amino acid</span><b>${complete ? "none (complete)" : esc(SCORE_LABEL[score.id])}</b></div>
 </div>
@@ -311,4 +376,5 @@ fs.writeFileSync(path.join(root, "dist", "sitemap.xml"),
 fs.writeFileSync(path.join(root, "dist", "robots.txt"), "User-agent: *\nAllow: /\nSitemap: " + BASE + "/sitemap.xml\n");
 
 fs.cpSync(path.join(root, "assets"), path.join(root, "dist", "assets"), { recursive: true });
-console.log(`Built dist: index, database, ${foods.length} food pages, sitemap (${urls.length} URLs), ${warnings} warnings`);
+const noMacros = foods.filter(f => f.kcal == null).length;
+console.log(`Built dist: index, database, ${foods.length} food pages, sitemap (${urls.length} URLs), ${warnings} warnings, ${noMacros} foods without macros`);

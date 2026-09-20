@@ -49,7 +49,13 @@ const AA_KEYS = Object.values(NUTRIENT_KEY).filter(k => k !== "protein");
 
 const nutrients = readCSV("nutrient.csv");
 const nutrientIdToKey = {};
-for (const n of nutrients) if (NUTRIENT_KEY[n.name] !== undefined) nutrientIdToKey[n.id] = NUTRIENT_KEY[n.name];
+for (const n of nutrients) {
+  if (NUTRIENT_KEY[n.name] !== undefined) nutrientIdToKey[n.id] = NUTRIENT_KEY[n.name];
+  else if (n.name === "Energy" && n.unit_name === "KCAL") nutrientIdToKey[n.id] = "kcal";
+  else if (n.name === "Total lipid (fat)") nutrientIdToKey[n.id] = "fat";
+  else if (n.name === "Carbohydrate, by difference") nutrientIdToKey[n.id] = "carb";
+}
+const MACRO_KEYS = new Set(["kcal", "fat", "carb"]);
 
 const catRows = readCSV("food_category.csv");
 const catById = {}; catRows.forEach(c => catById[c.id] = c.description);
@@ -93,8 +99,9 @@ rl.on("line", line => {
   const key = nutrientIdToKey[c[2]];
   if (!key) return;
   const fdc = c[1];
-  (acc[fdc] = acc[fdc] || { aa: {} });
+  (acc[fdc] = acc[fdc] || { aa: {}, m: {} });
   if (key === "protein") acc[fdc].protein = +c[3];
+  else if (MACRO_KEYS.has(key)) acc[fdc].m[key] = +c[3];
   else acc[fdc].aa[key] = +c[3];
 });
 rl.on("close", () => {
@@ -115,7 +122,7 @@ rl.on("close", () => {
     const sum = AA_KEYS.reduce((s, k) => s + rec.aa[k], 0);
     const ratio = sum / rec.protein;
     if (ratio < 0.75 || ratio > 1.25) { badSum++; continue; }
-    out.push({
+    const entry = {
       name: meta.description,
       category: mapCategory(group, meta.description),
       state: inferState(meta.description),
@@ -123,10 +130,33 @@ rl.on("close", () => {
       aa: Object.fromEntries(AA_KEYS.map(k => [k, rec.aa[k]])),
       source: `USDA SR Legacy, FDC ID ${fdc} (${group})`,
       tier: "bulk"
-    });
+    };
+    if (rec.m.kcal != null && !isNaN(rec.m.kcal)) entry.kcal = Math.round(rec.m.kcal);
+    if (rec.m.fat != null && !isNaN(rec.m.fat)) entry.fat = +rec.m.fat.toFixed(1);
+    if (rec.m.carb != null && !isNaN(rec.m.carb)) entry.carb = +rec.m.carb.toFixed(1);
+    out.push(entry);
   }
   out.sort((a, b) => a.name.localeCompare(b.name));
   fs.writeFileSync(path.join(__dirname, "..", "data", "usda_bulk.json"), JSON.stringify(out));
+
+  // macros lookup for curated entries: by FDC id, by legacy NDB number, by name-token key
+  const ndbByFdc = {};
+  for (const r of readCSV("sr_legacy_food.csv")) ndbByFdc[r.fdc_id] = r.NDB_number;
+  const tokKey = desc => desc.toLowerCase().split(",").map(t => t.trim()).filter(Boolean).sort().join("|");
+  const lookup = { byFdc: {}, byNdb: {}, byTok: {} };
+  for (const [fdc, rec] of Object.entries(acc)) {
+    const meta = foodById[fdc];
+    if (!meta || rec.m.kcal == null || isNaN(rec.m.kcal)) continue;
+    const m = { kcal: Math.round(rec.m.kcal) };
+    if (rec.m.fat != null && !isNaN(rec.m.fat)) m.fat = +rec.m.fat.toFixed(1);
+    if (rec.m.carb != null && !isNaN(rec.m.carb)) m.carb = +rec.m.carb.toFixed(1);
+    lookup.byFdc[fdc] = m;
+    const ndb = ndbByFdc[fdc];
+    if (ndb) { lookup.byNdb[ndb] = m; lookup.byNdb[String(+ndb)] = m; }
+    lookup.byTok[tokKey(meta.description)] = m;
+  }
+  fs.writeFileSync(path.join(__dirname, "..", "data", "macros_lookup.json"), JSON.stringify(lookup));
+  console.log(`macros lookup: ${Object.keys(lookup.byFdc).length} records`);
   console.log(`kept ${out.length} foods | skipped: ${noProfile} without AA data, ${incomplete} incomplete profiles, ${lowProt} <1g protein, ${badSum} failed AA-sum sanity check`);
   const byCat = {};
   out.forEach(f => byCat[f.category] = (byCat[f.category] || 0) + 1);

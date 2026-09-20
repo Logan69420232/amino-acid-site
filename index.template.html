@@ -270,6 +270,8 @@
   .v2-sum { font-family: var(--font-serif); font-size: clamp(22px, 2.8vw, 30px); line-height: 1.2; margin: 6px 0 4px; letter-spacing: -0.01em; }
   .v2-sum b { color: var(--c-bcaa); }
   .v2-sum .v2-clear { vertical-align: 4px; margin-left: 12px; }
+  .v2-macros { font-size: 14px; color: var(--ink-2); margin: 0 0 2px; font-variant-numeric: tabular-nums; }
+  .v2-macros span { color: var(--ink-3); font-size: 12.5px; }
   .v2-targets-line { font-size: 13.5px; color: var(--ink-3); margin: 2px 0 14px; }
   .v2-targets-line .linkish { font-size: inherit; font-weight: 500; }
   .v2-verdict { color: var(--ink-2); font-size: 16px; margin: 0 0 18px; max-width: 70ch; }
@@ -1498,6 +1500,7 @@ function renderDetail(id) {
       <div class="stat"><div class="k">Essential AAs</div><div class="v">${m.eaa.toFixed(0)}<small> g /100 g protein</small></div></div>
       <div class="stat"><div class="k">BCAAs</div><div class="v">${m.bcaa.toFixed(1)}<small> g /100 g protein</small></div></div>
       <div class="stat"><div class="k">Leucine</div><div class="v">${m.leu.toFixed(1)}<small> g /100 g protein</small></div></div>
+      ${f.kcal != null ? `<div class="stat"><div class="k">Energy</div><div class="v">${f.kcal}<small> kcal /100 g · carbs ${f.carb != null ? f.carb.toFixed(1) : "?"} g · fat ${f.fat != null ? f.fat.toFixed(1) : "?"} g</small></div></div>` : ""}
       <div class="stat ${complete ? "good-stat" : "limit-stat"}">
         <div class="k">Amino acid score</div>
         <div class="v">${Math.round(m.score * 100)}%<small> ${complete ? "complete" : "limited by " + m.min.label.toLowerCase()}</small></div>
@@ -2851,8 +2854,14 @@ window.addEventListener("popstate", () => {
     const aaScale = protThrive / protFloor;
 
     const totals = {}; AA_META.forEach(m => totals[m[0]] = 0);
-    let prot = 0;
-    day.forEach(e => { const f = foodByName(e.name); prot += f.protein_g_per_100g * e.g / 100; AA_META.forEach(m => totals[m[0]] += f.aa[m[0]] * e.g / 100); });
+    let prot = 0, kcalTot = 0, fatTot = 0, carbTot = 0, macroMiss = 0;
+    day.forEach(e => {
+      const f = foodByName(e.name);
+      prot += f.protein_g_per_100g * e.g / 100;
+      if (f.kcal != null) { kcalTot += f.kcal * e.g / 100; fatTot += (f.fat || 0) * e.g / 100; carbTot += (f.carb || 0) * e.g / 100; }
+      else macroMiss++;
+      AA_META.forEach(m => totals[m[0]] += f.aa[m[0]] * e.g / 100);
+    });
 
     const pseudo = { id: -1, name: "Your day", state: "as sold", protein_g_per_100g: prot || 1, aa: totals };
     const perP = k => totals[k] / (prot || 1) * 100;
@@ -2901,7 +2910,8 @@ window.addEventListener("popstate", () => {
     result.hidden = false;
     result.innerHTML = `
       ${sharedNotice ? '<p class="v2-shared">You are looking at a day someone shared. Edit it, or press Start over to build your own.</p>' : ""}
-      <p class="v2-sum">${fmtDay(activeLogDay().date)} · ${day.length} source${day.length === 1 ? "" : "s"} · <b>${prot.toFixed(0)} g protein</b> · ${Math.round(prot / protThrive * 100)}% of your ${protThrive.toFixed(0)} g target <button class="v2-clear" id="v2Clear">Start over</button></p>
+      <p class="v2-sum">${fmtDay(activeLogDay().date)} · ${day.length} source${day.length === 1 ? "" : "s"} · <b>${prot.toFixed(0)} g protein</b>${kcalTot > 0 ? ` · ${Math.round(kcalTot)} kcal` : ""} · ${Math.round(prot / protThrive * 100)}% of your ${protThrive.toFixed(0)} g target <button class="v2-clear" id="v2Clear">Start over</button></p>
+      ${kcalTot > 0 ? `<p class="v2-macros">Carbs ${carbTot.toFixed(0)} g · Fat ${fatTot.toFixed(0)} g · Protein ${prot.toFixed(0)} g${macroMiss ? ` <span>(macros unknown for ${macroMiss} item${macroMiss === 1 ? "" : "s"})</span>` : ""}</p>` : ""}
       <p class="v2-targets-line">Targets for ${displayWeight} ${wUnit}, ${protThrive.toFixed(0)} g protein a day${vegan ? ", vegan sources" : ""}. ${authedUser ? `<button type="button" class="linkish" id="v2ToAcct">Edit in your account</button>` : `<button type="button" class="linkish" id="v2ToSignup">Set yours with a free account</button>`}</p>
       <p class="v2-verdict">${verdict}</p>
       <div class="v2-share">
