@@ -492,6 +492,7 @@
   .covrow .track { position: relative; height: 14px; background: var(--surface-2); border-radius: 2px; }
   .covrow .fill { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: var(--c-bcaa); min-width: 2px; }
   .covrow.is-limit .fill { background: var(--c-limit); }
+  .covrow .ci { position: absolute; top: 3px; bottom: 3px; background: var(--ink); opacity: 0.16; border-radius: 2px; pointer-events: none; }
   .covrow .goal { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: 0.65; }
   .covrow .goal.base { opacity: 0.25; }
   .covrow .pct { font-variant-numeric: tabular-nums; color: var(--ink-2); }
@@ -2281,6 +2282,7 @@ function groupedNeedRows(totals, weight, aaScale) {
     <div class="cov-set non">${nonKeys.map(k => covRowAmt(AA_META.find(m => m[0] === k)[1], totals[k], maxNon, k)).join("")}</div>`;
 }
 
+const DATA_CI = 0.10; /* food composition data is trusted to about +/-10 percent */
 function covRow2(label, val, base, target, flagged, infoKey) {
   const span = target * 1.6;
   const w = Math.min(val, span) / span * 100;
@@ -2288,9 +2290,13 @@ function covRow2(label, val, base, target, flagged, infoKey) {
   const tPos = target / span * 100;
   const pct = val / target * 100;
   const isFlagged = flagged === undefined ? val < target : flagged;
+  /* confidence band around the measured value, capped to the track */
+  const ciLo = Math.min(val * (1 - DATA_CI), span) / span * 100;
+  const ciHi = Math.min(val * (1 + DATA_CI), span) / span * 100;
+  const band = val > 0 ? `<span class="ci" style="left:${ciLo.toFixed(2)}%;width:${Math.max(ciHi - ciLo, 0.5).toFixed(2)}%"></span>` : "";
   return `<div class="covrow ${isFlagged ? "is-limit" : ""}">
     <span class="aa-name">${label}${flagged ? " ⚠" : ""}${infoKey ? `<button type="button" class="info-btn cov-i" data-info="${infoKey}" aria-expanded="false" aria-label="About ${label}">i</button>` : ""}</span>
-    <span class="track"><span class="fill" style="width:${w}%"></span><span class="goal base" style="left:${basePos}%"></span><span class="goal" style="left:${tPos}%"></span></span>
+    <span class="track"><span class="fill" style="width:${w}%"></span>${band}<span class="goal base" style="left:${basePos}%"></span><span class="goal" style="left:${tPos}%"></span></span>
     <span class="pct">${Math.round(pct)}%</span></div>`;
 }
 
@@ -2361,7 +2367,7 @@ function renderDay() {
         <div class="covbars">
           ${covRow2("Protein", protTotal, protFloor, protThrive, undefined, "protein")}
         </div>
-        <p class="cov-note">Faint line = RDA survival floor (${protFloor.toFixed(0)} g) · dark line = your target (${protThrive.toFixed(0)} g). Percentages are against your target, and bars stay amber until they reach it.</p>
+        <p class="cov-note">Faint line = RDA survival floor (${protFloor.toFixed(0)} g) · dark line = your target (${protThrive.toFixed(0)} g). Percentages are against your target, and bars stay amber until they reach it. The grey band at each bar's tip is the confidence in the food data itself (about ±10%): to be sure a target is met, get the whole band past the dark line, which in practice means aiming about 10% over.</p>
         <h3 class="sec-h" style="font-size:19px">Essential amino acids vs your daily need</h3>
         <p class="sec-p">Amino acid targets are the WHO/FAO/UNU 2007 baseline at ${displayWeight} ${wUnit}, scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein target (no official "thrive" amino figures exist; proportional scaling is our transparent assumption). Anything under the dark line is a gap against your target.</p>
         <div class="covbars">${eaaRows}</div>
