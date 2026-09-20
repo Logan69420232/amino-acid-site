@@ -191,6 +191,15 @@ const foods = [
 { const seen = new Set(); let dup = 0; for (const f of foods) { if (seen.has(f.key)) dup++; seen.add(f.key); } if (dup) console.warn(`WARN ${dup} duplicate share keys`); }
 console.log(`display names: ${renamedBulk.filter(f => f.name !== f.usda_name).length} rewritten, ${collisions} kept as USDA to avoid duplicates`);
 
+// citation link for static pages: the exact FDC record, or the Gorissen 2018 paper
+function srcLinkHTML(f) {
+  const src = f.source || "public analytical data";
+  const m = /FDC(?: ID)? (\d+)/.exec(src);
+  const url = m ? `https://fdc.nal.usda.gov/food-details/${m[1]}/nutrients`
+    : /Gorissen/i.test(src) ? "https://doi.org/10.1007/s00726-018-2640-5" : null;
+  return url ? `<a href="${url}" target="_blank" rel="noopener">${esc(src)}</a>` : esc(src);
+}
+
 // Reference values (agent-verified where available, WHO/FAO/UNU 2007 defaults otherwise)
 const seenSlugs = new Set();
 for (const f of foods) {
@@ -363,7 +372,7 @@ ${f.kcal != null ? `<div><span>Energy /100 g</span><b>${f.kcal} kcal</b></div><d
 </table>
 <a class="cta" href="/#add=${f.slug}">Add to my day</a><a class="cta alt" href="/database/${f.slug}">Open interactive profile</a>
 <p class="note byline"><img class="avatar" src="/assets/logan-king.jpg" alt="Logan King" width="26" height="26" loading="lazy"><img class="avatar" src="/assets/paul-morgan.jpg" alt="Dr Paul T Morgan" width="26" height="26" loading="lazy"> By <a href="https://logantalkshealth.com/" rel="author">Logan King</a> and <a href="https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan" rel="author">Dr Paul T Morgan</a>, Senior Lecturer in Human Nutrition and Metabolism, Manchester Metropolitan University.</p>
-<p class="note">Amino acid score compares this food's scarcest essential amino acid with the WHO/FAO/UNU 2007 adult pattern; 100%+ means every essential amino acid is carried in good proportion. Data: ${esc(f.source || "public analytical data")}. Educational reference, not medical advice.</p>
+<p class="note">Amino acid score compares this food's scarcest essential amino acid with the WHO/FAO/UNU 2007 adult pattern; 100%+ means every essential amino acid is carried in good proportion. Data: ${srcLinkHTML(f)}. Educational reference, not medical advice.</p>
 </div></body></html>`;
   fs.writeFileSync(path.join(root, "dist", "food", f.slug + ".html"), page);
 }

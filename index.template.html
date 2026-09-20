@@ -564,6 +564,11 @@
   .covrow .ci { position: absolute; top: 3px; bottom: 3px; background: var(--ink); opacity: 0.16; border-radius: 2px; pointer-events: none; }
   .covrow .goal { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: 0.65; }
   .covrow .goal.base { opacity: 0.25; }
+  .cov-legend { font-size: 12px; color: var(--ink-3); margin: 0 0 10px; line-height: 1.8; }
+  .cov-legend .lgt { display: inline-block; width: 2px; height: 12px; background: var(--ink); vertical-align: -2px; }
+  .cov-legend .lgt.base { opacity: 0.25; }
+  .cov-legend .lgt.tgt { opacity: 0.65; }
+  .cov-legend .lgt.band { width: 16px; height: 8px; opacity: 0.16; border-radius: 2px; }
   .covrow .pct { font-variant-numeric: tabular-nums; color: var(--ink-2); }
   .covrow.is-limit .pct { color: var(--c-limit); font-weight: 600; }
   .cov-note { font-size: 13px; color: var(--ink-3); margin-top: 10px; }
@@ -675,6 +680,8 @@
   tr.info-row .cls { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 3px; }
   .rng { color: var(--ink-3); font-size: 11px; }
   .src-note { font-size: 13px; color: var(--ink-3); margin-top: 16px; max-width: 74ch; }
+  .src-link { color: inherit; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 2px; }
+  .src-link:hover { color: var(--ink); text-decoration-color: var(--ink-3); }
 
   /* ---------- compare tray & view ---------- */
   .tray {
@@ -1325,6 +1332,19 @@ function visibleFoods() {
 }
 
 const MAX_ROWS = 200;
+/* Citations link to the exact record where one exists: the USDA FoodData
+   Central entry, or the Gorissen 2018 paper for the supplement analyses. */
+function sourceURL(src) {
+  const m = /FDC(?: ID)? (\d+)/.exec(src || "");
+  if (m) return "https://fdc.nal.usda.gov/food-details/" + m[1] + "/nutrients";
+  if (/Gorissen/i.test(src || "")) return "https://doi.org/10.1007/s00726-018-2640-5";
+  return null;
+}
+function sourceAnchor(f, text) {
+  const url = sourceURL(f.source);
+  const t = text || f.source || "";
+  return url ? `<a class="src-link" href="${url}" target="_blank" rel="noopener">${t}</a>` : t;
+}
 function srcShort(f) {
   const m = (f.source || "").match(/FDC(?: ID)? (\d+)/);
   if (m) return "FDC " + m[1];
@@ -1352,7 +1372,7 @@ function renderTable(list) {
       <td class="num" data-l="EAA">${m.eaa.toFixed(0)}</td>
       <td class="lim" data-l="Limited by">${lim}</td>
       <td class="num" data-l="Score"><span class="scorebar${complete ? "" : " short"}" style="--w:${w}%">${Math.round(m.score * 100)}%</span></td>
-      <td class="src" title="${(f.source || "").replace(/"/g, "&quot;")}">${srcShort(f)}</td>
+      <td class="src" title="${(f.source || "").replace(/"/g, "&quot;")}">${sourceAnchor(f, srcShort(f))}</td>
     </tr>`;
   }).join("");
   grid.classList.add("as-table");
@@ -1364,6 +1384,7 @@ function renderTable(list) {
     renderGrid();
   }));
   grid.querySelectorAll("tbody tr").forEach(tr => tr.addEventListener("click", () => openDetail(+tr.dataset.fid)));
+  grid.querySelectorAll("td.src a").forEach(a => a.addEventListener("click", e => e.stopPropagation()));
 }
 function renderGrid() {
   filtersBadge();
@@ -1578,7 +1599,7 @@ function renderDetail(id) {
     <div class="sheet-top">
       <div>
         <h2 id="sheetTitle">${f.name}</h2>
-        <p class="sub">${CAT_LABEL[f.category] || ""} · ${f.protein_g_per_100g.toFixed(1)} g protein per 100 g (${f.state}) · ${f.source} <button class="csv-btn" id="foodCsv">CSV</button></p>
+        <p class="sub">${CAT_LABEL[f.category] || ""} · ${f.protein_g_per_100g.toFixed(1)} g protein per 100 g (${f.state}) · ${sourceAnchor(f)} <button class="csv-btn" id="foodCsv">CSV</button></p>
       </div>
     </div>
 
@@ -1625,7 +1646,7 @@ function renderDetail(id) {
       </table>
     </div>
     <p class="src-note">Daily targets: WHO/FAO 2007 baseline at your body weight, scaled to your ${protThrive.toFixed(0)} g protein target. Met+Cys and Phe+Tyr are counted together; non-essential amino acids have no set target.</p>
-    <p class="src-note"><strong>Source:</strong> ${f.source}.${f.usda_name && f.usda_name !== f.name ? " USDA record name: " + f.usda_name + "." : ""}${f.notes ? " " + f.notes : ""} ${f.range_per_protein
+    <p class="src-note"><strong>Source:</strong> ${sourceAnchor(f)}.${sourceURL(f.source) ? " The link opens the exact record." : ""}${f.usda_name && f.usda_name !== f.name ? " USDA record name: " + f.usda_name + "." : ""}${f.notes ? " " + f.notes : ""} ${f.range_per_protein
       ? "The faint band on each ray shows this food's published range across analyses, not an estimate."
       : "Values are typical for this food; individual samples vary with breed, feed, cultivar and processing (indicatively ±10%, shown as the faint band on each ray)."}</p>
     ${f.range_note ? `<p class="src-note"><strong>About this range:</strong> ${f.range_note}</p>` : ""}
@@ -2562,7 +2583,7 @@ function renderDay() {
         <div class="covbars">
           ${covRow2("Protein", protTotal, protFloor, protThrive, undefined, "protein")}
         </div>
-        <p class="cov-note">Faint line = RDA survival floor (${protFloor.toFixed(0)} g) · dark line = your target (${protThrive.toFixed(0)} g). Percentages are against your target, and bars stay amber until they reach it. The grey band at each bar's tip is the confidence in the food data itself (about ±10%): to be sure a target is met, get the whole band past the dark line, which in practice means aiming about 10% over.</p>
+        <p class="cov-note">Faint line = published baseline requirement (RDA, ${protFloor.toFixed(0)} g) · dark line = your target (${protThrive.toFixed(0)} g, our proportional scaling of the baseline). Percentages are against your target, and bars stay amber until they reach it. The grey band at each bar's tip is an indicative ±10% allowance for variation in the food data, not a measured interval: to be sure a target is met, get the whole band past the dark line, which in practice means aiming about 10% over.</p>
         <h3 class="sec-h" style="font-size:19px">Essential amino acids vs your daily need</h3>
         <p class="sec-p">Amino acid targets are the WHO/FAO/UNU 2007 baseline at ${displayWeight} ${wUnit}, scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein target (no official "thrive" amino figures exist; proportional scaling is our transparent assumption). Anything under the dark line is a gap against your target.</p>
         <div class="covbars">${eaaRows}</div>
@@ -3091,8 +3112,9 @@ window.addEventListener("popstate", () => {
             <div class="v2-stat"><div class="k">Fat</div><div class="v">${fatTot.toFixed(0)}<small> g</small></div></div>
           </div>` : ""}
           <div class="v2-sec">Against your daily needs</div>
+          <p class="cov-legend"><span class="lgt base"></span> baseline requirement, WHO/FAO 2007 at your weight · <span class="lgt tgt"></span> your target, baseline scaled ×${aaScale.toFixed(1)} (our assumption) · <span class="lgt band"></span> indicative ±10% data variation</p>
           <div class="covbars">${eaaRows}</div>
-          <p class="v2-note">Faint line = RDA survival floor · dark line = your target (WHO/FAO 2007 baseline scaled ×${aaScale.toFixed(1)} to your ${protThrive.toFixed(0)} g protein target). Percentages are against your target; bars stay amber until they reach it. The grey band at each bar's tip is the confidence in the food composition data itself, about ±10%: lab analyses of the same food vary with breed, feed, season and processing. To be sure a target is truly met, get the whole band past the dark line, which in practice means aiming about 10% over it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar at the top of your results is the one to watch for quantity; the amino acid bars here tell you whether that protein was the right kind.</p>
+          <p class="v2-note">The faint line marks the published baseline requirement (WHO/FAO 2007 at your body weight); the dark line is your target, that baseline scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein goal. No official amino acid figures exist for intakes above the baseline, so the proportional scaling is our assumption, shown here rather than hidden. Percentages are against your target; bars stay amber until they reach it. The grey band at each bar's tip is an indicative ±10% allowance for variation in food composition data, not a measured confidence interval: lab analyses of the same food vary with breed, feed, season and processing. To be sure a target is truly met, get the whole band past the dark line, which in practice means aiming about 10% over it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar at the top of your results is the one to watch for quantity; the amino acid bars here tell you whether that protein was the right kind.</p>
         </div>
       </div>
       ${gapsHtml}`;
