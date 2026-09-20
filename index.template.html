@@ -739,7 +739,7 @@
     <div class="land-steps">
       <div class="land-step"><span class="no">1</span>
         <h3>Log your day, meal by meal</h3>
-        <p>Search ${"${ATLAS_COUNT}"} foods and add what you actually eat to breakfast, lunch, dinner and snacks, day by day with dates and notes.</p>
+        <p>Search __N_FOODS__ foods and add what you actually eat to breakfast, lunch, dinner and snacks, day by day with dates and notes.</p>
       </div>
       <div class="land-step"><span class="no">2</span>
         <h3>See the shape of your protein</h3>
@@ -756,7 +756,7 @@
       <div class="land-feat"><b>Amino acid score</b> and your limiting amino acid, every day</div>
       <div class="land-feat"><b>Personal targets</b> scaled to your weight and protein goal</div>
       <div class="land-feat"><b>Food suggestions</b> that close what you're missing</div>
-      <div class="land-feat"><b>${"${ATLAS_COUNT}"} foods</b> with full 18-amino-acid profiles and sources</div>
+      <div class="land-feat"><b>__N_FOODS__ foods</b> with full 18-amino-acid profiles and sources</div>
       <div class="land-feat"><b>Share your day</b> as a link or an image</div>
     </div>
   </section>
@@ -2807,7 +2807,12 @@ window.addEventListener("popstate", () => {
     const gapSummary = !gaps.length ? "" : gaps.length <= 3
       ? `You're short on <b>${gaps.map(g => short(g.label).toLowerCase()).join(", ")}</b>.`
       : `You're short on <b>${gaps.length} of the 9 essential targets</b>, with the biggest gap in ${short(worstGap.label).toLowerCase()}.`;
-    const gapsHtml = (gaps.length || protGap > 0) ? `<div class="v2-gaps">
+    const lockSugg = sbReady() && !authedUser;
+    const gapsHtml = (gaps.length || protGap > 0) ? (lockSugg ? `<div class="v2-gaps">
+        <div class="v2-sec">What you're missing</div>
+        <p class="v2-p">${gapSummary || `You're ${protGap.toFixed(0)} g short of your protein target.`} Sign up for a free account to see which foods close your gaps, with exact portions, plus a full week of days and notes.</p>
+        <button type="button" class="land-cta" id="gapsSignup">Create your free account</button>
+      </div>` : `<div class="v2-gaps">
         <div class="v2-sec">${gaps.length ? "What you're missing" : "Almost there"}</div>
         ${gaps.length ? "" : `<p class="v2-p">Every essential amino acid is covered. You're ${protGap.toFixed(0)} g short of your protein target.</p>`}
         ${lastSugg.length ? `<p class="v2-p sugg-lead">${gaps.length ? `${gapSummary} ${vegan ? "Plant" : "Protein"} sources rich in what's missing:` : `${vegan ? "Plant" : "Protein"} sources to make up the difference:`}</p>
@@ -2816,7 +2821,7 @@ window.addEventListener("popstate", () => {
           ${c.contrib.length ? `<div class="sugg-rich">Rich in ${c.contrib.slice(0, 2).map(x => short(x.label).toLowerCase()).join(" and ")} <span>(${c.contrib[0].rich.toFixed(1)}× the WHO pattern for ${short(c.contrib[0].label).toLowerCase()})</span></div>` : ""}
           <div class="sugg-sub">${c.serve} g adds ${c.contrib.slice(0, 3).map(x => x.add.toFixed(1) + " g " + short(x.label).toLowerCase()).join(", ")}${c.contrib.length ? " and " : ""}${c.protAdd.toFixed(0)} g protein${c.closes.length === gaps.length && gaps.length ? " · closes every gap" : c.closes.length ? " · closes " + c.closes.map(x => short(x).toLowerCase()).join(", ") : ""}</div>
           <button type="button" class="sugg-add" data-i="${i}">Add ${c.serve} g</button></div>`).join("")}</div>` : `<p class="v2-p">No ${vegan ? "plant " : ""}source in the atlas closes this in one serving. Try adding a bit more of what you already eat.</p>`}
-      </div>` : `<p class="v2-p v2-done">Every essential amino acid and your protein target are covered. Nice day.</p>`;
+      </div>`) : `<p class="v2-p v2-done">Every essential amino acid and your protein target are covered. Nice day.</p>`;
 
     // static bloom: strip the hover class so tooltips never look up a pseudo food
     const bloom = renderBloom(pseudo, { unit: "protein", band: false }).replace(/ class="ray"[^>]*?(?=\/>)/g, "");
@@ -2883,6 +2888,8 @@ window.addEventListener("popstate", () => {
       $("dayNote").value = ""; render();
     });
     result.querySelectorAll(".sugg-add").forEach(b => b.addEventListener("click", () => { const c = lastSugg[+b.dataset.i]; addToDay(c.f.name, c.serve); render(); }));
+    const gs = result.querySelector("#gapsSignup");
+    if (gs) gs.addEventListener("click", () => openAuthSheet("See exactly which foods close your gaps, with portions that do it in one serving."));
     const msg = t => { const m = $("shareMsg"); m.textContent = t; m.hidden = false; };
     $("copyLinkBtn").addEventListener("click", async () => msg((await copyText(dayLink())) ? "Link copied. It opens your day exactly as it is now." : "Could not copy. The link is: " + dayLink()));
     $("dlCardBtn").addEventListener("click", async () => {
@@ -2901,7 +2908,7 @@ window.addEventListener("popstate", () => {
   }
   (function wireLanding() {
     document.querySelectorAll(".landing .land-step p, .landing .land-feat").forEach(el => {
-      el.innerHTML = el.innerHTML.replace(/\$\{ATLAS_COUNT\}/g, ATLAS.foods.length.toLocaleString());
+      el.innerHTML = el.innerHTML.replace(/__N_FOODS__/g, ATLAS.foods.length.toLocaleString());
     });
     const su = document.getElementById("landSignup");
     if (su) su.addEventListener("click", () => sbReady() ? openAuthSheet() : null);
