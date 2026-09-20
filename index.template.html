@@ -248,7 +248,6 @@
   .land-signup button { border: 0; border-radius: 8px; background: var(--c-bcaa); color: #fff; padding: 13px 22px; font-size: 16px; font-weight: 600; white-space: nowrap; }
   .land-signup button:hover { filter: brightness(1.12); }
   .land-free { font-size: 14px; color: var(--ink-2); margin: 14px 0 20px; }
-  .land-explore { color: var(--c-bcaa); font-size: 15px; text-underline-offset: 4px; }
   .land-benefits { list-style: none; padding: 0; margin: 38px 0 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 28px; font-size: 14px; color: var(--ink-2); }
   .land-benefits li::before { content: "✓"; color: var(--c-bcaa); margin-right: 8px; }
   @media (min-width: 1080px) {
@@ -900,7 +899,6 @@
       </div>
     </form>
     <p class="land-free" id="landFree">Free forever. Your food diary, synced across devices.</p>
-    <a class="land-explore" href="/database" id="landAtlas">Explore the database first</a>
     <ul class="land-benefits">
       <li><span id="landFoodCount">4,000+</span> foods</li>
       <li>Your daily amino acid profile</li>
@@ -3457,10 +3455,6 @@ window.addEventListener("popstate", () => {
     document.getElementById("landSignupForm").addEventListener("submit", e => {
       e.preventDefault();
       openAuthSheet(undefined, "signup", document.getElementById("landEmail").value.trim());
-    });
-    document.getElementById("landAtlas").addEventListener("click", e => {
-      e.preventDefault();
-      showView("atlas");
     });
   })();
   sharedNotice = loadDayFromHash();
