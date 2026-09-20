@@ -1965,7 +1965,7 @@ function renderAuthSlot(session) {
     slot.innerHTML = `<button class="auth-btn ghost" id="authAcct" title="Account settings">${session.user.email}</button>`;
     slot.querySelector("#authAcct").addEventListener("click", openAccountSheet);
   } else {
-    slot.innerHTML = `<button class="auth-btn" id="authIn">Free account</button>`;
+    slot.innerHTML = `<button class="auth-btn" id="authIn">Sign up for free</button>`;
     slot.querySelector("#authIn").addEventListener("click", openAuthSheet);
   }
 }
@@ -2729,9 +2729,12 @@ window.addEventListener("popstate", () => {
   function renderDayChrome() {
     const log = loadLog();
     const tabs = $("dayTabs");
-    tabs.innerHTML = log.days.map((d, i) =>
+    /* Signed out you get today; the add button is the invitation to sign up. */
+    const soloDay = sbReady() && !authedUser;
+    const shownDays = soloDay ? [[log.days[log.active], log.active]] : log.days.map((d, i) => [d, i]);
+    tabs.innerHTML = shownDays.map(([d, i]) =>
       `<button type="button" class="day-tab${i === log.active ? " on" : ""}" role="tab" aria-selected="${i === log.active}" data-i="${i}">${fmtDay(d.date)}${d.entries.length ? " · " + d.entries.length : ""}</button>`).join("")
-      + (log.days.length < WEEK_DAYS
+      + (soloDay || log.days.length < WEEK_DAYS
         ? `<button type="button" class="day-tab add" id="dayAdd">+ Add day</button>`
         : `<span class="day-tab add off" title="A week at a time: remove a day to add another">Week full</span>`);
     tabs.querySelectorAll(".day-tab[data-i]").forEach(b => b.addEventListener("click", () => {
@@ -2739,8 +2742,8 @@ window.addEventListener("popstate", () => {
     }));
     const addBtn = tabs.querySelector("#dayAdd");
     if (addBtn) addBtn.addEventListener("click", () => {
-      if (loadLog().days.length >= WEEK_DAYS) return;
       if (sbReady() && !requireAccount("Track more than one day with a free account: dates, notes, and your whole week in tabs.")) return;
+      if (loadLog().days.length >= WEEK_DAYS) return;
       const l = loadLog();
       const lastD = new Date((l.days[l.days.length - 1].date || todayISO()) + "T12:00:00");
       lastD.setDate(lastD.getDate() + 1);
