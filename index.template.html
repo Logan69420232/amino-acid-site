@@ -901,7 +901,25 @@
   #accountPage h1 { font-size: 32px; margin: 0; }
   #accountPage .sub { color: var(--ink-3); overflow-wrap: anywhere; }
   #accountPage input { min-width: 0; max-width: 100%; }
-  #accountPage .acct-lab { flex-wrap: wrap; white-space: nowrap; max-width: 100%; }
+  .account-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+  .account-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 14px; color: var(--ink-2); }
+  .account-field > label, .account-field > span { font-weight: 500; }
+  #accountPage .account-field input, #accountPage .account-field select { width: 100%; min-width: 0; height: 44px; min-height: 44px; margin: 0; border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px 12px; background: var(--surface); color: var(--ink); font: inherit; line-height: 1.4; }
+  .account-unit-control { display: flex; align-items: stretch; min-width: 0; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; background: var(--surface); }
+  #accountPage .account-unit-control input { flex: 1; width: 0; height: 42px; min-height: 42px; border: 0; border-radius: 0; }
+  #accountPage .account-unit-control select { flex: 0 0 76px; width: 76px; height: 42px; min-height: 42px; border: 0; border-left: 1px solid var(--line-strong); border-radius: 0; }
+  .account-unit-control .account-unit { display: grid; place-items: center; padding: 0 12px; border-left: 1px solid var(--line-strong); font-size: 13px; color: var(--ink-2); }
+  .account-actions { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-top: 20px; }
+  .account-actions .account-field { flex: 0 1 220px; }
+  .account-field[hidden] { display: none; }
+  #accountPage .account-actions button, #accountPage .account-form-row > button { min-height: 44px; }
+  .account-form-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; margin-top: 16px; }
+  .account-form-row.account-email-row { grid-template-columns: minmax(0, 1fr) auto; }
+  @media (max-width: 640px) {
+    .account-fields, .account-form-row, .account-form-row.account-email-row { grid-template-columns: minmax(0, 1fr); }
+    .account-actions .account-field { flex-basis: 100%; }
+    #accountPage .account-actions button { width: 100%; }
+  }
   body[data-view="account"] main.wrap > :not(#accountPage),
   body[data-view="account"] header.site, body[data-view="account"] #method,
   body[data-view="account"] #tray { display: none !important; }
@@ -2615,34 +2633,39 @@ function renderAccountPage() {
     <div class="pick-block">
       <h3>Personal details</h3>
       <p class="pb-sub">These set your daily targets everywhere and sync across your devices.</p>
-      <div class="pick-row">
-        <label class="acct-lab">Body weight <input id="acctW" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="0.1" value="${displayWeight}" aria-label="Body weight"></label>
-        <select id="acctU" aria-label="Weight unit"><option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option><option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option></select>
-        <label class="acct-lab">Daily protein target <input id="acctT" type="number" min="30" max="500" step="1" value="${thrive > 0 ? thrive.toFixed(0) : ""}" placeholder="auto" aria-label="Daily protein target"> g</label>
-        <label class="acct-lab">Diet <select id="acctDiet" aria-label="Diet"><option value="all"${vegan ? "" : " selected"}>Everything</option><option value="vegan"${vegan ? " selected" : ""}>Vegan</option></select></label>
+      <div class="account-fields">
+        <div class="account-field">
+          <label for="acctW">Body weight</label>
+          <div class="account-unit-control"><input id="acctW" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="0.1" value="${displayWeight}"><select id="acctU" aria-label="Weight unit"><option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option><option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option></select></div>
+        </div>
+        <div class="account-field">
+          <label for="acctT">Daily protein target</label>
+          <div class="account-unit-control"><input id="acctT" type="number" min="30" max="500" step="1" value="${thrive > 0 ? thrive.toFixed(0) : ""}" placeholder="Auto" aria-describedby="acctProteinUnit"><span class="account-unit" id="acctProteinUnit">g/day</span></div>
+        </div>
+        <label class="account-field"><span>Diet</span><select id="acctDiet"><option value="all"${vegan ? "" : " selected"}>Everything</option><option value="vegan"${vegan ? " selected" : ""}>Vegan</option></select></label>
       </div>
       <p class="intake-help">Leave the protein field blank to use the activity suggestion, or enter your own target.</p>
       ${intakeFields("acct")}
-      <div class="pick-row" style="margin-top:10px">
-        <label class="acct-lab">Account type <select id="acctType" aria-label="Account type"><option value=""${isPro ? "" : " selected"}>Individual</option><option value="pro"${isPro ? " selected" : ""}>Professional</option></select></label>
-        <label class="acct-lab" id="acctRoleWrap"${isPro ? "" : " hidden"}>Role <select id="acctRole" aria-label="Professional role">${roleOptionsHTML(proRole)}</select></label>
+      <div class="account-actions">
+        <label class="account-field"><span>Account type</span><select id="acctType"><option value=""${isPro ? "" : " selected"}>Individual</option><option value="pro"${isPro ? " selected" : ""}>Professional</option></select></label>
+        <label class="account-field" id="acctRoleWrap"${isPro ? "" : " hidden"}><span>Role</span><select id="acctRole" aria-label="Professional role">${roleOptionsHTML(proRole)}</select></label>
         <button type="button" class="go-cmp" id="acctSave">Save details</button>
       </div>
       <p class="pick-hint" id="acctMsg"></p>
     </div>
     <div class="pick-block">
       <h3>Change password</h3>
-      <div class="pick-row">
-        <input type="password" minlength="6" placeholder="New password (6+ characters)" id="acctPw1" aria-label="New password" autocomplete="new-password" style="flex:1 1 200px">
-        <input type="password" minlength="6" placeholder="Repeat it" id="acctPw2" aria-label="Repeat new password" autocomplete="new-password" style="flex:1 1 160px">
+      <div class="account-form-row">
+        <label class="account-field"><span>New password</span><input type="password" minlength="6" placeholder="At least 6 characters" id="acctPw1" autocomplete="new-password"></label>
+        <label class="account-field"><span>Repeat password</span><input type="password" minlength="6" placeholder="Enter it again" id="acctPw2" autocomplete="new-password"></label>
         <button type="button" class="go-cmp" id="acctPwGo">Update password</button>
       </div>
       <p class="pick-hint" id="acctPwMsg"></p>
     </div>
     <div class="pick-block">
       <h3>Change email</h3>
-      <div class="pick-row">
-        <input type="email" placeholder="New email address" id="acctEm" aria-label="New email address" autocomplete="email" style="flex:1 1 240px">
+      <div class="account-form-row account-email-row">
+        <label class="account-field"><span>New email address</span><input type="email" placeholder="you@example.com" id="acctEm" autocomplete="email"></label>
         <button type="button" class="go-cmp ghosted" id="acctEmGo">Change email</button>
       </div>
       <p class="pick-hint" id="acctEmMsg"></p>
