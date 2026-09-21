@@ -267,6 +267,7 @@ for (const f of foods) {
 const template = fs.readFileSync(path.join(root, "index.template.html"), "utf8");
 const intakeTargets = fs.readFileSync(path.join(root, "lib", "intake-targets.js"), "utf8");
 const out = template.replace("__INJECT_DATA__", () => JSON.stringify(atlas))
+  .replace("__INJECT_ACCOUNT_STORAGE__", () => fs.readFileSync(path.join(root, "lib", "account-storage.js"), "utf8"))
   .replace("__INJECT_INTAKE_TARGETS__", () => intakeTargets)
   .replace("__INJECT_INTAKE_UI__", () => fs.readFileSync(path.join(root, "intake-ui.js"), "utf8"));
 fs.mkdirSync(path.join(root, "dist"), { recursive: true });

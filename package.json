@@ -3,7 +3,7 @@
   "version": "1.3.0",
   "private": true,
   "scripts": {
-    "test": "node --test scripts/test-intake.js",
+    "test": "node --test scripts/test-intake.js scripts/test-account-isolation.js",
     "build": "node build.js",
     "refresh-data": "node scripts/fetch_usda.js && node scripts/import_usda.js usda_csv/FoodData_Central_sr_legacy_food_csv_2018-04"
   },

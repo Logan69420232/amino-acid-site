@@ -1930,10 +1930,13 @@ function closeDetail(push) {
 overlay.addEventListener("click", e => { if (e.target === overlay) closeDetail(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !overlay.hidden) closeDetail(); });
 
-const store = (() => {
+__INJECT_ACCOUNT_STORAGE__
+const browserStore = (() => {
   try { localStorage.setItem("aa_test", "1"); localStorage.removeItem("aa_test"); return localStorage; }
-  catch (e) { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)) }; }
+  catch (e) { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; }
 })();
+// Old unscoped data has no reliable owner. Preserve it, but never import it into an account automatically.
+const store = AccountStorage.create(browserStore);
 __INJECT_INTAKE_UI__
 function getWeight() { return +(store.getItem("aa_weight") || 75); }
 function getThriveG(weightKg) {
@@ -2452,7 +2455,7 @@ function navigateApp(act) {
 const SUPABASE_URL = "https://hytzycuwgiumjyzwogqw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_zgfRyYwIUKOwxv6L6lTjiA_puo9yd0t";
 let _sbClient = null;
-let authedUser = null;
+let authedUser = null, initialSessionResolved = false;
 const ACCOUNTS_ON = /^https:\/\//.test(SUPABASE_URL);
 const GATE_FREE_FOODS = 3;
 function requireAccount(msg) {
@@ -2497,20 +2500,25 @@ function saveAccountType(atype, role) {
   }).catch(() => {});
 }
 let onboardAfterAuth = false;
-let _pushTimer = null, _lastPushed = "";
+let _pushTimer = null, _lastPushed = "", _accountEpoch = 0, _syncReadyOwner = null;
+function isCurrentAccount(userId, epoch) {
+  return !!userId && authedUser?.id === userId && store.owner === userId && _accountEpoch === epoch;
+}
 function schedulePush() {
   const c = sbReady();
-  if (!c) return;
   clearTimeout(_pushTimer);
+  const userId = store.owner, epoch = _accountEpoch;
+  if (!c || !isCurrentAccount(userId, epoch) || _syncReadyOwner !== userId) return;
   _pushTimer = setTimeout(async () => {
     try {
-      const { data: { user } } = await c.auth.getUser();
-      if (!user) return;
+      if (!isCurrentAccount(userId, epoch)) return;
       const payload = Object.assign({}, loadLog(), { settings: collectSettings() });
+      const { data: { user } } = await c.auth.getUser();
+      if (user?.id !== userId || !isCurrentAccount(userId, epoch)) return;
       const j = JSON.stringify(payload);
       if (j === _lastPushed) return;
-      _lastPushed = j;
-      await c.from("logs").upsert({ user_id: user.id, data: payload, updated_at: new Date().toISOString() });
+      const { error } = await c.from("logs").upsert({ user_id: userId, data: payload, updated_at: new Date().toISOString() });
+      if (!error && isCurrentAccount(userId, epoch)) _lastPushed = j;
     } catch (e) {}
   }, 1500);
 }
@@ -2524,16 +2532,18 @@ function mergeLogs(remote, local) {
   merged.active = merged.days.length - 1;
   return merged;
 }
-async function syncOnLogin() {
+async function syncOnLogin(userId, epoch) {
   const c = sbReady();
-  if (!c) return;
+  if (!c || !isCurrentAccount(userId, epoch)) return;
+  const revision = store.revision;
   try {
-    const { data, error } = await c.from("logs").select("data").maybeSingle();
-    if (error) return undefined;
+    const { data, error } = await c.from("logs").select("data").eq("user_id", userId).maybeSingle();
+    if (error || !isCurrentAccount(userId, epoch)) return undefined;
     const remote = data && data.data;
-    if (remote) applySettings(remote.settings);
+    if (remote && revision === store.revision) applySettings(remote.settings);
     const merged = mergeLogs(remote, loadLog());
     merged.days.forEach(d => { d.entries = (d.entries || []).filter(e => foodByName(e.name)); });
+    _syncReadyOwner = userId;
     saveLog({ days: merged.days, active: Math.min(merged.active | 0, merged.days.length - 1) });
     if (window.__v2Render) window.__v2Render();
     schedulePush();
@@ -2775,9 +2785,14 @@ function renderAccountPage() {
     const btn = account.querySelector("#acctWipe");
     if (!wipeArmed) { wipeArmed = true; btn.textContent = "Click again to delete everything"; m.textContent = "This removes every synced day. There is no undo."; return; }
     m.textContent = "Deleting…";
+    const userId = store.owner, epoch = _accountEpoch;
     try {
       const { data: { user } } = await sbReady().auth.getUser();
-      if (user) await sbReady().from("logs").delete().eq("user_id", user.id);
+      if (user?.id !== userId || !isCurrentAccount(userId, epoch)) return;
+      const { error } = await sbReady().from("logs").delete().eq("user_id", userId);
+      if (error) throw error;
+      if (!isCurrentAccount(userId, epoch)) return;
+      clearTimeout(_pushTimer); _accountEpoch++;
       store.removeItem("aa_log"); store.removeItem("aa_day");
       _lastPushed = "";
       if (window.__v2Render) window.__v2Render();
@@ -2927,14 +2942,37 @@ function openOnboardSheet() {
 }
 
 let intakeSyncUser = null;
+function applyAccountSession(session) {
+  const user = session?.user || null;
+  if (store.owner !== (user?.id || null)) {
+    clearTimeout(_pushTimer);
+    _accountEpoch++;
+    _lastPushed = "";
+    _syncReadyOwner = null;
+    intakeSyncUser = null;
+    store.setOwner(user?.id);
+    document.getElementById("accountPage").innerHTML = "";
+    if (!overlay.hidden && !sheet.querySelector("#authForm")) closeDetail(false);
+    if (window.__v2ResetAccount) window.__v2ResetAccount();
+  }
+  authedUser = user;
+  if (!initialSessionResolved) {
+    initialSessionResolved = true;
+    if (window.__v2LoadSharedDay) window.__v2LoadSharedDay();
+  }
+  renderAuthSlot(session);
+  if (window.__v2Render) window.__v2Render();
+  if (session) syncSignedInSession(session);
+}
 function syncSignedInSession(session) {
   if (!session || !session.user || intakeSyncUser === session.user.id) return;
-  const userId = session.user.id;
+  const userId = session.user.id, epoch = _accountEpoch;
   intakeSyncUser = userId;
   // Leave the Supabase auth callback before performing more auth/database work.
   setTimeout(async () => {
-    const remote = await syncOnLogin();
-    if (!authedUser || authedUser.id !== userId) return;
+    const remote = await syncOnLogin(userId, epoch);
+    if (!isCurrentAccount(userId, epoch)) return;
+    if (remote === undefined) intakeSyncUser = null;
     if (document.body.dataset.view === "account") renderAccountPage();
     const newSignup = onboardAfterAuth || session.user.user_metadata?.needs_intake_setup;
     onboardAfterAuth = false;
@@ -2944,21 +2982,14 @@ function syncSignedInSession(session) {
 }
 function initAuth() {
   const c = sbReady();
-  if (!c) { renderAuthSlot(null); return; }
+  if (!c) { applyAccountSession(null); return; }
+  let authEvents = 0;
   c.auth.onAuthStateChange((ev, session) => {
-    authedUser = session && session.user;
-    document.body.classList.toggle("authed", !!authedUser);
-    renderAuthSlot(session);
-    if (window.__v2Render) window.__v2Render();
-    if (!session) intakeSyncUser = null;
-    if (ev === "SIGNED_IN" || ev === "INITIAL_SESSION") syncSignedInSession(session);
+    authEvents++;
+    applyAccountSession(session);
   });
   c.auth.getSession().then(({ data }) => {
-    authedUser = data.session && data.session.user;
-    document.body.classList.toggle("authed", !!authedUser);
-    renderAuthSlot(data.session);
-    if (window.__v2Render) window.__v2Render();
-    if (data.session) syncSignedInSession(data.session);
+    if (!authEvents) applyAccountSession(data.session);
   });
 }
 if (window.supabase || !/^https:\/\//.test(SUPABASE_URL)) initAuth();
@@ -3401,6 +3432,12 @@ window.addEventListener("popstate", () => {
   const editor = $("mealEditor");
   const expandedMeals = new Map();
   let editingMeal = null;
+  window.__v2ResetAccount = () => {
+    editingMeal = null; sharedNotice = false; last = null; lastSugg = [];
+    expandedMeals.clear(); hideDD(); food.value = ""; grams.value = "100";
+    $("dayMeta").hidden = true;
+    currentMeal = store.getItem("aa_meal") || "breakfast";
+  };
   const mealKey = m => { const log = loadLog(); return `${log.active}:${log.days[log.active].date}:${m}`; };
   const html = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   window.__v2RevealMeal = m => expandedMeals.set(mealKey(m), true);
@@ -3829,8 +3866,11 @@ window.addEventListener("popstate", () => {
       openAuthSheet(undefined, "signup", document.getElementById("landEmail").value.trim());
     });
   })();
-  sharedNotice = loadDayFromHash();
-  if (sharedNotice) document.body.dataset.view = "day";
+  window.__v2LoadSharedDay = () => {
+    sharedNotice = loadDayFromHash();
+    if (sharedNotice) document.body.dataset.view = "day";
+  };
+  if (initialSessionResolved) window.__v2LoadSharedDay();
   window.__v2Render = render;
   render();
 })();
