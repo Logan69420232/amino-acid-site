@@ -1,5 +1,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
 <meta property="og:title" content="Amino Atlas" />
 <meta property="og:description" content="Stop tracking protein. Start tracking amino acids. Enter what you eat in a day and see the shape of it." />
 <meta property="og:type" content="website" />
@@ -420,13 +423,23 @@
   .sugg-rich span { color: var(--ink-3); font-weight: 400; }
   .sugg-add { align-self: flex-start; margin-top: 4px; border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; }
   .v2-done { color: var(--c-bcaa); font-weight: 600; }
-  .v2-share { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 22px; }
+  .v2-share { margin: 0 0 22px; }
+  .v2-share-toggle { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--surface); color: var(--c-bcaa); cursor: pointer; }
+  .v2-share-dialog { width: min(420px, calc(100% - 32px)); max-height: calc(100dvh - 48px); box-sizing: border-box; margin: auto; padding: 24px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); color: var(--ink); overflow-y: auto; }
+  .v2-share-dialog::backdrop { background: rgba(23, 22, 26, 0.45); }
+  .v2-share-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .v2-share-head h2 { margin: 0; font-size: 22px; }
+  .v2-share-close { flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--ink); font-size: 24px; cursor: pointer; }
+  .v2-share-dialog p { font-size: 14px; color: var(--ink-2); margin: 0 0 20px; }
+  .v2-share-actions { display: grid; gap: 12px; }
+  .v2-share-actions button { min-height: 48px; cursor: pointer; }
   .v2-share-btn { border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px; padding: 10px 18px; font-size: 14px; font-weight: 700; }
   .v2-share-sec { border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 9px 14px; font-size: 13.5px; }
-  .v2-share-links { display: flex; gap: 4px; margin-left: 4px; }
-  .v2-share-links a { color: var(--ink-2); font-size: 13px; text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 7px 11px; }
+  .v2-share-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+  .v2-share-links a { display: flex; align-items: center; justify-content: center; min-height: 48px; color: var(--ink-2); font-size: 14px; text-decoration: none; border: 1px solid var(--line); border-radius: 12px; padding: 8px; box-sizing: border-box; }
   .v2-share-links a:hover { border-color: var(--ink-3); color: var(--ink); }
-  .v2-share-msg { flex-basis: 100%; font-size: 13px; color: var(--c-bcaa); }
+  .v2-share-msg { display: block; margin-top: 16px; font-size: 13px; color: var(--c-bcaa); overflow-wrap: anywhere; }
+  .v2-share-msg[hidden] { display: none; }
   .v2-shared { background: var(--c-good-bg); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; }
   .v2-clear { border: 1px solid var(--line-strong); background: transparent; color: var(--ink-3); border-radius: 999px; padding: 5px 12px; font-size: 12px; margin-left: auto; }
   /* ---------- toolbar ---------- */
@@ -3701,17 +3714,24 @@ window.addEventListener("popstate", () => {
       ${IntakeTargets.calorieTarget(weight, getIntakeProfile()) ? `<p class="v2-energy-target"><b>${Math.round(kcalTot).toLocaleString()} / ${IntakeTargets.calorieTarget(weight, getIntakeProfile()).toLocaleString()} kcal</b> logged · ${getIntakeProfile().calorieMode === "manual" ? "your calorie target" : "estimated daily maintenance"}${macroMiss ? " · some food calories are unavailable" : ""}. <span>This total only includes foods you have logged.</span></p>` : ""}
       <p class="v2-verdict">${verdict}</p>
       <div class="v2-share">
-        <button class="v2-share-btn" id="shareBtn">Share my profile</button>
+        <button type="button" class="v2-share-toggle" id="openShareBtn" aria-label="Share my profile" title="Share my profile" aria-haspopup="dialog" aria-controls="shareDialog"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3m-4 4 4-4 4 4M6 11H4v10h16V11h-2"/></svg></button>
+      </div>
+      <dialog class="v2-share-dialog" id="shareDialog" aria-labelledby="shareTitle" aria-describedby="shareDescription">
+        <div class="v2-share-head"><h2 id="shareTitle">Share your profile</h2><button type="button" class="v2-share-close" id="closeShareBtn" aria-label="Close sharing options" autofocus>×</button></div>
+        <p id="shareDescription">Share your day's amino acid profile.</p>
+        <div class="v2-share-actions">
+        <button class="v2-share-btn" id="shareBtn">Share using your device</button>
         <button class="v2-share-sec" id="copyLinkBtn">Copy link</button>
         <button class="v2-share-sec" id="dlCardBtn">Download image</button>
-        <span class="v2-share-links">
+        </div>
+        <div class="v2-share-links">
           <a href="https://twitter.com/intent/tweet?text=${enc(shareText())}&url=${enc(link)}" target="_blank" rel="noopener">X</a>
           <a href="https://wa.me/?text=${enc(shareText() + " " + link)}" target="_blank" rel="noopener">WhatsApp</a>
           <a href="https://www.facebook.com/sharer/sharer.php?u=${enc(link)}" target="_blank" rel="noopener">Facebook</a>
           <a href="https://www.linkedin.com/sharing/share-offsite/?url=${enc(link)}" target="_blank" rel="noopener">LinkedIn</a>
-        </span>
-        <span class="v2-share-msg" id="shareMsg" hidden></span>
-      </div>
+        </div>
+        <span class="v2-share-msg" id="shareMsg" role="status" hidden></span>
+      </dialog>
       <div class="v2-overview">
         <div>
           <div class="v2-sec">The shape of your day</div>
@@ -3756,6 +3776,14 @@ window.addEventListener("popstate", () => {
     result.querySelectorAll(".sugg-add").forEach(b => b.addEventListener("click", () => { const c = lastSugg[+b.dataset.i]; addToDay(c.f.name, c.serve); render(); }));
     const gs = result.querySelector("#gapsSignup");
     if (gs) gs.addEventListener("click", () => openAuthSheet("See exactly which foods close your gaps, with portions that do it in one serving."));
+    const shareDialog = $("shareDialog"), shareToggle = $("openShareBtn");
+    shareToggle.addEventListener("click", () => shareDialog.showModal());
+    $("closeShareBtn").addEventListener("click", () => shareDialog.close());
+    shareDialog.addEventListener("click", e => {
+      const r = shareDialog.getBoundingClientRect();
+      if (e.target === shareDialog && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) shareDialog.close();
+    });
+    shareDialog.addEventListener("close", () => shareToggle.focus());
     const msg = t => { const m = $("shareMsg"); m.textContent = t; m.hidden = false; };
     $("copyLinkBtn").addEventListener("click", async () => msg((await copyText(dayLink())) ? "Link copied. It opens your day exactly as it is now." : "Could not copy. The link is: " + dayLink()));
     $("dlCardBtn").addEventListener("click", async () => {
