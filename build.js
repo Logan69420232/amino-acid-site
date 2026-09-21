@@ -265,7 +265,10 @@ for (const f of foods) {
 }
 
 const template = fs.readFileSync(path.join(root, "index.template.html"), "utf8");
-const out = template.replace("__INJECT_DATA__", JSON.stringify(atlas));
+const intakeTargets = fs.readFileSync(path.join(root, "lib", "intake-targets.js"), "utf8");
+const out = template.replace("__INJECT_DATA__", () => JSON.stringify(atlas))
+  .replace("__INJECT_INTAKE_TARGETS__", () => intakeTargets)
+  .replace("__INJECT_INTAKE_UI__", () => fs.readFileSync(path.join(root, "intake-ui.js"), "utf8"));
 fs.mkdirSync(path.join(root, "dist"), { recursive: true });
 fs.writeFileSync(path.join(root, "dist", "amino-atlas.html"), out);
 fs.writeFileSync(path.join(root, "dist", "index.html"), out);
