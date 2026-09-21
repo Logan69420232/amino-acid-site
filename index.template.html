@@ -860,9 +860,72 @@
     .covrow { grid-template-columns: 104px 1fr 64px; font-size: 12px; }
     .sort-wrap { margin-left: 0; }
   }
+  /* Signed-in workspace */
+  body.authed header.site { display: none; }
+  body.authed .v2-entry { border-top: 0; padding-top: 12px; }
+  .day-meta[hidden], .app-sidebar[hidden], .intake-grid label[hidden] { display: none; }
+  .day-nav { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--line-strong); padding: 8px 0 14px; margin: 20px 0 12px; }
+  .day-center { display: flex; justify-content: center; align-items: center; flex: 1; min-width: 0; }
+  .day-icon { width: 42px; min-width: 42px; height: 42px; border: 0; border-radius: 8px; background: transparent; color: var(--c-bcaa); font-size: 27px; }
+  .day-icon:hover { background: var(--c-good-bg); }
+  .day-icon:disabled { opacity: .3; cursor: default; }
+  #daySelect { min-width: 0; max-width: 260px; background: transparent; color: var(--ink); border: 0; padding: 8px 2px; font: inherit; font-size: 18px; font-weight: 600; text-align: center; }
+  .app-sidebar { position: fixed; inset: 0 auto 0 0; width: 248px; background: #211b2b; color: #e9e2f2; z-index: 35; padding: 22px 14px; display: flex; flex-direction: column; overflow-y: auto; }
+  .sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 6px 28px; }
+  .sidebar-brand { color: #fff; font: 600 14px var(--font-mono); text-decoration: none; letter-spacing: .04em; }
+  .sidebar-brand span { display: block; font-size: 10px; color: #b9a6cf; letter-spacing: .12em; }
+  #sidebarToggle { border: 0; background: transparent; color: #d9c4f0; min-width: 40px; height: 40px; font-size: 24px; }
+  .sidebar-label { font: 10px var(--font-mono); letter-spacing: .12em; color: #aa99bd; padding: 0 12px; margin: 0 0 12px; }
+  .app-sidebar nav { display: grid; gap: 6px; }
+  .app-sidebar nav button { display: flex; align-items: center; gap: 12px; border: 0; border-radius: 8px; background: transparent; color: inherit; text-align: left; padding: 13px 12px; font-size: 14px; }
+  .app-sidebar nav button:hover { background: #ffffff0c; }
+  .app-sidebar nav button[aria-current] { background: #473256; color: #fff; }
+  .app-sidebar nav button span { font-size: 19px; color: #c4a1e5; width: 20px; }
+  .sidebar-foot { margin: auto 12px 0; padding-top: 45px; color: #aa99bd; font-size: 12px; line-height: 1.8; }
+  @media (min-width:1080px) {
+    body.sidebar-open { padding-left: 248px; }
+    body.authed main.wrap { padding-top: 18px; }
+    body.sidebar-open .topbar .menu-wrap { display: none; }
+    body.authed .topbar .wrap { max-width: none; padding-left: 36px; padding-right: 36px; }
+  }
+  .intake-setup { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 22px; }
+  .intake-label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 6px; }
+  .intake-setup select, .intake-setup input { width: 100%; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 8px; padding: 10px; font: inherit; font-size: 15px; }
+  .intake-help { color: var(--ink-2); font-size: 13px; line-height: 1.5; margin: 8px 0 14px; }
+  .intake-help a { color: var(--c-bcaa); }
+  .intake-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+  .intake-grid label { display: grid; align-content: start; gap: 5px; font-size: 13px; }
+  .intake-details { margin: 20px 0; }
+  .intake-details summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+  .intake-preview { background: var(--c-good-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 14px; }
+  .intake-preview p { margin: 4px 0; }
+  .v2-energy-target { background: var(--surface-2); border-radius: 10px; padding: 14px 18px; font-size: 14px; }
+  .v2-energy-target span { color: var(--ink-2); }
+  @media (max-width:560px) {
+    .v2-hero { flex-direction: column; align-items: stretch; gap: 12px; }
+    .day-icon { min-width: 36px; width: 36px; }
+    .day-nav { gap: 2px; }
+    #daySelect { max-width: 180px; font-size: 16px; }
+    .diary-title { font-size: 28px; }
+    .diary-intro { font-size: 14px; }
+  }
 </style>
 
 <div class="tip" id="tip" hidden role="status"></div>
+<aside id="appSidebar" class="app-sidebar" hidden aria-label="Main navigation">
+  <div class="sidebar-head"><a href="/" class="sidebar-brand">AMINODATA<span>.ORG</span></a><button id="sidebarToggle" type="button" aria-label="Collapse navigation" aria-expanded="true" aria-controls="appSidebar">☰</button></div>
+  <p class="sidebar-label">YOUR WORKSPACE</p>
+  <nav>
+    <button type="button" data-act="diary"><span aria-hidden="true">▤</span> Food diary</button>
+    <button type="button" data-act="history"><span aria-hidden="true">◷</span> Previous days</button>
+    <button type="button" data-act="atlas"><span aria-hidden="true">▦</span> Food database</button>
+    <button type="button" data-act="comparefoods"><span aria-hidden="true">⇄</span> Compare foods</button>
+    <button type="button" data-act="compareaa"><span aria-hidden="true">◉</span> Compare amino acids</button>
+    <button type="button" data-act="account"><span aria-hidden="true">⚙</span> Account & targets</button>
+    <button type="button" data-act="method"><span aria-hidden="true">ⓘ</span> How the numbers work</button>
+  </nav>
+  <p class="sidebar-foot">Your everyday foods.<br>A clearer picture of your protein.</p>
+</aside>
 
 <div class="topbar">
   <div class="wrap topbar-inner">
@@ -957,9 +1020,9 @@
   </section>
   <section class="v2-entry">
     <a class="linkish diary-back" href="/" id="diaryBack">← Back to homepage</a>
-    <h2 class="v2-h">What protein do you eat in a day?</h2>
-    <p class="v2-p">Log each source meal by meal. We add up the amino acids across the day and show you the shape of it.</p>
-    <div class="day-tabs" id="dayTabs" role="tablist" aria-label="Days"></div>
+    <h2 class="v2-h diary-title">Your food diary</h2>
+    <p class="v2-p diary-intro">Log your meals and see how they add up against your daily targets.</p>
+    <div class="day-nav" id="dayTabs" role="group" aria-label="Diary day navigation"></div>
     <div class="meal-editor" id="mealEditor" hidden>
     <div class="meal-editor-head"><span id="mealEditorLabel">Add food</span><button type="button" class="meal-close" id="mealEditorClose">Done</button></div>
     <form class="v2-form" id="v2Form" autocomplete="off">
@@ -971,7 +1034,8 @@
     </div>
     <div class="v2-list" id="v2List"></div>
     <p class="v2-hint" id="v2Hint">Tap + to search <b id="v2Count"></b> foods. Adjust each portion in grams, or explore the <a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</p>
-    <div class="day-meta" id="dayMeta">
+    <div class="day-meta" id="dayMeta" hidden>
+      <p id="dayFull" class="intake-help" hidden>Your week has seven saved days. Remove a day to make room for another.</p>
       <label class="dm-date">Date <input type="date" id="dayDate" aria-label="Date of this day"></label>
       <button type="button" class="dm-del" id="dayDelete" hidden>Remove this day</button>
       <textarea class="dm-note" id="dayNote" rows="2" placeholder="Notes for this day (training, appetite, how it felt...)"></textarea>
@@ -1035,6 +1099,7 @@
 
 <script>
 /* ================= DATA ================= */
+__INJECT_INTAKE_TARGETS__
 const ATLAS = __INJECT_DATA__;
 
 const AA_META = [
@@ -1712,10 +1777,11 @@ const store = (() => {
   try { localStorage.setItem("aa_test", "1"); localStorage.removeItem("aa_test"); return localStorage; }
   catch (e) { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)) }; }
 })();
+__INJECT_INTAKE_UI__
 function getWeight() { return +(store.getItem("aa_weight") || 75); }
 function getThriveG(weightKg) {
   const custom = +store.getItem("aa_thrive_g");
-  return custom > 0 ? Math.max(30, Math.min(500, custom)) : Math.round(weightKg * THRIVE_G_PER_KG);
+  return custom > 0 ? Math.max(30, Math.min(500, custom)) : (IntakeTargets.estimate(weightKg, getIntakeProfile()).protein ?? Math.round(weightKg * THRIVE_G_PER_KG));
 }
 function getPortion(f) {
   const stored = store.getItem("aa_portion_" + f.id);
@@ -1803,7 +1869,7 @@ function renderDetail(id) {
       </div>
       <div class="prot-targets">
         <div class="prot-target"><div class="t">Daily protein · survival floor</div><div class="n">${protFloor.toFixed(0)} g<small> of protein a day · RDA 0.8 g/kg</small></div>Enough to prevent deficiency, not a target. Based on your body weight of ${displayWeight} ${wUnit}, set on the <b>home page</b>.</div>
-        <div class="prot-target"><div class="t">Daily protein · your thrive target</div><div class="n"><input class="rate-in" id="thriveG" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Your daily protein target in grams per day" /><small> g of protein a day</small></div>Total protein you're aiming for across the whole day. Defaults to 1.6 g per kg of body weight, in line with muscle-supporting intakes. Type your own if you work to a different number.</div>
+        <div class="prot-target"><div class="t">Daily protein · your thrive target</div><div class="n"><input class="rate-in" id="thriveG" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Your daily protein target in grams per day" /><small> g of protein a day</small></div>Total protein you're aiming for across the whole day. Uses your saved account target. Set your activity level in Account for a suggestion, or enter your own target here.</div>
       </div>
       <p class="calc-summary">
         A ${portion} g portion gives <b>${protInPortion.toFixed(1)} g protein</b>, <b>${Math.round(protInPortion / protFloor * 100)}%</b> of your daily survival floor and <b>${Math.round(protInPortion / protThrive * 100)}%</b> of your ${protThrive.toFixed(0)} g daily protein target. Amino acid by amino acid:
@@ -2153,44 +2219,52 @@ function openCompareAAs(push) {
   sheet.querySelector(".close").focus();
 }
 
-/* ================= burger menu ================= */
+/* ================= navigation ================= */
+function navigateApp(act) {
+  if (act === "atlas") showView("atlas");
+  else if (act === "diary" || act === "addfoods") {
+    if (!overlay.hidden) closeDetail(); showView("day");
+    if (act === "addfoods" && window.__v2OpenMeal) window.__v2OpenMeal(currentMeal);
+  } else if (act === "history") { if (requireAccount("See your previous days with a free account.")) openHistorySheet(); }
+  else if (act === "account") { authedUser ? openAccountSheet() : openAuthSheet(); }
+  else if (act === "signup") openAuthSheet(undefined, "signup");
+  else if (act === "login") openAuthSheet(undefined, "login");
+  else if (act === "comparefoods") openCompareFoods();
+  else if (act === "compareaa") openCompareAAs();
+  else if (act === "method") document.getElementById("method").scrollIntoView({behavior:"smooth"});
+  if (window.__syncShell) window.__syncShell();
+}
 (function initMenu() {
-  /* One menu in the top bar, one in the sticky toolbar; same items, same wiring. */
-  const wraps = [...document.querySelectorAll(".menu-wrap")]
-    .map(w => ({ btn: w.querySelector(".menu-btn"), pop: w.querySelector(".menu-pop") }));
-  const closeAll = () => wraps.forEach(({ btn, pop }) => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); });
-  wraps.forEach(({ btn, pop }) => {
-    btn.addEventListener("click", e => {
-      e.stopPropagation();
-      const willOpen = pop.hidden;
-      closeAll();
-      pop.hidden = !willOpen;
-      btn.setAttribute("aria-expanded", String(willOpen));
-    });
-    pop.addEventListener("click", e => {
-      const act = e.target.closest("button") && e.target.closest("button").dataset.act;
-      if (!act) return;
-      closeAll();
-      if (act === "atlas") showView("atlas");
-      else if (act === "addfoods") {
-        if (!overlay.hidden) closeDetail();
-        showView("day");
-        setTimeout(() => { if (window.__v2OpenMeal) window.__v2OpenMeal(currentMeal); }, 450);
-      }
-      else if (act === "history") {
-        if (ACCOUNTS_ON && !authedUser) openAuthSheet("Your previous days live in your free account: a week of dated logs with totals and notes, on every device.");
-        else openHistorySheet();
-      }
-      else if (act === "account") { authedUser ? openAccountSheet() : openAuthSheet(); }
-      else if (act === "signup") openAuthSheet(undefined, "signup");
-      else if (act === "login") openAuthSheet(undefined, "login");
-      else if (act === "comparefoods") openCompareFoods();
-      else if (act === "compareaa") openCompareAAs();
-      else if (act === "method") document.getElementById("method").scrollIntoView({ behavior: "smooth" });
-    });
+  const wrap = document.querySelector(".menu-wrap"), btn = wrap.querySelector(".menu-btn"), pop = wrap.querySelector(".menu-pop");
+  const sidebar = document.getElementById("appSidebar");
+  const desktop = matchMedia("(min-width: 1080px)");
+  let collapsed = false;
+  const close = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); };
+  function sync() {
+    const desktopApp = document.body.classList.contains("authed") && desktop.matches;
+    sidebar.hidden = !desktopApp || collapsed;
+    document.body.classList.toggle("sidebar-open", !sidebar.hidden);
+    if (desktopApp) { pop.hidden = true; btn.setAttribute("aria-expanded", String(!sidebar.hidden)); }
+    btn.setAttribute("aria-controls", desktopApp ? "appSidebar" : "mobileMenu");
+    btn.setAttribute("aria-label", desktopApp ? "Expand navigation" : "Menu");
+    const active = document.body.dataset.view === "atlas" ? "atlas" : "diary";
+    sidebar.querySelectorAll("[data-act]").forEach(b => { if(b.dataset.act === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  }
+  pop.id = "mobileMenu";
+  btn.addEventListener("click", e => {
+    e.stopPropagation();
+    if (document.body.classList.contains("authed") && desktop.matches) { collapsed = !collapsed; sync(); if(!sidebar.hidden) document.getElementById("sidebarToggle").focus(); }
+    else { const open = pop.hidden; pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); }
   });
-  document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap")) closeAll(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") closeAll(); });
+  document.getElementById("sidebarToggle").addEventListener("click", () => { collapsed = true; sync(); btn.focus(); });
+  for (const nav of [pop, sidebar]) nav.addEventListener("click", e => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    close(); navigateApp(b.dataset.act);
+  });
+  document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap")) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !pop.hidden) {close(); btn.focus();} });
+  desktop.addEventListener("change", () => {close(); sync();});
+  window.__syncShell = sync; sync();
 })();
 
 /* ================= free accounts: Supabase auth + cross-device sync =================
@@ -2215,7 +2289,8 @@ function sbReady() {
 }
 function collectSettings() {
   return {
-    weight: store.getItem("aa_weight") || null, thrive: store.getItem("aa_thrive_g") || null,
+    weight: store.getItem("aa_weight") || null, thrive: store.getItem("aa_thrive_g") || "",
+    intake: getIntakeProfile(), intakeCompleted: store.getItem("aa_intake_completed") === "1",
     unit: store.getItem("aa_wunit") || null, diet: store.getItem("aa_diet") || null,
     meal: store.getItem("aa_meal") || null,
     atype: store.getItem("aa_acct_type") || null, role: store.getItem("aa_acct_role") || null
@@ -2223,9 +2298,11 @@ function collectSettings() {
 }
 function applySettings(st) {
   if (!st) return;
+  if (st.intake) store.setItem("aa_intake", JSON.stringify(IntakeTargets.normalise(st.intake)));
+  if (st.intakeCompleted != null) store.setItem("aa_intake_completed", st.intakeCompleted ? "1" : "");
   [["aa_weight", st.weight], ["aa_thrive_g", st.thrive], ["aa_wunit", st.unit], ["aa_diet", st.diet], ["aa_meal", st.meal],
    ["aa_acct_type", st.atype], ["aa_acct_role", st.role]]
-    .forEach(([k, v]) => { if (v != null && v !== "") store.setItem(k, v); });
+    .forEach(([k, v]) => { if (v != null) store.setItem(k, v); });
 }
 const PRO_ROLES = [
   ["pt", "Personal trainer"], ["coach", "Coach"], ["nutritionist", "Dietitian or nutritionist"],
@@ -2273,7 +2350,8 @@ async function syncOnLogin() {
   const c = sbReady();
   if (!c) return;
   try {
-    const { data } = await c.from("logs").select("data").maybeSingle();
+    const { data, error } = await c.from("logs").select("data").maybeSingle();
+    if (error) return undefined;
     const remote = data && data.data;
     if (remote) applySettings(remote.settings);
     const merged = mergeLogs(remote, loadLog());
@@ -2281,9 +2359,12 @@ async function syncOnLogin() {
     saveLog({ days: merged.days, active: Math.min(merged.active | 0, merged.days.length - 1) });
     if (window.__v2Render) window.__v2Render();
     schedulePush();
-  } catch (e) {}
+    return remote || null;
+  } catch (e) { return undefined; }
 }
 function renderAuthSlot(session) {
+  document.body.classList.toggle("authed", !!(session && session.user));
+  if (window.__syncShell) window.__syncShell();
   const signedIn = !!(session && session.user);
   document.querySelectorAll(".menu-pop [data-account-only]").forEach(item => { item.hidden = ACCOUNTS_ON && !signedIn; });
   const menuAuth = document.getElementById("menuAuth");
@@ -2292,7 +2373,7 @@ function renderAuthSlot(session) {
   if (!slot) return;
   if (!ACCOUNTS_ON) { slot.innerHTML = ""; return; }
   if (signedIn) {
-    slot.innerHTML = `<button class="auth-btn ghost" id="authAcct" title="Account settings">${session.user.email}</button>`;
+    slot.innerHTML = `<button class="auth-btn ghost" id="authAcct" title="Account settings">Account</button>`;
     slot.querySelector("#authAcct").addEventListener("click", openAccountSheet);
     if (menuAuth) menuAuth.innerHTML = '<button data-act="account">Account<span class="mi-sub">Targets, password, your data</span></button>';
   } else {
@@ -2341,7 +2422,7 @@ function openAuthSheet(gateMsg, mode, initialEmail = "") {
     if (signup) {
       authHint("Creating your account…");
       onboardAfterAuth = true;
-      const { data, error } = await c.auth.signUp({ email, password: pw });
+      const { data, error } = await c.auth.signUp({ email, password: pw, options: { data: { needs_intake_setup: true } } });
       if (error || !data.session) onboardAfterAuth = false;
       if (error) authHint(/already registered/i.test(error.message)
         ? 'That email already has an account. <button type="button" class="linkish" id="authSwap2">Log in instead</button>, or use the one-time link below.'
@@ -2367,7 +2448,7 @@ function openAuthSheet(gateMsg, mode, initialEmail = "") {
     const { email } = authVals();
     if (!email) { authHint("Enter your email first, then request the link."); return; }
     authHint("Sending…");
-    const { error } = await c.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + "/" } });
+    const { error } = await c.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + "/", ...(signup ? { data: { needs_intake_setup: true } } : {}) } });
     authHint(error ? ("Could not send the link: " + error.message)
       : '<span class="auth-msg">Check your inbox.</span> Open the link on this device and you are signed in.');
   });
@@ -2381,7 +2462,7 @@ function openAccountSheet() {
   const wUnit = store.getItem("aa_wunit") || "kg";
   const kg = +(store.getItem("aa_weight") || 75);
   const displayWeight = wUnit === "lb" ? Math.round(kg * LB_PER_KG) : kg;
-  const thrive = +(store.getItem("aa_thrive_g") || Math.round(kg * THRIVE_G_PER_KG));
+  const thrive = +store.getItem("aa_thrive_g");
   const vegan = store.getItem("aa_diet") === "vegan";
   const isPro = store.getItem("aa_acct_type") === "pro";
   const proRole = store.getItem("aa_acct_role") || "pt";
@@ -2395,11 +2476,13 @@ function openAccountSheet() {
       <h3>Personal details</h3>
       <p class="pb-sub">These set your daily targets everywhere and sync across your devices.</p>
       <div class="pick-row">
-        <label class="acct-lab">Body weight <input id="acctW" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="1" value="${displayWeight}" aria-label="Body weight"></label>
+        <label class="acct-lab">Body weight <input id="acctW" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="0.1" value="${displayWeight}" aria-label="Body weight"></label>
         <select id="acctU" aria-label="Weight unit"><option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option><option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option></select>
-        <label class="acct-lab">Daily protein target <input id="acctT" type="number" min="30" max="500" step="5" value="${thrive.toFixed(0)}" aria-label="Daily protein target"> g</label>
+        <label class="acct-lab">Daily protein target <input id="acctT" type="number" min="30" max="500" step="1" value="${thrive > 0 ? thrive.toFixed(0) : ""}" placeholder="auto" aria-label="Daily protein target"> g</label>
         <label class="acct-lab">Diet <select id="acctDiet" aria-label="Diet"><option value="all"${vegan ? "" : " selected"}>Everything</option><option value="vegan"${vegan ? " selected" : ""}>Vegan</option></select></label>
       </div>
+      <p class="intake-help">Leave the protein field blank to use the activity suggestion, or enter your own target.</p>
+      ${intakeFields("acct")}
       <div class="pick-row" style="margin-top:10px">
         <label class="acct-lab">Account type <select id="acctType" aria-label="Account type"><option value=""${isPro ? "" : " selected"}>Individual</option><option value="pro"${isPro ? " selected" : ""}>Professional</option></select></label>
         <label class="acct-lab" id="acctRoleWrap"${isPro ? "" : " hidden"}>Role <select id="acctRole" aria-label="Professional role">${roleOptionsHTML(proRole)}</select></label>
@@ -2434,10 +2517,12 @@ function openAccountSheet() {
       <p class="auth-note">Sign out keeps the copy on this device. Delete removes your synced days from your account and clears this device; it cannot be undone.</p>
     </div>`;
   sheet.querySelector(".close").addEventListener("click", closeDetail);
+  const saveIntake = wireIntakeFields("acct");
   sheet.querySelector("#acctType").addEventListener("change", e => {
     sheet.querySelector("#acctRoleWrap").hidden = e.target.value !== "pro";
   });
   sheet.querySelector("#acctSave").addEventListener("click", () => {
+    if (!saveIntake()) return;
     saveAccountType(sheet.querySelector("#acctType").value, sheet.querySelector("#acctRole").value);
     const unit = sheet.querySelector("#acctU").value;
     const raw = +sheet.querySelector("#acctW").value;
@@ -2592,14 +2677,15 @@ function openOnboardSheet() {
     <div class="pick-block">
       <h3>About you</h3>
       <div class="pick-row">
-        <label class="acct-lab">Body weight <input id="obW" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="1" value="${displayWeight}" aria-label="Body weight"></label>
+        <label class="acct-lab">Body weight <input id="obW" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="0.1" value="${displayWeight}" aria-label="Body weight"></label>
         <select id="obU" aria-label="Weight unit"><option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option><option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option></select>
         <label class="acct-lab">Diet <select id="obDiet" aria-label="Diet"><option value="all">Everything</option><option value="vegan">Vegan</option></select></label>
       </div>
       <div class="pick-row" style="margin-top:10px">
-        <label class="acct-lab">Daily protein target <input id="obT" type="number" min="30" max="500" step="5" value="" placeholder="auto" aria-label="Daily protein target"> g</label>
-        <span class="auth-note" style="flex:1 1 240px">Leave it on auto and we use 1.6 g per kg of your weight, the intake meta-analyses associate with supporting muscle.</span>
+        <label class="acct-lab">Daily protein target <input id="obT" type="number" min="30" max="500" step="1" value="" placeholder="auto" aria-label="Daily protein target"> g</label>
+        <span class="auth-note" style="flex:1 1 240px">Leave blank for an activity-based suggestion, or enter your own target.</span>
       </div>
+      ${intakeFields("ob")}
       <div class="pick-row" style="margin-top:14px">
         <button type="button" class="go-cmp" id="obSave">Save and start logging</button>
         <button type="button" class="linkish" id="obSkip">Skip for now</button>
@@ -2607,12 +2693,14 @@ function openOnboardSheet() {
     </div>`;
   sheet.querySelector(".close").addEventListener("click", closeDetail);
   sheet.querySelector("#obSkip").addEventListener("click", closeDetail);
+  const saveIntake = wireIntakeFields("ob");
   const obSeg = sheet.querySelector("#obSeg");
   obSeg.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
     obSeg.querySelectorAll("button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
     sheet.querySelector("#obRoleWrap").hidden = b.dataset.v !== "pro";
   }));
   sheet.querySelector("#obSave").addEventListener("click", () => {
+    if (!saveIntake()) return;
     saveAccountType(obSeg.querySelector("button.on").dataset.v, sheet.querySelector("#obRole").value);
     const unit = sheet.querySelector("#obU").value;
     const raw = +sheet.querySelector("#obW").value;
@@ -2631,6 +2719,21 @@ function openOnboardSheet() {
   sheet.querySelector("#obW").focus();
 }
 
+let intakeSyncUser = null;
+function syncSignedInSession(session) {
+  if (!session || !session.user || intakeSyncUser === session.user.id) return;
+  const userId = session.user.id;
+  intakeSyncUser = userId;
+  // Leave the Supabase auth callback before performing more auth/database work.
+  setTimeout(async () => {
+    const remote = await syncOnLogin();
+    if (!authedUser || authedUser.id !== userId) return;
+    const newSignup = onboardAfterAuth || session.user.user_metadata?.needs_intake_setup;
+    onboardAfterAuth = false;
+    if (newSignup && remote !== undefined && !remote?.settings?.intakeCompleted) openOnboardSheet();
+    else if (!overlay.hidden && sheet.querySelector("#authForm")) closeDetail();
+  }, 0);
+}
 function initAuth() {
   const c = sbReady();
   if (!c) { renderAuthSlot(null); return; }
@@ -2639,18 +2742,15 @@ function initAuth() {
     document.body.classList.toggle("authed", !!authedUser);
     renderAuthSlot(session);
     if (window.__v2Render) window.__v2Render();
-    if (ev === "SIGNED_IN") {
-      syncOnLogin();
-      if (onboardAfterAuth) { onboardAfterAuth = false; openOnboardSheet(); }
-      else if (!overlay.hidden) closeDetail();
-    }
+    if (!session) intakeSyncUser = null;
+    if (ev === "SIGNED_IN" || ev === "INITIAL_SESSION") syncSignedInSession(session);
   });
   c.auth.getSession().then(({ data }) => {
     authedUser = data.session && data.session.user;
     document.body.classList.toggle("authed", !!authedUser);
     renderAuthSlot(data.session);
     if (window.__v2Render) window.__v2Render();
-    if (data.session) syncOnLogin();
+    if (data.session) syncSignedInSession(data.session);
   });
 }
 if (window.supabase || !/^https:\/\//.test(SUPABASE_URL)) initAuth();
@@ -2840,7 +2940,7 @@ function renderDay() {
       <div class="calc-controls">
         <div class="ctl-group">
           <span class="ctl-label">About you</span>
-          <label>Body weight <input id="dayWeight" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="1" value="${displayWeight}" aria-label="Body weight"></label>
+          <label>Body weight <input id="dayWeight" type="number" min="${wUnit === "lb" ? 66 : 30}" max="${wUnit === "lb" ? 440 : 200}" step="0.1" value="${displayWeight}" aria-label="Body weight"></label>
           <select id="dayWUnit" aria-label="Weight unit">
             <option value="kg"${wUnit === "kg" ? " selected" : ""}>kg</option>
             <option value="lb"${wUnit === "lb" ? " selected" : ""}>lb</option>
@@ -3046,6 +3146,7 @@ function showView(v, push) {
   const target = v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
   if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   if (v === "atlas") renderGrid();
+  if (window.__syncShell) window.__syncShell();
   /* keep the URL honest: /database is a real page, crawlable on its own */
   if (push !== false && history.pushState) {
     try { history.pushState({ v }, "", v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
@@ -3095,7 +3196,7 @@ window.addEventListener("popstate", () => {
   /* ----- share link: the day, weight and target live in the URL hash ----- */
   function dayLink() {
     const parts = loadDay().map(e => { const f = foodByName(e.name); return f ? f.key + ":" + Math.round(e.g) : null; }).filter(Boolean);
-    const t = store.getItem("aa_thrive_g");
+    const t = getThriveG(getWeight());
     const u = new URL(location.href); u.search = "";
     u.hash = "d=" + parts.join(",") + "&w=" + getWeight() + (t ? "&t=" + t : "");
     return u.toString();
@@ -3229,32 +3330,57 @@ window.addEventListener("popstate", () => {
   }
   function renderDayChrome() {
     const log = loadLog();
-    const tabs = $("dayTabs");
-    /* Signed out you get today; the add button is the invitation to sign up. */
-    const soloDay = ACCOUNTS_ON && !authedUser;
-    const shownDays = soloDay ? [[log.days[log.active], log.active]] : log.days.map((d, i) => [d, i]);
-    tabs.innerHTML = shownDays.map(([d, i]) =>
-      `<button type="button" class="day-tab${i === log.active ? " on" : ""}" role="tab" aria-selected="${i === log.active}" data-i="${i}">${fmtDay(d.date)}${d.entries.length ? " · " + d.entries.length : ""}</button>`).join("")
-      + (soloDay || log.days.length < WEEK_DAYS
-        ? `<button type="button" class="day-tab add" id="dayAdd">+ Add day</button>`
-        : `<span class="day-tab add off" title="A week at a time: remove a day to add another">Week full</span>`);
-    tabs.querySelectorAll(".day-tab[data-i]").forEach(b => b.addEventListener("click", () => {
-      const l = loadLog(); l.active = +b.dataset.i; saveLog(l); editingMeal = null; hideDD(); render();
-    }));
-    const addBtn = tabs.querySelector("#dayAdd");
-    if (addBtn) addBtn.addEventListener("click", () => {
-      if (ACCOUNTS_ON && !requireAccount("Track more than one day with a free account: dates, notes, and your whole week in tabs.")) return;
-      if (loadLog().days.length >= WEEK_DAYS) return;
+    const tabs = $("dayTabs"), soloDay = ACCOUNTS_ON && !authedUser;
+    const ordered = log.days.map((d,i) => ({d,i})).sort((a,b) => a.d.date.localeCompare(b.d.date) || a.i-b.i);
+    const position = ordered.findIndex(x => x.i === log.active);
+    const shown = soloDay ? [{d:log.days[log.active],i:log.active}] : ordered;
+    const label = (d,i) => {
+      const duplicates = ordered.filter(x => x.d.date === d.date);
+      return (d.date === todayISO() ? "Today" : fmtDay(d.date)) + (duplicates.length > 1 ? " · log " + (duplicates.findIndex(x => x.i === i)+1) : "");
+    };
+    tabs.innerHTML = `<button type="button" class="day-icon" id="dayToday" aria-label="Go to today" title="Go to today">◷</button>
+      <div class="day-center"><button type="button" class="day-icon" id="dayPrev" aria-label="Previous saved day"${soloDay || position === 0 ? " disabled" : ""}>‹</button>
+      <select id="daySelect" aria-label="Choose diary day">${shown.map(({d,i}) => `<option value="${i}"${i === log.active ? " selected" : ""}>${label(d,i)}</option>`).join("")}</select>
+      <button type="button" class="day-icon" id="dayNext" aria-label="Next saved day"${soloDay || position === ordered.length-1 ? " disabled" : ""}>›</button></div>
+      <button type="button" class="day-icon" id="dayAdd" aria-label="Add day" title="${log.days.length >= WEEK_DAYS ? 'Week full: open day options to remove a day first' : 'Add day'}"${!soloDay && log.days.length >= WEEK_DAYS ? ' disabled' : ''}>+</button>
+      <button type="button" class="day-icon" id="dayMore" aria-label="Edit day date and notes" title="Edit date and notes">⋯</button>`;
+    function selectDay(index) {
+      const l = loadLog(); l.active = index; saveLog(l); editingMeal = null; hideDD(); render();
+    }
+    tabs.querySelector("#daySelect").addEventListener("change", e => selectDay(+e.target.value));
+    tabs.querySelector("#dayPrev").addEventListener("click", () => {selectDay(ordered[position-1].i); tabs.querySelector("#dayPrev").focus();});
+    tabs.querySelector("#dayNext").addEventListener("click", () => {selectDay(ordered[position+1].i); tabs.querySelector("#dayNext").focus();});
+    function addDate(date) {
+      if (!requireAccount("Keep your dated food diary in a free account.")) return;
       const l = loadLog();
-      const lastD = new Date((l.days[l.days.length - 1].date || todayISO()) + "T12:00:00");
-      lastD.setDate(lastD.getDate() + 1);
-      l.days.push(blankLogDay(`${lastD.getFullYear()}-${String(lastD.getMonth() + 1).padStart(2, "0")}-${String(lastD.getDate()).padStart(2, "0")}`));
-      l.active = l.days.length - 1; saveLog(l); openMeal(currentMeal);
+      if(l.days.length >= WEEK_DAYS) {
+        $("dayMeta").hidden = false;
+        tabs.querySelector("#dayMore").setAttribute("aria-expanded", "true");
+        $("dayDate").focus();
+        return;
+      }
+      l.days.push(blankLogDay(date)); l.active = l.days.length-1; saveLog(l); editingMeal = null; render();
+      return true;
+    }
+    tabs.querySelector("#dayToday").addEventListener("click", () => {
+      const match = ordered.filter(x => x.d.date === todayISO()).at(-1);
+      if(match) { selectDay(match.i); tabs.querySelector("#dayToday").focus(); }
+      else if(addDate(todayISO())) tabs.querySelector("#dayToday").focus();
     });
+    tabs.querySelector("#dayAdd").addEventListener("click", () => {
+      const next = new Date(log.days[log.active].date + "T12:00:00");
+      let date;
+      do { next.setDate(next.getDate()+1); date = next.getFullYear()+"-"+String(next.getMonth()+1).padStart(2,"0")+"-"+String(next.getDate()).padStart(2,"0"); } while(log.days.some(d => d.date === date));
+      if(addDate(date)) tabs.querySelector("#dayAdd").focus();
+    });
+    tabs.querySelector("#dayMore").addEventListener("click", () => { $("dayMeta").hidden = !$("dayMeta").hidden; tabs.querySelector("#dayMore").setAttribute("aria-expanded", String(!$("dayMeta").hidden)); if(!$("dayMeta").hidden) $("dayDate").focus(); });
+    tabs.querySelector("#dayMore").setAttribute("aria-expanded", String(!$("dayMeta").hidden));
+    tabs.querySelector("#dayMore").setAttribute("aria-controls", "dayMeta");
     const d = log.days[log.active];
     $("dayDate").value = d.date;
     $("dayNote").value = d.note;
     $("dayDelete").hidden = log.days.length < 2;
+    $("dayFull").hidden = log.days.length < WEEK_DAYS;
   }
   function render() {
     renderDayChrome();
@@ -3382,7 +3508,8 @@ window.addEventListener("popstate", () => {
         </div>
       </div>
       ${kcalTot > 0 ? `<p class="v2-macros">Carbs ${carbTot.toFixed(0)} g · Fat ${fatTot.toFixed(0)} g · Protein ${prot.toFixed(0)} g${macroMiss ? ` <span>(macros unknown for ${macroMiss} item${macroMiss === 1 ? "" : "s"})</span>` : ""}</p>` : ""}
-      <p class="v2-targets-line">Targets for ${displayWeight} ${wUnit}, ${protThrive.toFixed(0)} g protein a day${vegan ? ", vegan sources" : ""}. ${authedUser ? `<button type="button" class="linkish" id="v2ToAcct">Edit in your account</button>` : `<button type="button" class="linkish" id="v2ToSignup">Set yours with a free account</button>`}</p>
+      <p class="v2-targets-line">Targets for ${displayWeight} ${wUnit}, ${protThrive.toFixed(0)} g protein a day${getIntakeProfile().activity ? " · " + IntakeTargets.activities.find(a => a.id === getIntakeProfile().activity).label.toLowerCase() : ""}${vegan ? ", vegan sources" : ""}. ${authedUser ? `<button type="button" class="linkish" id="v2ToAcct">Edit in your account</button>` : `<button type="button" class="linkish" id="v2ToSignup">Set yours with a free account</button>`}</p>
+      ${IntakeTargets.calorieTarget(weight, getIntakeProfile()) ? `<p class="v2-energy-target"><b>${Math.round(kcalTot).toLocaleString()} / ${IntakeTargets.calorieTarget(weight, getIntakeProfile()).toLocaleString()} kcal</b> logged · ${getIntakeProfile().calorieMode === "manual" ? "your calorie target" : "estimated daily maintenance"}${macroMiss ? " · some food calories are unavailable" : ""}. <span>This total only includes foods you have logged.</span></p>` : ""}
       <p class="v2-verdict">${verdict}</p>
       <div class="v2-share">
         <button class="v2-share-btn" id="shareBtn">Share my profile</button>
@@ -3428,7 +3555,7 @@ window.addEventListener("popstate", () => {
     const toAcct = result.querySelector("#v2ToAcct");
     if (toAcct) toAcct.addEventListener("click", openAccountSheet);
     const toSign = result.querySelector("#v2ToSignup");
-    if (toSign) toSign.addEventListener("click", () => openAuthSheet("Set your own body weight, protein target and diet; the defaults are 75 kg and 120 g."));
+    if (toSign) toSign.addEventListener("click", () => openAuthSheet("Set your body weight, activity level, protein target and optional calorie estimate."));
     $("v2Clear").addEventListener("click", () => {
       const l = loadLog(); l.days[l.active].entries = []; l.days[l.active].note = ""; saveLog(l);
       $("dayNote").value = ""; render();
