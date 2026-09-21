@@ -303,6 +303,11 @@ fs.writeFileSync(path.join(root, "dist", "compare-amino-acids.html"),
     "Pick any two amino acids and compare what each does, how much you need a day, and which foods carry the most of it.",
     "/compare-amino-acids", "Compare amino acids · Amino Atlas"));
 
+// ---------- /account: private settings in the app's normal page layout ----------
+fs.writeFileSync(path.join(root, "dist", "account.html"),
+  pageCopy("Your account · Amino Atlas", "Manage your profile and daily targets.", "/account", "Your account · Amino Atlas")
+    .replace('<meta name="viewport"', '<meta name="robots" content="noindex" />\n<meta name="viewport"'));
+
 // ---------- /food/<slug>: one static, crawlable page per food ----------
 const AA_LABELS = [
   ["leucine", "Leucine", "Essential (BCAA)"], ["isoleucine", "Isoleucine", "Essential (BCAA)"], ["valine", "Valine", "Essential (BCAA)"],

@@ -32,8 +32,8 @@ function intakeFields(prefix) {
     <div class="intake-help" id="${prefix}Sources" hidden>Calories use the <a href="https://www.canada.ca/en/health-canada/services/food-nutrition/healthy-eating/dietary-reference-intakes/tables/equations-estimate-energy-requirement.html" target="_blank" rel="noopener">2023 DRI adult equations</a>, rounded to 50 kcal. Protein starting points are 0.8, 1.2, 1.6 and 1.8 g/kg for the four activity levels. This mapping is our practical default, informed by the adult RDA and <a href="https://southeast.acsm.org/wp-content/uploads/2025/01/rodriguez_seacsm-2024-slidedeck_pdf.pdf" target="_blank" rel="noopener">sports-nutrition guidance</a>; training type, age and personal needs also matter.</div>
   </section>`;
 }
-function wireIntakeFields(prefix) {
-  const el = key => sheet.querySelector('#' + prefix + key);
+function wireIntakeFields(prefix, root = sheet) {
+  const el = key => root.querySelector('#' + prefix + key);
   const read = () => ({activity:el('Activity').value, age:el('Age').value, height:el('Height').value, sex:el('Sex').value, scope:el('Scope').value, calorieMode:el('CalorieMode').value, customCalories:el('Calories').value});
   const kg = () => +el('W').value / (el('U').value === 'lb' ? LB_PER_KG : 1);
   function update() {
