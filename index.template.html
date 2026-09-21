@@ -851,6 +851,21 @@
   .cmp-col h3 { font-family: var(--font-serif); font-weight: 600; font-size: 19px; margin: 0 0 2px; }
   .cmp-col .meta { font-size: 12px; color: var(--ink-3); margin-bottom: 8px; }
   .cmp-col .covrow { grid-template-columns: 96px 1fr 52px; font-size: 12px; }
+  #compareFoodsPage[hidden] { display: none; }
+  #compareFoodsPage { margin: 20px 0 60px; }
+  #compareFoodsPage h1 { font-size: 32px; margin: 0; }
+  #compareFoodsPage .sub { color: var(--ink-2); max-width: 75ch; }
+  #compareFoodsPage .cmp-col { min-width: 0; border-radius: 12px; }
+  #compareFoodsPage .cmp-col svg { display: block; max-width: 300px; margin: auto; }
+  .food-compare-picks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .food-compare-picks label { min-width: 0; display: grid; gap: 8px; font-size: 14px; }
+  .food-compare-picks .v2-search { display: block; min-width: 0; max-width: none; }
+  .food-compare-picks input { width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; }
+  .food-compare-picks .go-cmp { grid-column: 1 / -1; justify-self: start; min-height: 44px; border-radius: 8px; }
+  body[data-view="compare"] main.wrap > :not(#compareFoodsPage),
+  body[data-view="compare"] header.site, body[data-view="compare"] #method,
+  body[data-view="compare"] #tray { display: none !important; }
+  @media (max-width: 760px) { .food-compare-picks { grid-template-columns: 1fr; } }
 
   /* ---------- amino acid vs amino acid ---------- */
   .pick-row select {
@@ -1150,6 +1165,7 @@
 </div>
 
 <main class="wrap">
+  <section id="compareFoodsPage" hidden aria-labelledby="compareFoodsTitle"></section>
   <section id="accountPage" hidden aria-labelledby="accountTitle"></section>
   <section class="product-demo" aria-labelledby="demoTitle">
     <div class="demo-intro"><h2 id="demoTitle">See your day in amino acids.</h2><p>From your first meal to the full picture.</p></div>
@@ -1906,8 +1922,8 @@ function openDetail(id, push) {
 function closeDetail(push) {
   overlay.hidden = true; hideTip(); openDetailId = null;
   document.body.style.overflow = "";
-  if (push !== false && /^\/(database\/|compare)/.test(location.pathname) && history.pushState) {
-    try { history.pushState({ v: document.body.dataset.view }, "", document.body.dataset.view === "account" ? "/account" : document.body.dataset.view === "atlas" ? "/database" : "/"); } catch (e) {}
+  if (push !== false && /^\/(database\/|compare-amino-acids)/.test(location.pathname) && history.pushState) {
+    try { history.pushState({ v: document.body.dataset.view }, "", document.body.dataset.view === "compare" ? "/compare" : document.body.dataset.view === "account" ? "/account" : document.body.dataset.view === "atlas" ? "/database" : "/"); } catch (e) {}
   }
   if (lastFocus) lastFocus.focus();
 }
@@ -2140,10 +2156,10 @@ function openCompare(foodsArg) {
   /* Called both as a click handler (arg = Event) and directly with a foods array. */
   const foods = Array.isArray(foodsArg) ? foodsArg : state.compare.map(id => ATLAS.foods[id]);
   if (!foods.length) return;
-  lastFocus = document.activeElement;
-  if (!/^\/compare/.test(location.pathname) && history.pushState) {
-    try { history.pushState({ v: "cmpf" }, "", "/compare"); } catch (e) {}
-  }
+  openCompareFoods(undefined, foods);
+}
+
+function renderFoodComparison(foods) {
   const cols = foods.map(f => {
     const m = f.metrics;
     const complete = m.score >= 1;
@@ -2162,17 +2178,15 @@ function openCompare(foodsArg) {
       ${cov}
     </div>`;
   }).join("");
-  sheet.innerHTML = `
-    <div class="close-dock"><button class="close" aria-label="Close comparison">✕</button></div>
-    <div class="sheet-top">
-      <div><h2 id="sheetTitle">Side by side</h2>
-      <p class="sub">Essential amino acids in grams per 100 g of protein; the dark line marks the WHO 2007 adult requirement.</p></div>
-    </div>
+  state.compare = foods.map(f => f.id);
+  renderTray();
+  document.getElementById("foodCompareResults").innerHTML = `
+    <h2 id="foodCompareResultTitle" tabindex="-1">Side by side</h2>
+    <p class="sub">Essential amino acids in grams per 100 g of protein; the dark line marks the WHO 2007 adult requirement.</p>
     <div class="cmp-cols">${cols}</div>`;
-  sheet.querySelector(".close").addEventListener("click", closeDetail);
-  overlay.hidden = false;
-  document.body.style.overflow = "hidden";
-  sheet.querySelector(".close").focus();
+  const params = new URLSearchParams({ foods: foods.map(f => f.slug).join(",") });
+  history.replaceState({ v: "compare" }, "", "/compare?" + params);
+
 }
 
 /* ================= amino acid vs amino acid ================= */
@@ -2290,35 +2304,37 @@ function attachFoodTypeahead(wrap) {
   });
 }
 
-function openCompareFoods(push) {
-  lastFocus = document.activeElement;
-  sheet.innerHTML = `
-    <div class="close-dock"><button class="close" aria-label="Close compare">✕</button></div>
+function openCompareFoods(push, initialFoods) {
+  const slugs = (new URLSearchParams(location.search).get("foods") || "").split(",");
+  const selected = initialFoods || (push === false
+    ? slugs.map(slug => ATLAS.foods.find(f => f.slug === slug)).filter(Boolean).slice(0, 3)
+    : state.compare.map(id => ATLAS.foods[id]));
+  if (!overlay.hidden) closeDetail(false);
+  const page = document.getElementById("compareFoodsPage");
+  page.innerHTML = `
     <div class="sheet-top">
-      <div><h2 id="sheetTitle">Compare foods</h2>
+      <div><h1 id="compareFoodsTitle" tabindex="-1">Compare foods</h1>
       <p class="sub">Any two side by side, with a third if you want it. Essential amino acids in grams per 100 g of protein, against the WHO 2007 requirement.</p></div>
     </div>
-    <div class="pick-block">
+    <form class="pick-block" id="foodCompareForm">
       <h3>Pick your foods</h3>
       <p class="pb-sub">Start typing: every one of the ${ATLAS.foods.length.toLocaleString()} foods in the atlas is available.</p>
-      <div class="pick-row">
-        <span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="e.g. Whey protein isolate" aria-label="First food" autocomplete="off"><div class="v2-dd" hidden></div></span>
-        <span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="e.g. Lentils, cooked" aria-label="Second food" autocomplete="off"><div class="v2-dd" hidden></div></span>
-        <span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="Optional third" aria-label="Third food (optional)" autocomplete="off"><div class="v2-dd" hidden></div></span>
-        <button class="go-cmp" id="foodPickGo">Compare foods</button>
+      <div class="food-compare-picks">
+        <label>First food<span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="e.g. Whey protein isolate" aria-label="First food" autocomplete="off"><div class="v2-dd" hidden></div></span></label>
+        <label>Second food<span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="e.g. Lentils, cooked" aria-label="Second food" autocomplete="off"><div class="v2-dd" hidden></div></span></label>
+        <label>Third food (optional)<span class="v2-search fp-wrap"><input type="text" class="food-pick" placeholder="Optional third" aria-label="Third food (optional)" autocomplete="off"><div class="v2-dd" hidden></div></span></label>
+        <button type="submit" class="go-cmp" id="foodPickGo">Compare foods</button>
       </div>
-      <p class="pick-hint" id="foodPickHint"></p>
-    </div>`;
-  if (push !== false && history.pushState) {
-    try { history.pushState({ v: "cmpf" }, "", "/compare"); } catch (e) {}
-  }
-  sheet.querySelector(".close").addEventListener("click", closeDetail);
-  sheet.querySelectorAll(".fp-wrap").forEach(attachFoodTypeahead);
-  sheet.querySelector("#foodPickGo").addEventListener("click", () => {
-    const names = [...sheet.querySelectorAll(".food-pick")].map(i => i.value.trim()).filter(Boolean);
+      <p class="pick-hint" id="foodPickHint" role="status"></p>
+    </form>
+    <div id="foodCompareResults"></div>`;
+  page.querySelectorAll(".fp-wrap").forEach(attachFoodTypeahead);
+  page.querySelector("#foodCompareForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const names = [...page.querySelectorAll(".food-pick")].map(i => i.value.trim()).filter(Boolean);
     const matched = names.map(n => foodByName(n) || rankFoods(n, 1)[0]).filter(Boolean);
     const foods = [...new Map(matched.map(f => [f.id, f])).values()];
-    const hint = sheet.querySelector("#foodPickHint");
+    const hint = page.querySelector("#foodPickHint");
     if (foods.length < 2) {
       const bad = names.filter(n => !foodByName(n));
       hint.textContent = bad.length
@@ -2326,11 +2342,14 @@ function openCompareFoods(push) {
         : "Pick at least two different foods to compare.";
       return;
     }
-    openCompare(foods);
+    hint.textContent = "";
+    renderFoodComparison(foods);
+    document.getElementById("foodCompareResultTitle").focus();
   });
-  overlay.hidden = false;
-  document.body.style.overflow = "hidden";
-  sheet.querySelector(".close").focus();
+  page.querySelectorAll(".food-pick").forEach((input, i) => { input.value = selected[i]?.name || ""; });
+  showView("compare", push);
+  if (selected.length >= 2) renderFoodComparison(selected);
+  page.querySelector("#compareFoodsTitle").focus({ preventScroll: true });
 }
 
 function openCompareAAs(push) {
@@ -2373,7 +2392,7 @@ function navigateApp(act) {
   else if (act === "login") openAuthSheet(undefined, "login");
   else if (act === "comparefoods") openCompareFoods();
   else if (act === "compareaa") openCompareAAs();
-  else if (act === "method") { if (document.body.dataset.view === "account") showView("day"); document.getElementById("method").scrollIntoView({behavior:"smooth"}); }
+  else if (act === "method") { if (["account", "compare"].includes(document.body.dataset.view)) showView("day"); document.getElementById("method").scrollIntoView({behavior:"smooth"}); }
   if (window.__syncShell) window.__syncShell();
 }
 (function initMenu() {
@@ -2401,8 +2420,8 @@ function navigateApp(act) {
     if (desktopApp) { pop.hidden = true; btn.setAttribute("aria-expanded", String(!collapsed)); }
     btn.setAttribute("aria-controls", desktopApp ? "appSidebar" : "mobileMenu");
     btn.setAttribute("aria-label", desktopApp ? "Expand navigation" : "Menu");
-    const active = document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : "diary";
-    for (const nav of [sidebar, mobileNav]) nav.querySelectorAll("[data-act], [data-section]").forEach(b => { if((b.dataset.act || b.dataset.section) === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    const active = document.body.dataset.view === "compare" ? "comparefoods" : document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : "diary";
+    for (const nav of [sidebar, mobileNav]) nav.querySelectorAll("[data-act], [data-section]").forEach(b => { if((b.dataset.act || b.dataset.section) === (nav === mobileNav && active === "comparefoods" ? "atlas" : active)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   }
   pop.id = "mobileMenu";
   btn.addEventListener("click", e => {
@@ -3341,16 +3360,17 @@ updateDayBtn();
 
 /* ================= home views ================= */
 function showView(v, push) {
-  if (v === "home") delete document.body.dataset.view; else document.body.dataset.view = ["atlas", "account"].includes(v) ? v : "day";
+  if (v === "home") delete document.body.dataset.view; else document.body.dataset.view = ["atlas", "account", "compare"].includes(v) ? v : "day";
   document.getElementById("accountPage").hidden = v !== "account";
+  document.getElementById("compareFoodsPage").hidden = v !== "compare";
   if (v === "account") renderAccountPage();
-  const target = v === "account" ? document.getElementById("accountPage") : v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
+  const target = v === "compare" ? document.getElementById("compareFoodsPage") : v === "account" ? document.getElementById("accountPage") : v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
   if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   if (v === "atlas") renderGrid();
   if (window.__syncShell) window.__syncShell();
   /* keep the URL honest: /database is a real page, crawlable on its own */
   if (push !== false && history.pushState) {
-    try { history.pushState({ v }, "", v === "account" ? "/account" : v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
+    try { history.pushState({ v }, "", v === "compare" ? "/compare" : v === "account" ? "/account" : v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
   }
 }
 window.addEventListener("popstate", () => {
