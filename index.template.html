@@ -287,8 +287,8 @@
   }
   .meal-header { display: flex; align-items: center; min-height: 64px; padding: 0 10px; gap: 8px; }
   .meal-plus, .meal-toggle { border: 0; background: transparent; color: var(--ink); cursor: pointer; }
-  .meal-plus { flex: 0 0 44px; width: 44px; height: 44px; color: var(--c-bcaa); font-size: 30px; font-weight: 400; border-radius: 8px; }
-  .meal-plus:hover { background: var(--surface); }
+  .meal-plus { flex: 0 0 auto; min-height: 44px; padding: 8px 12px; background: var(--c-bcaa); color: #fff; font-size: 13px; font-weight: 600; border-radius: 8px; }
+  .meal-plus:hover { filter: brightness(1.1); }
   .meal-header h3 { flex: 1; min-width: 0; margin: 0; }
   .meal-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; padding: 8px 12px 8px 0; text-align: left; font: 600 18px var(--font-sans); }
   .meal-chevron { width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); flex-shrink: 0; margin: -5px 3px 0 0; }
@@ -473,7 +473,7 @@
   .menu-pop button:hover { background: var(--surface-2); }
   .menu-pop .mi-sub { display: block; font-size: 11.5px; font-weight: 400; color: var(--ink-3); margin-top: 1px; }
   .menu-pop .mi-rule { border: 0; border-top: 1px solid var(--line); margin: 6px 4px; }
-  /* ---------- previous days ---------- */
+  /* ---------- data over time ---------- */
   .hist-summary { font-size: 14.5px; color: var(--ink-2); margin: 14px 0 4px; }
   .hist-summary b { color: var(--c-bcaa); }
   .hist-chart { position: relative; display: flex; gap: 10px; align-items: flex-end; height: 168px; padding-bottom: 22px; margin: 10px 0 2px; }
@@ -540,6 +540,14 @@
   }
   .card { position: relative; }
   .card .compare-btn[aria-pressed="true"] { background: var(--c-bcaa); border-color: var(--c-bcaa); color: #fff; }
+  @media (max-width: 640px) {
+    .grid:not(.as-table) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .card { min-width: 0; padding: 10px; gap: 7px; }
+    .card h3 { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+    .card .meta { font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+    .card .badge { font-size: 10px; padding: 3px 5px; }
+    .card .compare-btn { width: 36px; height: 36px; top: 6px; right: 6px; font-size: 18px; }
+  }
   .empty { padding: 60px 0; color: var(--ink-3); text-align: center; font-size: 14px; }
 
   /* ---------- instrument table ---------- */
@@ -869,6 +877,7 @@
   .day-icon { width: 42px; min-width: 42px; height: 42px; border: 0; border-radius: 8px; background: transparent; color: var(--c-bcaa); font-size: 27px; }
   .day-icon:hover { background: var(--c-good-bg); }
   .day-icon:disabled { opacity: .3; cursor: default; }
+  .day-icon.day-add { width: 54px; min-width: 54px; padding: 0; font-size: 12px; font-weight: 600; line-height: 1.2; white-space: nowrap; }
   #daySelect { min-width: 0; max-width: 260px; background: transparent; color: var(--ink); border: 0; padding: 8px 2px; font: inherit; font-size: 18px; font-weight: 600; text-align: center; }
   .app-sidebar { position: fixed; inset: 0 auto 0 0; width: 248px; background: #211b2b; color: #e9e2f2; z-index: 35; padding: 22px 14px; display: flex; flex-direction: column; overflow-y: auto; }
   .sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 6px 28px; }
@@ -881,9 +890,33 @@
   .app-sidebar nav button:hover { background: #ffffff0c; }
   .app-sidebar nav button[aria-current] { background: #473256; color: #fff; }
   .app-sidebar nav button .nav-icon { font-size: 19px; color: #c4a1e5; width: 20px; flex-shrink: 0; }
-  .sidebar-foot { margin: auto 12px 0; padding-top: 45px; color: #aa99bd; font-size: 12px; line-height: 1.8; }
+  .sidebar-footer { margin-top: auto; padding-top: 36px; }
+  .sidebar-foot { margin: 0 12px 16px; color: #aa99bd; font-size: 12px; line-height: 1.8; }
+  .sidebar-signout { width: 100%; display: flex; align-items: center; gap: 12px; border: 1px solid #ffffff25; border-radius: 8px; padding: 12px; background: transparent; color: inherit; font-size: 14px; }
+  .sidebar-signout:hover { background: #ffffff0c; }
+  .sidebar-signout .nav-icon { width: 20px; font-size: 20px; }
+  .nav-error { font-size: 12px; color: #f6b9af; padding: 0 6px; }
+  #accountPage[hidden] { display: none; }
+  #accountPage { max-width: 960px; margin: 20px auto 60px; }
+  #accountPage h1 { font-size: 32px; margin: 0; }
+  #accountPage .sub { color: var(--ink-3); overflow-wrap: anywhere; }
+  #accountPage input { min-width: 0; max-width: 100%; }
+  #accountPage .acct-lab { flex-wrap: wrap; white-space: nowrap; max-width: 100%; }
+  body[data-view="account"] main.wrap > :not(#accountPage),
+  body[data-view="account"] header.site, body[data-view="account"] #method,
+  body[data-view="account"] #tray { display: none !important; }
+  .database-group > summary { display: flex; align-items: center; gap: 12px; padding: 13px 12px; border-radius: 8px; cursor: pointer; list-style: none; font-size: 14px; }
+  .database-group > summary::-webkit-details-marker { display: none; }
+  .database-group > summary .nav-icon { font-size: 19px; color: #c4a1e5; width: 20px; }
+  .database-group > summary .nav-chevron { margin-left: auto; transition: transform .15s; }
+  .database-group:not([open]) > summary .nav-chevron { transform: rotate(-90deg); }
+  .database-group:has([aria-current]) > summary { color: #fff; background: #ffffff0c; }
+  .database-links { margin: 2px 0 8px 22px; padding-left: 9px; border-left: 1px solid #ffffff25; }
+  .app-sidebar .database-links button { width: 100%; padding: 11px 10px; font-size: 13px; }
+  .menu-pop .database-group > summary { font-weight: 600; }
+  .menu-pop .database-links { margin-left: 12px; border-color: var(--line-strong); }
   .mobile-nav[hidden], .mobile-more[hidden] { display: none; }
-  .mobile-nav { position: fixed; inset: auto 0 0; z-index: 40; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: var(--bg); border-top: 1px solid var(--line-strong); padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 20px #211b2b08; }
+  .mobile-nav { position: fixed; inset: auto 0 0; z-index: 40; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--bg); border-top: 1px solid var(--line-strong); padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 20px #211b2b08; }
   .mobile-nav button { border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); min-height: 52px; padding: 5px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 600; }
   .mobile-nav button .nav-icon { font-size: 22px; line-height: 1; }
   .mobile-nav button[aria-current], .mobile-nav button[aria-expanded="true"] { background: var(--c-good-bg); color: var(--c-bcaa); }
@@ -906,6 +939,9 @@
     body.sidebar-collapsed .nav-text { display: none; }
     body.sidebar-collapsed .app-sidebar nav button { justify-content: center; gap: 0; min-height: 48px; padding: 12px 0; }
     body.sidebar-collapsed .nav-icon { text-align: center; }
+    body.sidebar-collapsed .sidebar-signout { justify-content: center; padding: 12px 0; }
+    body.sidebar-collapsed .database-group > summary { justify-content: center; min-height: 48px; padding: 12px 0; }
+    body.sidebar-collapsed .database-links, body.sidebar-collapsed .nav-chevron { display: none; }
     body.authed main.wrap { padding-top: 18px; }
     body.sidebar-open .topbar .menu-wrap { display: none; }
     body.authed .topbar .wrap { max-width: none; padding-left: 36px; padding-right: 36px; }
@@ -930,6 +966,8 @@
     #daySelect { max-width: 180px; font-size: 16px; }
     .diary-title { font-size: 28px; }
     .diary-intro { font-size: 14px; }
+    .meal-toggle { font-size: 16px; gap: 8px; padding-left: 6px; padding-right: 2px; }
+    .meal-plus { padding-inline: 10px; }
   }
 </style>
 
@@ -939,26 +977,40 @@
   <p class="sidebar-label">YOUR WORKSPACE</p>
   <nav>
     <button type="button" data-act="diary" aria-label="Food diary" title="Food diary"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-text">Food diary</span></button>
-    <button type="button" data-act="history" aria-label="Previous days" title="Previous days"><span class="nav-icon" aria-hidden="true">◷</span><span class="nav-text">Previous days</span></button>
-    <button type="button" data-act="atlas" aria-label="Food database" title="Food database"><span class="nav-icon" aria-hidden="true">▦</span><span class="nav-text">Food database</span></button>
-    <button type="button" data-act="comparefoods" aria-label="Compare foods" title="Compare foods"><span class="nav-icon" aria-hidden="true">⇄</span><span class="nav-text">Compare foods</span></button>
-    <button type="button" data-act="compareaa" aria-label="Compare amino acids" title="Compare amino acids"><span class="nav-icon" aria-hidden="true">◉</span><span class="nav-text">Compare amino acids</span></button>
+    <button type="button" data-act="history" aria-label="Data over time" title="Data over time"><span class="nav-icon" aria-hidden="true">◷</span><span class="nav-text">Data over time</span></button>
+    <details class="database-group" id="sidebarDatabase" open>
+      <summary aria-label="Database" title="Database"><span class="nav-icon" aria-hidden="true">▦</span><span class="nav-text">Database</span><span class="nav-chevron" aria-hidden="true">⌄</span></summary>
+      <div class="database-links">
+        <button type="button" data-act="atlas">Browse foods</button>
+        <button type="button" data-act="comparefoods">Compare foods</button>
+        <button type="button" data-act="compareaa">Compare amino acids</button>
+      </div>
+    </details>
     <button type="button" data-act="account" aria-label="Account & targets" title="Account & targets"><span class="nav-icon" aria-hidden="true">⚙</span><span class="nav-text">Account & targets</span></button>
     <button type="button" data-act="method" aria-label="How the numbers work" title="How the numbers work"><span class="nav-icon" aria-hidden="true">ⓘ</span><span class="nav-text">How the numbers work</span></button>
   </nav>
-  <p class="sidebar-foot">Your everyday foods.<br>A clearer picture of your protein.</p>
+  <div class="sidebar-footer">
+    <p class="sidebar-foot">Your everyday foods.<br>A clearer picture of your protein.</p>
+    <button type="button" class="sidebar-signout" data-act="signout" aria-label="Sign out" title="Sign out"><span class="nav-icon" aria-hidden="true">⇥</span><span class="nav-text">Sign out</span></button>
+    <p class="nav-error" id="sidebarSignoutError" role="status" hidden></p>
+  </div>
 </aside>
 <nav id="mobileNav" class="mobile-nav" hidden aria-label="Main navigation">
   <button type="button" data-act="diary"><span class="nav-icon" aria-hidden="true">▤</span><span>Diary</span></button>
-  <button type="button" data-act="atlas"><span class="nav-icon" aria-hidden="true">▦</span><span>Foods</span></button>
-  <button type="button" data-act="comparefoods" aria-haspopup="dialog"><span class="nav-icon" aria-hidden="true">⇄</span><span>Compare</span></button>
-  <button type="button" data-act="account" aria-haspopup="dialog"><span class="nav-icon" aria-hidden="true">⚙</span><span>Account</span></button>
+  <button type="button" id="mobileDatabaseToggle" data-section="atlas" aria-expanded="false" aria-controls="mobileDatabase"><span class="nav-icon" aria-hidden="true">▦</span><span>Database</span></button>
+  <button type="button" data-act="account"><span class="nav-icon" aria-hidden="true">⚙</span><span>Account</span></button>
   <button type="button" id="mobileMoreToggle" aria-expanded="false" aria-controls="mobileMore"><span class="nav-icon" aria-hidden="true">⋯</span><span>More</span></button>
 </nav>
-<div id="mobileMore" class="mobile-more" hidden role="group" aria-label="More navigation">
-  <button type="button" data-act="history">Previous days</button>
+<div id="mobileDatabase" class="mobile-more" hidden role="group" aria-label="Database navigation">
+  <button type="button" data-act="atlas">Browse foods</button>
+  <button type="button" data-act="comparefoods">Compare foods</button>
   <button type="button" data-act="compareaa">Compare amino acids</button>
+</div>
+<div id="mobileMore" class="mobile-more" hidden role="group" aria-label="More navigation">
+  <button type="button" data-act="history">Data over time</button>
   <button type="button" data-act="method">How the numbers work</button>
+  <button type="button" data-act="signout">Sign out</button>
+  <p id="mobileSignoutError" class="intake-help" role="status" hidden></p>
 </div>
 
 <div class="topbar">
@@ -969,11 +1021,16 @@
       <button class="burger menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
       <div class="menu-pop" hidden>
         <button data-act="addfoods">Add foods<span class="mi-sub">Log today, meal by meal</span></button>
-        <button data-act="history" data-account-only hidden>Previous days<span class="mi-sub">Analyse your diet over time</span></button>
+        <button data-act="history" data-account-only hidden>Data over time<span class="mi-sub">Analyse your diet over time</span></button>
         <hr class="mi-rule">
-        <button data-act="atlas">Amino acid database<span class="mi-sub">Browse every food's individual amino acid profile</span></button>
-        <button data-act="comparefoods">Compare foods<span class="mi-sub">Any two or three, side by side</span></button>
-        <button data-act="compareaa">Compare amino acids<span class="mi-sub">Role, daily need, richest sources</span></button>
+        <details class="database-group" open>
+          <summary>Database<span class="nav-chevron" aria-hidden="true">⌄</span></summary>
+          <div class="database-links">
+            <button data-act="atlas">Browse foods<span class="mi-sub">Every food's amino acid profile</span></button>
+            <button data-act="comparefoods">Compare foods<span class="mi-sub">Any two or three, side by side</span></button>
+            <button data-act="compareaa">Compare amino acids<span class="mi-sub">Role, daily need, richest sources</span></button>
+          </div>
+        </details>
         <button data-act="method">How the numbers work</button>
         <hr class="mi-rule">
         <div class="menu-auth" id="menuAuth" hidden></div>
@@ -1044,6 +1101,7 @@
 </div>
 
 <main class="wrap">
+  <section id="accountPage" hidden aria-labelledby="accountTitle"></section>
   <section class="product-demo" aria-labelledby="demoTitle">
     <div class="demo-intro"><h2 id="demoTitle">See your day in amino acids.</h2><p>From your first meal to the full picture.</p></div>
     <div class="demo-frame">
@@ -1067,7 +1125,7 @@
     <p class="v2-err" id="v2Err" hidden>Pick a food from the list first.</p>
     </div>
     <div class="v2-list" id="v2List"></div>
-    <p class="v2-hint" id="v2Hint">Tap + to search <b id="v2Count"></b> foods. Adjust each portion in grams, or explore the <a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</p>
+    <p class="v2-hint" id="v2Hint">Choose <b>Add food</b> beside a meal to search <b id="v2Count"></b> foods, then set your portion. Or explore the <a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</p>
     <div class="day-meta" id="dayMeta" hidden>
       <p id="dayFull" class="intake-help" hidden>Your week has seven saved days. Remove a day to make room for another.</p>
       <label class="dm-date">Date <input type="date" id="dayDate" aria-label="Date of this day"></label>
@@ -1800,7 +1858,7 @@ function closeDetail(push) {
   overlay.hidden = true; hideTip(); openDetailId = null;
   document.body.style.overflow = "";
   if (push !== false && /^\/(database\/|compare)/.test(location.pathname) && history.pushState) {
-    try { history.pushState({ v: "atlas" }, "", document.body.dataset.view === "atlas" ? "/database" : "/"); } catch (e) {}
+    try { history.pushState({ v: document.body.dataset.view }, "", document.body.dataset.view === "account" ? "/account" : document.body.dataset.view === "atlas" ? "/database" : "/"); } catch (e) {}
   }
   if (lastFocus) lastFocus.focus();
 }
@@ -2259,13 +2317,14 @@ function navigateApp(act) {
   else if (act === "diary" || act === "addfoods") {
     if (!overlay.hidden) closeDetail(); showView("day");
     if (act === "addfoods" && window.__v2OpenMeal) window.__v2OpenMeal(currentMeal);
-  } else if (act === "history") { if (requireAccount("See your previous days with a free account.")) openHistorySheet(); }
-  else if (act === "account") { authedUser ? openAccountSheet() : openAuthSheet(); }
+  } else if (act === "history") { if (requireAccount("See your data over time with a free account.")) openHistorySheet(); }
+  else if (act === "account") openAccountPage();
+  else if (act === "signout") signOutAccount();
   else if (act === "signup") openAuthSheet(undefined, "signup");
   else if (act === "login") openAuthSheet(undefined, "login");
   else if (act === "comparefoods") openCompareFoods();
   else if (act === "compareaa") openCompareAAs();
-  else if (act === "method") document.getElementById("method").scrollIntoView({behavior:"smooth"});
+  else if (act === "method") { if (document.body.dataset.view === "account") showView("day"); document.getElementById("method").scrollIntoView({behavior:"smooth"}); }
   if (window.__syncShell) window.__syncShell();
 }
 (function initMenu() {
@@ -2273,16 +2332,17 @@ function navigateApp(act) {
   const sidebar = document.getElementById("appSidebar");
   const toggle = document.getElementById("sidebarToggle");
   const mobileNav = document.getElementById("mobileNav"), more = document.getElementById("mobileMore"), moreToggle = document.getElementById("mobileMoreToggle");
+  const database = document.getElementById("mobileDatabase"), databaseToggle = document.getElementById("mobileDatabaseToggle"), sidebarDatabase = document.getElementById("sidebarDatabase");
   const desktop = matchMedia("(min-width: 1080px)");
   let collapsed = false;
-  const close = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); more.hidden = true; moreToggle.setAttribute("aria-expanded", "false"); };
+  const close = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); more.hidden = true; moreToggle.setAttribute("aria-expanded", "false"); database.hidden = true; databaseToggle.setAttribute("aria-expanded", "false"); };
   function sync() {
     const desktopApp = document.body.classList.contains("authed") && desktop.matches;
     const mobileApp = document.body.classList.contains("authed") && !desktop.matches;
     mobileNav.hidden = !mobileApp;
     document.body.classList.toggle("bottom-nav", mobileApp);
     if (mobileApp) { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); }
-    if (!mobileApp) { more.hidden = true; moreToggle.setAttribute("aria-expanded", "false"); }
+    if (!mobileApp) { more.hidden = true; moreToggle.setAttribute("aria-expanded", "false"); database.hidden = true; databaseToggle.setAttribute("aria-expanded", "false"); }
     sidebar.hidden = !desktopApp;
     document.body.classList.toggle("sidebar-open", !sidebar.hidden);
     document.body.classList.toggle("sidebar-collapsed", desktopApp && collapsed);
@@ -2292,8 +2352,8 @@ function navigateApp(act) {
     if (desktopApp) { pop.hidden = true; btn.setAttribute("aria-expanded", String(!collapsed)); }
     btn.setAttribute("aria-controls", desktopApp ? "appSidebar" : "mobileMenu");
     btn.setAttribute("aria-label", desktopApp ? "Expand navigation" : "Menu");
-    const active = document.body.dataset.view === "atlas" ? "atlas" : "diary";
-    for (const nav of [sidebar, mobileNav]) nav.querySelectorAll("[data-act]").forEach(b => { if(b.dataset.act === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    const active = document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : "diary";
+    for (const nav of [sidebar, mobileNav]) nav.querySelectorAll("[data-act], [data-section]").forEach(b => { if((b.dataset.act || b.dataset.section) === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   }
   pop.id = "mobileMenu";
   btn.addEventListener("click", e => {
@@ -2303,13 +2363,16 @@ function navigateApp(act) {
   });
   toggle.addEventListener("click", () => { collapsed = !collapsed; sync(); toggle.focus(); });
   moreToggle.addEventListener("click", () => { const open = more.hidden; close(); more.hidden = !open; moreToggle.setAttribute("aria-expanded", String(open)); });
-  for (const nav of [pop, sidebar, mobileNav, more]) nav.addEventListener("click", e => {
+  databaseToggle.addEventListener("click", () => { const open = database.hidden; close(); database.hidden = !open; databaseToggle.setAttribute("aria-expanded", String(open)); });
+  sidebarDatabase.querySelector("summary").addEventListener("click", e => { if (collapsed) { e.preventDefault(); collapsed = false; sidebarDatabase.open = true; sync(); } });
+  for (const nav of [pop, sidebar, mobileNav, more, database]) nav.addEventListener("click", e => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     close(); navigateApp(b.dataset.act);
     if (nav === more && !overlay.hidden) lastFocus = moreToggle;
+    if (nav === database && !overlay.hidden) lastFocus = databaseToggle;
   });
-  document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap, #mobileNav, #mobileMore")) close(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && (!pop.hidden || !more.hidden)) { const trigger = more.hidden ? btn : moreToggle; close(); trigger.focus(); } });
+  document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap, #mobileNav, #mobileMore, #mobileDatabase")) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && (!pop.hidden || !more.hidden || !database.hidden)) { const trigger = !database.hidden ? databaseToggle : more.hidden ? btn : moreToggle; close(); trigger.focus(); } });
   desktop.addEventListener("change", () => {close(); sync();});
   window.__syncShell = sync; sync();
 })();
@@ -2410,6 +2473,7 @@ async function syncOnLogin() {
   } catch (e) { return undefined; }
 }
 function renderAuthSlot(session) {
+  if (document.body.dataset.view === "account" && (!session || !document.getElementById("acctSave"))) renderAccountPage();
   document.body.classList.toggle("authed", !!(session && session.user));
   if (window.__syncShell) window.__syncShell();
   const signedIn = !!(session && session.user);
@@ -2421,7 +2485,7 @@ function renderAuthSlot(session) {
   if (!ACCOUNTS_ON) { slot.innerHTML = ""; return; }
   if (signedIn) {
     slot.innerHTML = `<button class="auth-btn ghost" id="authAcct" title="Account settings">Account</button>`;
-    slot.querySelector("#authAcct").addEventListener("click", openAccountSheet);
+    slot.querySelector("#authAcct").addEventListener("click", openAccountPage);
     if (menuAuth) menuAuth.innerHTML = '<button data-act="account">Account<span class="mi-sub">Targets, password, your data</span></button>';
   } else {
     slot.innerHTML = `<button class="auth-link" id="authLogin">Log in</button><button class="auth-btn" id="authIn">Sign up</button>`;
@@ -2503,8 +2567,38 @@ function openAuthSheet(gateMsg, mode, initialEmail = "") {
   document.body.style.overflow = "hidden";
   sheet.querySelector(initialEmail ? "#authPw" : "#authEmail").focus();
 }
-function openAccountSheet() {
-  lastFocus = document.activeElement;
+async function signOutAccount() {
+  const buttons = [...document.querySelectorAll('[data-act="signout"], #acctOut')];
+  buttons.forEach(b => { b.disabled = true; });
+  document.querySelectorAll('#sidebarSignoutError, #mobileSignoutError').forEach(e => { e.hidden = true; });
+  try {
+    const { error } = await sbReady().auth.signOut();
+    if (error) throw error;
+    if (!overlay.hidden) closeDetail();
+    document.getElementById("accountPage").innerHTML = "";
+    showView("home");
+  } catch (e) {
+    for (const id of ["sidebarSignoutError", "mobileSignoutError", "acctWipeMsg"]) {
+      const message = document.getElementById(id);
+      if (message) { message.hidden = false; message.textContent = "Could not sign out. Please try again."; }
+    }
+    if (document.body.classList.contains("bottom-nav")) {
+      document.getElementById("mobileMore").hidden = false;
+      document.getElementById("mobileMoreToggle").setAttribute("aria-expanded", "true");
+    }
+  } finally { buttons.forEach(b => { b.disabled = false; }); }
+}
+function openAccountPage() {
+  if (!overlay.hidden) closeDetail();
+  showView("account");
+}
+function renderAccountPage() {
+  const account = document.getElementById("accountPage");
+  if (!authedUser) {
+    account.innerHTML = '<h1 id="accountTitle" tabindex="-1">Your account</h1><p>Sign in to view your details and targets.</p><button type="button" class="auth-btn" id="accountLogin">Log in</button>';
+    account.querySelector("#accountLogin").addEventListener("click", () => openAuthSheet(undefined, "login"));
+    return;
+  }
   const email = (authedUser && authedUser.email) || "";
   const wUnit = store.getItem("aa_wunit") || "kg";
   const kg = +(store.getItem("aa_weight") || 75);
@@ -2513,11 +2607,10 @@ function openAccountSheet() {
   const vegan = store.getItem("aa_diet") === "vegan";
   const isPro = store.getItem("aa_acct_type") === "pro";
   const proRole = store.getItem("aa_acct_role") || "pt";
-  sheet.innerHTML = `
-    <div class="close-dock"><button class="close" aria-label="Close account">✕</button></div>
+  account.innerHTML = `
     <div class="sheet-top">
-      <div><h2 id="sheetTitle">Your account</h2>
-      <p class="sub">${email}</p></div>
+      <div><h1 id="accountTitle" tabindex="-1">Your account</h1>
+      <p class="sub" id="accountEmail"></p></div>
     </div>
     <div class="pick-block">
       <h3>Personal details</h3>
@@ -2563,53 +2656,50 @@ function openAccountSheet() {
       <p class="pick-hint" id="acctWipeMsg"></p>
       <p class="auth-note">Sign out keeps the copy on this device. Delete removes your synced days from your account and clears this device; it cannot be undone.</p>
     </div>`;
-  sheet.querySelector(".close").addEventListener("click", closeDetail);
-  const saveIntake = wireIntakeFields("acct");
-  sheet.querySelector("#acctType").addEventListener("change", e => {
-    sheet.querySelector("#acctRoleWrap").hidden = e.target.value !== "pro";
+  account.querySelector("#accountEmail").textContent = email;
+  const saveIntake = wireIntakeFields("acct", account);
+  account.querySelector("#acctType").addEventListener("change", e => {
+    account.querySelector("#acctRoleWrap").hidden = e.target.value !== "pro";
   });
-  sheet.querySelector("#acctSave").addEventListener("click", () => {
+  account.querySelector("#acctSave").addEventListener("click", () => {
     if (!saveIntake()) return;
-    saveAccountType(sheet.querySelector("#acctType").value, sheet.querySelector("#acctRole").value);
-    const unit = sheet.querySelector("#acctU").value;
-    const raw = +sheet.querySelector("#acctW").value;
+    saveAccountType(account.querySelector("#acctType").value, account.querySelector("#acctRole").value);
+    const unit = account.querySelector("#acctU").value;
+    const raw = +account.querySelector("#acctW").value;
     const kgVal = unit === "lb" ? (raw > 0 ? raw / LB_PER_KG : 75) : (raw > 0 ? raw : 75);
     store.setItem("aa_weight", Math.round(Math.max(30, Math.min(200, kgVal)) * 10) / 10);
     store.setItem("aa_wunit", unit);
-    const t = +sheet.querySelector("#acctT").value;
+    const t = +account.querySelector("#acctT").value;
     store.setItem("aa_thrive_g", t > 0 ? Math.max(30, Math.min(500, t)) : "");
-    store.setItem("aa_diet", sheet.querySelector("#acctDiet").value === "vegan" ? "vegan" : "");
+    store.setItem("aa_diet", account.querySelector("#acctDiet").value === "vegan" ? "vegan" : "");
     schedulePush();
     if (window.__v2Render) window.__v2Render();
-    sheet.querySelector("#acctMsg").innerHTML = '<span class="auth-msg">Saved.</span>';
+    account.querySelector("#acctMsg").innerHTML = '<span class="auth-msg">Saved.</span>';
   });
-  sheet.querySelector("#acctPwGo").addEventListener("click", async () => {
-    const m = sheet.querySelector("#acctPwMsg");
-    const p1 = sheet.querySelector("#acctPw1").value, p2 = sheet.querySelector("#acctPw2").value;
+  account.querySelector("#acctPwGo").addEventListener("click", async () => {
+    const m = account.querySelector("#acctPwMsg");
+    const p1 = account.querySelector("#acctPw1").value, p2 = account.querySelector("#acctPw2").value;
     if (p1.length < 6) { m.textContent = "At least 6 characters."; return; }
     if (p1 !== p2) { m.textContent = "The two passwords do not match."; return; }
     m.textContent = "Updating…";
     const { error } = await sbReady().auth.updateUser({ password: p1 });
     m.innerHTML = error ? "Could not update: " + error.message : '<span class="auth-msg">Password updated.</span>';
-    if (!error) { sheet.querySelector("#acctPw1").value = ""; sheet.querySelector("#acctPw2").value = ""; }
+    if (!error) { account.querySelector("#acctPw1").value = ""; account.querySelector("#acctPw2").value = ""; }
   });
-  sheet.querySelector("#acctEmGo").addEventListener("click", async () => {
-    const m = sheet.querySelector("#acctEmMsg");
-    const em = sheet.querySelector("#acctEm").value.trim();
+  account.querySelector("#acctEmGo").addEventListener("click", async () => {
+    const m = account.querySelector("#acctEmMsg");
+    const em = account.querySelector("#acctEm").value.trim();
     if (!em) { m.textContent = "Enter the new email address first."; return; }
     m.textContent = "Requesting…";
     const { error } = await sbReady().auth.updateUser({ email: em });
     m.innerHTML = error ? "Could not change it: " + error.message
       : '<span class="auth-msg">Confirmation sent.</span> Check the new address (and possibly the old one) and click the link to finish the change.';
   });
-  sheet.querySelector("#acctOut").addEventListener("click", async () => {
-    try { await sbReady().auth.signOut(); } catch (e) {}
-    closeDetail();
-  });
+  account.querySelector("#acctOut").addEventListener("click", signOutAccount);
   let wipeArmed = false;
-  sheet.querySelector("#acctWipe").addEventListener("click", async () => {
-    const m = sheet.querySelector("#acctWipeMsg");
-    const btn = sheet.querySelector("#acctWipe");
+  account.querySelector("#acctWipe").addEventListener("click", async () => {
+    const m = account.querySelector("#acctWipeMsg");
+    const btn = account.querySelector("#acctWipe");
     if (!wipeArmed) { wipeArmed = true; btn.textContent = "Click again to delete everything"; m.textContent = "This removes every synced day. There is no undo."; return; }
     m.textContent = "Deleting…";
     try {
@@ -2622,12 +2712,9 @@ function openAccountSheet() {
       btn.textContent = "Delete my synced data"; wipeArmed = false;
     } catch (e) { m.textContent = "Could not delete: " + e.message; }
   });
-  overlay.hidden = false;
-  document.body.style.overflow = "hidden";
-  sheet.querySelector(".close").focus();
 }
 
-/* ================= previous days: the week in review ================= */
+/* ================= data over time: the week in review ================= */
 function dayIntake(d) {
   let prot = 0, kcal = 0, kcalKnown = false;
   const totals = {}; AA_META.forEach(m => totals[m[0]] = 0);
@@ -2661,9 +2748,9 @@ function openHistorySheet() {
     ? `${logged.length} day${logged.length === 1 ? "" : "s"} logged · average <b>${avg.toFixed(0)} g protein</b> a day · target of ${target.toFixed(0)} g reached on ${hit} of ${logged.length}`
     : "Nothing logged yet. Add foods to today and it appears here.";
   sheet.innerHTML = `
-    <div class="close-dock"><button class="close" aria-label="Close previous days">✕</button></div>
+    <div class="close-dock"><button class="close" aria-label="Close data over time">✕</button></div>
     <div class="sheet-top">
-      <div><h2 id="sheetTitle">Previous days</h2>
+      <div><h2 id="sheetTitle">Data over time</h2>
       <p class="sub">The last ${WEEK_DAYS} days you logged, synced to your account. Open any day to view or edit it.</p></div>
     </div>
     <p class="hist-summary">${summary}</p>
@@ -2775,6 +2862,7 @@ function syncSignedInSession(session) {
   setTimeout(async () => {
     const remote = await syncOnLogin();
     if (!authedUser || authedUser.id !== userId) return;
+    if (document.body.dataset.view === "account") renderAccountPage();
     const newSignup = onboardAfterAuth || session.user.user_metadata?.needs_intake_setup;
     onboardAfterAuth = false;
     if (newSignup && remote !== undefined && !remote?.settings?.intakeCompleted) openOnboardSheet();
@@ -3189,17 +3277,20 @@ updateDayBtn();
 
 /* ================= home views ================= */
 function showView(v, push) {
-  if (v === "home") delete document.body.dataset.view; else document.body.dataset.view = v === "atlas" ? "atlas" : "day";
-  const target = v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
+  if (v === "home") delete document.body.dataset.view; else document.body.dataset.view = ["atlas", "account"].includes(v) ? v : "day";
+  document.getElementById("accountPage").hidden = v !== "account";
+  if (v === "account") renderAccountPage();
+  const target = v === "account" ? document.getElementById("accountPage") : v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
   if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   if (v === "atlas") renderGrid();
   if (window.__syncShell) window.__syncShell();
   /* keep the URL honest: /database is a real page, crawlable on its own */
   if (push !== false && history.pushState) {
-    try { history.pushState({ v }, "", v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
+    try { history.pushState({ v }, "", v === "account" ? "/account" : v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
   }
 }
 window.addEventListener("popstate", () => {
+  if (/^\/account\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("account", false); return; }
   const m = location.pathname.match(/^\/database\/([a-z0-9-]+)/);
   if (m) {
     const f = ATLAS.foods.find(x => x.slug === m[1]);
@@ -3389,7 +3480,7 @@ window.addEventListener("popstate", () => {
       <div class="day-center"><button type="button" class="day-icon" id="dayPrev" aria-label="Previous saved day"${soloDay || position === 0 ? " disabled" : ""}>‹</button>
       <select id="daySelect" aria-label="Choose diary day">${shown.map(({d,i}) => `<option value="${i}"${i === log.active ? " selected" : ""}>${label(d,i)}</option>`).join("")}</select>
       <button type="button" class="day-icon" id="dayNext" aria-label="Next saved day"${soloDay || position === ordered.length-1 ? " disabled" : ""}>›</button></div>
-      <button type="button" class="day-icon" id="dayAdd" aria-label="Add day" title="${log.days.length >= WEEK_DAYS ? 'Week full: open day options to remove a day first' : 'Add day'}"${!soloDay && log.days.length >= WEEK_DAYS ? ' disabled' : ''}>+</button>
+      <button type="button" class="day-icon day-add" id="dayAdd" aria-label="Add day" title="${log.days.length >= WEEK_DAYS ? 'Week full: open day options to remove a day first' : 'Add day'}"${!soloDay && log.days.length >= WEEK_DAYS ? ' disabled' : ''}>Add day</button>
       <button type="button" class="day-icon" id="dayMore" aria-label="Edit day date and notes" title="Edit date and notes">⋯</button>`;
     function selectDay(index) {
       const l = loadLog(); l.active = index; saveLog(l); editingMeal = null; hideDD(); render();
@@ -3449,11 +3540,11 @@ window.addEventListener("popstate", () => {
       const expanded = expandedMeals.has(key) ? expandedMeals.get(key) : idxs.length > 0;
       return `<div class="meal-group meal-${mk}">
         <div class="meal-header">
-          <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="Add food to ${ml}">+</button>
           <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span>${ml}</span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
+          <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="Add food to ${ml}">Add food</button>
         </div>
         <div class="meal-panel" id="meal-panel-${mk}" role="region" aria-labelledby="meal-toggle-${mk}" ${expanded ? "" : "hidden"}>
-          ${idxs.length ? idxs.map(([e, i]) => rowHtml(e, i)).join("") : '<p class="meal-empty">No foods yet. Tap + to add a food.</p>'}
+          ${idxs.length ? idxs.map(([e, i]) => rowHtml(e, i)).join("") : '<p class="meal-empty">No foods yet. Choose Add food to search and log your first one.</p>'}
         </div>
       </div>`;
     }).join("");
@@ -3600,7 +3691,7 @@ window.addEventListener("popstate", () => {
       ${gapsHtml}`;
 
     const toAcct = result.querySelector("#v2ToAcct");
-    if (toAcct) toAcct.addEventListener("click", openAccountSheet);
+    if (toAcct) toAcct.addEventListener("click", openAccountPage);
     const toSign = result.querySelector("#v2ToSignup");
     if (toSign) toSign.addEventListener("click", () => openAuthSheet("Set your body weight, activity level, protein target and optional calorie estimate."));
     $("v2Clear").addEventListener("click", () => {
@@ -3675,6 +3766,7 @@ window.addEventListener("popstate", () => {
 
 /* ================= URL boot: page view + food deep links ================= */
 (function bootURL() {
+  if (/^\/account\/?$/.test(location.pathname)) { showView("account", false); return; }
   if (new URLSearchParams(location.search).get("view") === "diary") showView("day", false);
   if (/^\/database/.test(location.pathname) || document.title.indexOf("database") !== -1) {
     showView("atlas", false);
