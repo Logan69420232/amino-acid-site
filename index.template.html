@@ -880,10 +880,32 @@
   .app-sidebar nav button { display: flex; align-items: center; gap: 12px; border: 0; border-radius: 8px; background: transparent; color: inherit; text-align: left; padding: 13px 12px; font-size: 14px; }
   .app-sidebar nav button:hover { background: #ffffff0c; }
   .app-sidebar nav button[aria-current] { background: #473256; color: #fff; }
-  .app-sidebar nav button span { font-size: 19px; color: #c4a1e5; width: 20px; }
+  .app-sidebar nav button .nav-icon { font-size: 19px; color: #c4a1e5; width: 20px; flex-shrink: 0; }
   .sidebar-foot { margin: auto 12px 0; padding-top: 45px; color: #aa99bd; font-size: 12px; line-height: 1.8; }
+  .mobile-nav[hidden], .mobile-more[hidden] { display: none; }
+  .mobile-nav { position: fixed; inset: auto 0 0; z-index: 40; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: var(--bg); border-top: 1px solid var(--line-strong); padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 20px #211b2b08; }
+  .mobile-nav button { border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); min-height: 52px; padding: 5px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 600; }
+  .mobile-nav button .nav-icon { font-size: 22px; line-height: 1; }
+  .mobile-nav button[aria-current], .mobile-nav button[aria-expanded="true"] { background: var(--c-good-bg); color: var(--c-bcaa); }
+  .mobile-more { position: fixed; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); right: 12px; z-index: 41; width: min(300px, calc(100vw - 24px)); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 14px; padding: 8px; box-shadow: var(--shadow); }
+  .mobile-more button { display: block; width: 100%; min-height: 48px; border: 0; border-radius: 8px; padding: 12px; background: transparent; color: var(--ink); text-align: left; font-size: 14px; }
+  .mobile-more button:hover { background: var(--c-good-bg); }
+  @media (max-width:1079px) {
+    body.bottom-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+    body.bottom-nav .topbar .menu-wrap, body.bottom-nav #authSlot { display: none; }
+    body.bottom-nav .tray { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+  }
   @media (min-width:1080px) {
     body.sidebar-open { padding-left: 248px; }
+    body.sidebar-collapsed { padding-left: 72px; }
+    body.sidebar-collapsed .app-sidebar { width: 72px; padding: 14px 8px; }
+    body.sidebar-collapsed .sidebar-head { justify-content: center; padding: 0 0 20px; }
+    body.sidebar-collapsed .sidebar-brand,
+    body.sidebar-collapsed .sidebar-label,
+    body.sidebar-collapsed .sidebar-foot,
+    body.sidebar-collapsed .nav-text { display: none; }
+    body.sidebar-collapsed .app-sidebar nav button { justify-content: center; gap: 0; min-height: 48px; padding: 12px 0; }
+    body.sidebar-collapsed .nav-icon { text-align: center; }
     body.authed main.wrap { padding-top: 18px; }
     body.sidebar-open .topbar .menu-wrap { display: none; }
     body.authed .topbar .wrap { max-width: none; padding-left: 36px; padding-right: 36px; }
@@ -916,16 +938,28 @@
   <div class="sidebar-head"><a href="/" class="sidebar-brand">AMINODATA<span>.ORG</span></a><button id="sidebarToggle" type="button" aria-label="Collapse navigation" aria-expanded="true" aria-controls="appSidebar">☰</button></div>
   <p class="sidebar-label">YOUR WORKSPACE</p>
   <nav>
-    <button type="button" data-act="diary"><span aria-hidden="true">▤</span> Food diary</button>
-    <button type="button" data-act="history"><span aria-hidden="true">◷</span> Previous days</button>
-    <button type="button" data-act="atlas"><span aria-hidden="true">▦</span> Food database</button>
-    <button type="button" data-act="comparefoods"><span aria-hidden="true">⇄</span> Compare foods</button>
-    <button type="button" data-act="compareaa"><span aria-hidden="true">◉</span> Compare amino acids</button>
-    <button type="button" data-act="account"><span aria-hidden="true">⚙</span> Account & targets</button>
-    <button type="button" data-act="method"><span aria-hidden="true">ⓘ</span> How the numbers work</button>
+    <button type="button" data-act="diary" aria-label="Food diary" title="Food diary"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-text">Food diary</span></button>
+    <button type="button" data-act="history" aria-label="Previous days" title="Previous days"><span class="nav-icon" aria-hidden="true">◷</span><span class="nav-text">Previous days</span></button>
+    <button type="button" data-act="atlas" aria-label="Food database" title="Food database"><span class="nav-icon" aria-hidden="true">▦</span><span class="nav-text">Food database</span></button>
+    <button type="button" data-act="comparefoods" aria-label="Compare foods" title="Compare foods"><span class="nav-icon" aria-hidden="true">⇄</span><span class="nav-text">Compare foods</span></button>
+    <button type="button" data-act="compareaa" aria-label="Compare amino acids" title="Compare amino acids"><span class="nav-icon" aria-hidden="true">◉</span><span class="nav-text">Compare amino acids</span></button>
+    <button type="button" data-act="account" aria-label="Account & targets" title="Account & targets"><span class="nav-icon" aria-hidden="true">⚙</span><span class="nav-text">Account & targets</span></button>
+    <button type="button" data-act="method" aria-label="How the numbers work" title="How the numbers work"><span class="nav-icon" aria-hidden="true">ⓘ</span><span class="nav-text">How the numbers work</span></button>
   </nav>
   <p class="sidebar-foot">Your everyday foods.<br>A clearer picture of your protein.</p>
 </aside>
+<nav id="mobileNav" class="mobile-nav" hidden aria-label="Main navigation">
+  <button type="button" data-act="diary"><span class="nav-icon" aria-hidden="true">▤</span><span>Diary</span></button>
+  <button type="button" data-act="atlas"><span class="nav-icon" aria-hidden="true">▦</span><span>Foods</span></button>
+  <button type="button" data-act="comparefoods" aria-haspopup="dialog"><span class="nav-icon" aria-hidden="true">⇄</span><span>Compare</span></button>
+  <button type="button" data-act="account" aria-haspopup="dialog"><span class="nav-icon" aria-hidden="true">⚙</span><span>Account</span></button>
+  <button type="button" id="mobileMoreToggle" aria-expanded="false" aria-controls="mobileMore"><span class="nav-icon" aria-hidden="true">⋯</span><span>More</span></button>
+</nav>
+<div id="mobileMore" class="mobile-more" hidden role="group" aria-label="More navigation">
+  <button type="button" data-act="history">Previous days</button>
+  <button type="button" data-act="compareaa">Compare amino acids</button>
+  <button type="button" data-act="method">How the numbers work</button>
+</div>
 
 <div class="topbar">
   <div class="wrap topbar-inner">
@@ -2237,18 +2271,29 @@ function navigateApp(act) {
 (function initMenu() {
   const wrap = document.querySelector(".menu-wrap"), btn = wrap.querySelector(".menu-btn"), pop = wrap.querySelector(".menu-pop");
   const sidebar = document.getElementById("appSidebar");
+  const toggle = document.getElementById("sidebarToggle");
+  const mobileNav = document.getElementById("mobileNav"), more = document.getElementById("mobileMore"), moreToggle = document.getElementById("mobileMoreToggle");
   const desktop = matchMedia("(min-width: 1080px)");
   let collapsed = false;
-  const close = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); };
+  const close = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); more.hidden = true; moreToggle.setAttribute("aria-expanded", "false"); };
   function sync() {
     const desktopApp = document.body.classList.contains("authed") && desktop.matches;
-    sidebar.hidden = !desktopApp || collapsed;
+    const mobileApp = document.body.classList.contains("authed") && !desktop.matches;
+    mobileNav.hidden = !mobileApp;
+    document.body.classList.toggle("bottom-nav", mobileApp);
+    if (mobileApp) { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); }
+    if (!mobileApp) { more.hidden = true; moreToggle.setAttribute("aria-expanded", "false"); }
+    sidebar.hidden = !desktopApp;
     document.body.classList.toggle("sidebar-open", !sidebar.hidden);
-    if (desktopApp) { pop.hidden = true; btn.setAttribute("aria-expanded", String(!sidebar.hidden)); }
+    document.body.classList.toggle("sidebar-collapsed", desktopApp && collapsed);
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+    toggle.setAttribute("aria-label", collapsed ? "Expand navigation" : "Collapse navigation");
+    toggle.title = collapsed ? "Expand navigation" : "Collapse navigation";
+    if (desktopApp) { pop.hidden = true; btn.setAttribute("aria-expanded", String(!collapsed)); }
     btn.setAttribute("aria-controls", desktopApp ? "appSidebar" : "mobileMenu");
     btn.setAttribute("aria-label", desktopApp ? "Expand navigation" : "Menu");
     const active = document.body.dataset.view === "atlas" ? "atlas" : "diary";
-    sidebar.querySelectorAll("[data-act]").forEach(b => { if(b.dataset.act === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    for (const nav of [sidebar, mobileNav]) nav.querySelectorAll("[data-act]").forEach(b => { if(b.dataset.act === active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   }
   pop.id = "mobileMenu";
   btn.addEventListener("click", e => {
@@ -2256,13 +2301,15 @@ function navigateApp(act) {
     if (document.body.classList.contains("authed") && desktop.matches) { collapsed = !collapsed; sync(); if(!sidebar.hidden) document.getElementById("sidebarToggle").focus(); }
     else { const open = pop.hidden; pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); }
   });
-  document.getElementById("sidebarToggle").addEventListener("click", () => { collapsed = true; sync(); btn.focus(); });
-  for (const nav of [pop, sidebar]) nav.addEventListener("click", e => {
+  toggle.addEventListener("click", () => { collapsed = !collapsed; sync(); toggle.focus(); });
+  moreToggle.addEventListener("click", () => { const open = more.hidden; close(); more.hidden = !open; moreToggle.setAttribute("aria-expanded", String(open)); });
+  for (const nav of [pop, sidebar, mobileNav, more]) nav.addEventListener("click", e => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     close(); navigateApp(b.dataset.act);
+    if (nav === more && !overlay.hidden) lastFocus = moreToggle;
   });
-  document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap")) close(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && !pop.hidden) {close(); btn.focus();} });
+  document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap, #mobileNav, #mobileMore")) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && (!pop.hidden || !more.hidden)) { const trigger = more.hidden ? btn : moreToggle; close(); trigger.focus(); } });
   desktop.addEventListener("change", () => {close(); sync();});
   window.__syncShell = sync; sync();
 })();
