@@ -440,6 +440,18 @@
   .v2-share-links a:hover { border-color: var(--ink-3); color: var(--ink); }
   .v2-share-msg { display: block; margin-top: 16px; font-size: 13px; color: var(--c-bcaa); overflow-wrap: anywhere; }
   .v2-share-msg[hidden] { display: none; }
+  .feedback-dialog { width: min(480px, calc(100% - 32px)); max-height: calc(100dvh - 40px); box-sizing: border-box; padding: 24px; margin: auto; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); color: var(--ink); overflow-y: auto; }
+  .feedback-dialog::backdrop { background: rgba(23, 22, 26, 0.45); }
+  .feedback-dialog .feedback-intro { margin: 0 0 20px; font-size: 14px; color: var(--ink-2); }
+  .feedback-field { display: grid; gap: 8px; margin-bottom: 18px; font-size: 14px; font-weight: 600; }
+  .feedback-field select, .feedback-field textarea { width: 100%; min-width: 0; box-sizing: border-box; min-height: 44px; padding: 11px 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; font-weight: 400; }
+  .feedback-field textarea { resize: vertical; min-height: 150px; }
+  .feedback-help { margin: 0 0 16px; font-size: 12px; color: var(--ink-3); }
+  .feedback-submit { width: 100%; min-height: 48px; border: 0; border-radius: 10px; background: var(--c-bcaa); color: white; font-size: 15px; font-weight: 600; }
+  .feedback-copy { display: block; margin: 10px auto 0; min-height: 44px; border: 0; background: transparent; color: var(--c-bcaa); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+  .feedback-help a { color: inherit; overflow-wrap: anywhere; }
+  .feedback-status { font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+  .footer-feedback { display: block; padding: 10px 0; margin-top: 8px; min-height: 44px; border: 0; background: transparent; color: var(--c-bcaa); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
   .v2-shared { background: var(--c-good-bg); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; }
   .v2-clear { border: 1px solid var(--line-strong); background: transparent; color: var(--ink-3); border-radius: 999px; padding: 5px 12px; font-size: 12px; margin-left: auto; }
   /* ---------- toolbar ---------- */
@@ -1054,6 +1066,7 @@
     <button type="button" data-act="method" aria-label="How the numbers work" title="How the numbers work"><span class="nav-icon" aria-hidden="true">ⓘ</span><span class="nav-text">How the numbers work</span></button>
   </nav>
   <div class="sidebar-footer">
+    <button type="button" class="sidebar-signout" data-act="feedback" aria-label="Send feedback" title="Send feedback"><span class="nav-icon" aria-hidden="true">✉</span><span class="nav-text">Send feedback</span></button>
     <p class="sidebar-foot">Your everyday foods.<br>A clearer picture of your protein.</p>
     <button type="button" class="sidebar-signout" data-act="signout" aria-label="Sign out" title="Sign out"><span class="nav-icon" aria-hidden="true">⇥</span><span class="nav-text">Sign out</span></button>
     <p class="nav-error" id="sidebarSignoutError" role="status" hidden></p>
@@ -1071,6 +1084,7 @@
   <button type="button" data-act="compareaa">Compare amino acids</button>
 </div>
 <div id="mobileMore" class="mobile-more" hidden role="group" aria-label="More navigation">
+  <button type="button" data-act="feedback">Send feedback</button>
   <button type="button" data-act="history">Data over time</button>
   <button type="button" data-act="method">How the numbers work</button>
   <button type="button" data-act="signout">Sign out</button>
@@ -1096,6 +1110,7 @@
           </div>
         </details>
         <button data-act="method">How the numbers work</button>
+        <button data-act="feedback">Send feedback</button>
         <hr class="mi-rule">
         <div class="menu-auth" id="menuAuth" hidden></div>
       </div>
@@ -1246,11 +1261,29 @@
   </div>
 </section>
 
+<dialog id="feedbackDialog" class="feedback-dialog" aria-labelledby="feedbackTitle" aria-describedby="feedbackIntro">
+  <div class="v2-share-head"><h2 id="feedbackTitle">Send feedback</h2><button type="button" class="v2-share-close" id="feedbackClose" aria-label="Close feedback">×</button></div>
+  <p id="feedbackIntro" class="feedback-intro">Found a problem or have an idea? Help us improve Aminodata.</p>
+  <form id="feedbackForm">
+    <label class="feedback-field">What's it about?
+      <select id="feedbackCategory" name="category"><option>Suggestion</option><option>Something isn't working</option><option>Food data correction</option><option>Other</option></select>
+    </label>
+    <label class="feedback-field">Your feedback
+      <textarea id="feedbackMessage" name="message" required maxlength="2000" placeholder="Tell us what happened or what would make the site better…" aria-describedby="feedbackHelp"></textarea>
+    </label>
+    <p id="feedbackHelp" class="feedback-help">Up to 2,000 characters. Your email app will open a draft to <a href="mailto:logan@nfsupplements.co.uk">logan@nfsupplements.co.uk</a> for you to review and send. We include the page you were viewing.</p>
+    <button type="submit" class="feedback-submit" id="feedbackSubmit">Open email draft</button>
+    <button type="button" class="feedback-copy" id="feedbackCopy">Copy message instead</button>
+    <p id="feedbackStatus" class="feedback-status" role="status" hidden></p>
+  </form>
+</dialog>
+
 <footer class="site">
   <div class="wrap">
     <img class="avatar" src="/assets/logan-king.jpg" alt="Logan King" width="30" height="30" loading="lazy"><img class="avatar" src="/assets/paul-morgan.jpg" alt="Dr Paul T Morgan" width="30" height="30" loading="lazy"> Made by <a href="https://logantalkshealth.com/" rel="author">Logan King</a> and <a href="https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan" rel="author">Dr Paul T Morgan</a>, Senior Lecturer in Human Nutrition and Metabolism at Manchester Metropolitan University, Registered Sport and Exercise Nutritionist (SENr).<br>
     Amino Atlas · Educational reference, not medical advice. Compiled from public analytical data; corrections welcome.<br>
     <span style="font-family:var(--font-mono);font-size:11px">Cite: Amino Atlas (2026), aminodata.org · Data: USDA FoodData Central, SR Legacy · Scoring: WHO/FAO/UNU (2007)</span>
+    <button type="button" class="footer-feedback" id="footerFeedback">Send feedback</button>
   </div>
 </footer>
 
@@ -2383,6 +2416,56 @@ function openCompareAAs(push) {
 }
 
 /* ================= navigation ================= */
+let feedbackFocus = null, feedbackPath = "/";
+function openFeedback() {
+  const dialog = document.getElementById("feedbackDialog");
+  if (dialog.open) return;
+  const trigger = document.activeElement;
+  feedbackFocus = trigger.closest("#mobileMore") ? document.getElementById("mobileMoreToggle")
+    : trigger.closest(".menu-pop") ? document.querySelector(".menu-btn") : trigger;
+  // Do not include diary share hashes, selected foods, or other URL parameters.
+  feedbackPath = location.pathname;
+  document.getElementById("feedbackStatus").hidden = true;
+  dialog.showModal();
+  document.getElementById("feedbackMessage").focus();
+}
+(function wireFeedback() {
+  const dialog = document.getElementById("feedbackDialog"), form = document.getElementById("feedbackForm");
+  const message = document.getElementById("feedbackMessage"), status = document.getElementById("feedbackStatus");
+  const contents = () => {
+    message.setCustomValidity(message.value.trim() ? "" : "Please write your feedback first.");
+    if (!form.reportValidity()) return null;
+    return {
+      subject: "Aminodata feedback: " + document.getElementById("feedbackCategory").value,
+      body: message.value.trim() + "\n\nPage: https://www.aminodata.org" + feedbackPath
+    };
+  };
+  const say = text => { status.textContent = text; status.hidden = false; };
+  document.getElementById("footerFeedback").addEventListener("click", openFeedback);
+  document.getElementById("feedbackClose").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("close", () => { if (feedbackFocus?.isConnected) feedbackFocus.focus(); });
+  dialog.addEventListener("click", e => {
+    const r = dialog.getBoundingClientRect();
+    if (e.target === dialog && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) dialog.close();
+  });
+  message.addEventListener("input", () => message.setCustomValidity(""));
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const data = contents(); if (!data) return;
+    const link = document.createElement("a");
+    link.href = "mailto:logan@nfsupplements.co.uk?subject=" + encodeURIComponent(data.subject) + "&body=" + encodeURIComponent(data.body);
+    link.click();
+    say("Your email app should open with your draft. Review it and press Send there. If it doesn't open, use Copy message instead.");
+  });
+  document.getElementById("feedbackCopy").addEventListener("click", async () => {
+    const data = contents(); if (!data) return;
+    let copied = false;
+    try { await navigator.clipboard.writeText(data.subject + "\n\n" + data.body); copied = true; } catch (e) {}
+    say(copied ? "Copied. Paste it into an email to logan@nfsupplements.co.uk." : "Couldn't copy automatically. Select your feedback above and copy it into an email to logan@nfsupplements.co.uk.");
+  });
+  window.__resetFeedback = () => { feedbackFocus = null; if (dialog.open) dialog.close(); form.reset(); message.setCustomValidity(""); status.hidden = true; };
+})();
+
 function navigateApp(act) {
   if (act === "atlas") showView("atlas");
   else if (act === "diary" || act === "addfoods") {
@@ -2393,6 +2476,7 @@ function navigateApp(act) {
   else if (act === "signout") signOutAccount();
   else if (act === "signup") openAuthSheet(undefined, "signup");
   else if (act === "login") openAuthSheet(undefined, "login");
+  else if (act === "feedback") openFeedback();
   else if (act === "comparefoods") openCompareFoods();
   else if (act === "compareaa") openCompareAAs();
   else if (act === "method") { if (["account", "compare"].includes(document.body.dataset.view)) showView("day"); document.getElementById("method").scrollIntoView({behavior:"smooth"}); }
@@ -2951,6 +3035,7 @@ function applyAccountSession(session) {
     _syncReadyOwner = null;
     intakeSyncUser = null;
     store.setOwner(user?.id);
+    if (window.__resetFeedback) window.__resetFeedback();
     document.getElementById("accountPage").innerHTML = "";
     if (!overlay.hidden && !sheet.querySelector("#authForm")) closeDetail(false);
     if (window.__v2ResetAccount) window.__v2ResetAccount();
