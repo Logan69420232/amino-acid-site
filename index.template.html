@@ -1205,7 +1205,7 @@
     <p class="v2-err" id="v2Err" hidden>Pick a food from the list first.</p>
     </div>
     <div class="v2-list" id="v2List"></div>
-    <p class="v2-hint" id="v2Hint">Choose <b>Add food</b> beside a meal to search <b id="v2Count"></b> foods, then set your portion. Or explore the <a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</p>
+    <p class="v2-hint" id="v2Hint">Choose a <b>meal name</b> or <b>Add food</b> to search <b id="v2Count"></b> foods, then set your portion. Or explore the <a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</p>
     <div class="day-meta" id="dayMeta" hidden>
       <p id="dayFull" class="intake-help" hidden>Your week has seven saved days. Remove a day to make room for another.</p>
       <label class="dm-date">Date <input type="date" id="dayDate" aria-label="Date of this day"></label>
@@ -3750,13 +3750,15 @@ window.addEventListener("popstate", () => {
           <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="Add food to ${ml}">Add food</button>
         </div>
         <div class="meal-panel" id="meal-panel-${mk}" role="region" aria-labelledby="meal-toggle-${mk}" ${expanded ? "" : "hidden"}>
-          ${idxs.length ? idxs.map(([e, i]) => rowHtml(e, i)).join("") : '<p class="meal-empty">No foods yet. Choose Add food to search and log your first one.</p>'}
+          ${idxs.length ? idxs.map(([e, i]) => rowHtml(e, i)).join("") : '<p class="meal-empty">No foods yet. Choose the meal name or Add food to start searching.</p>'}
         </div>
       </div>`;
     }).join("");
     list.querySelectorAll("[data-add-meal]").forEach(b => b.addEventListener("click", () => openMeal(b.dataset.addMeal)));
     list.querySelectorAll(".meal-toggle").forEach(b => b.addEventListener("click", () => {
-      const m = b.dataset.meal, expanded = b.getAttribute("aria-expanded") !== "true";
+      const m = b.dataset.meal;
+      if (editingMeal !== m) { openMeal(m); return; }
+      const expanded = b.getAttribute("aria-expanded") !== "true";
       expandedMeals.set(mealKey(m), expanded);
       if (!expanded && editingMeal === m) { editingMeal = null; hideDD(); }
       render(); $("meal-toggle-" + m).focus();
