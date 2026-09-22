@@ -11,16 +11,18 @@ function nutritionDashboard(day) {
     return Nutrition.format(t.value)+' '+unit+(t.trace?' + trace':'');
   }
   function row(d) {
-    const t=total(d.key);
-    return `<details class="nutrition-row" data-nutrient="${d.key}"><summary><span>${esc(d.label)}</span><span class="nutrition-amount">${display(t,d.unit)}${t.missing&&t.value!==null?'<small>Partial</small>':''}</span></summary>
+    const t=total(d.key), dv=Nutrition.dailyValue(d.key,t);
+    return `<details class="nutrition-row" data-nutrient="${d.key}"><summary><span>${esc(d.label)}</span><span class="nutrition-amount">${display(t,d.unit)}${t.missing&&t.value!==null?'<small>Partial amount</small>':''}<span class="nutrition-dv" data-dv="${d.key}">${esc(dv.label)}${dv.percent!==null&&dv.partial?'<small>Partial reference %</small>':''}</span></span></summary>
+      <p>${dv.reference?'100% DV = '+Nutrition.format(dv.reference)+' '+esc(d.unit)+'. ':''}${esc(dv.reason)}${['sodium','saturated_fat','cholesterol'].includes(d.key)?' This is a limit reference, not a goal to fill.':''}</p>
       <p>Measured or reported amounts available for ${t.known} of ${day.length} logged entries.${t.trace?' '+t.trace+' report a trace amount, not included in the numeric total.':''}${t.missing?' Missing data for: '+t.missingFoods.map(esc).join('; ')+'.':''}</p></details>`;
   }
   const sources=day.map(e=>foodByName(e.name)).filter((f,i,a)=>a.findIndex(x=>x.key===f.key)===i);
   return `<section class="nutrition-dashboard" aria-labelledby="nutritionTitle">
     <h2 class="v2-sec" id="nutritionTitle">Your nutrition · day total</h2>
     <p class="v2-note">Amounts from the foods and portions you logged. <b>Partial</b> means some foods have no value recorded; <b>Unknown</b> is not zero. These totals are not personalised targets or a deficiency assessment.</p>
+    <p class="v2-note nutrition-dv-note"><b>%DV · US FDA Daily Values</b> (adults and ages 4+). A general label reference, not your personal requirement or the UK NRV. 100% is not a safety ceiling, and higher is not always better. Partial percentages use only available amounts. <a href="${Nutrition.dailyValueSource}" target="_blank" rel="noopener">Reference values</a> · tap a nutrient for details.</p>
     <div class="nutrition-macros">${macros.map(([key,label,unit])=>{
-      const t=total(key);return `<div class="v2-stat"><div class="k">${label}</div><div class="v" data-macro="${key}">${display(t,unit)}</div>${t.missing?`<small>${t.known||t.trace?'Partial · ':''}${t.missing} entr${t.missing===1?'y':'ies'} missing data</small>`:''}</div>`;
+      const t=total(key),dv=Nutrition.dailyValue(key,t);return `<div class="v2-stat"><div class="k">${label}</div><div class="v" data-macro="${key}">${display(t,unit)}</div>${dv.reference?`<span class="nutrition-dv">${esc(dv.label)}${dv.percent!==null&&dv.partial?' · partial':''}</span>`:''}${t.missing?`<small>${t.known||t.trace?'Partial · ':''}${t.missing} entr${t.missing===1?'y':'ies'} missing data</small>`:''}</div>`;
     }).join('')}</div>
     <div class="nutrition-panels">${['Vitamins','Minerals','More nutrition'].map(group=>`<details class="nutrition-panel" ${group!=='More nutrition'?'open':''}>
       <summary>${group==='More nutrition'?'Carbohydrates, sugars & fats':group}</summary>
