@@ -64,3 +64,47 @@ test('enrichment requires an exact citation, retains saved names/macros and crea
   assert.ok(extras.some(f=>f.name==='Watercress, raw (UK)'));
   for(const f of extras) for(const v of Object.values(f.nutrients)) assert.ok(v==='trace'||(typeof v==='number'&&Number.isFinite(v)&&v>=0));
 });
+
+test('FDA percentages use matching units and uncapped unrounded amounts', () => {
+  const total=value=>({value,known:1,missing:0,trace:0});
+  assert.equal(Nutrition.dailyValue('calcium',total(650)).label,'50% DV');
+  assert.equal(Nutrition.dailyValue('vitamin_c',total(90)).label,'100% DV');
+  assert.equal(Nutrition.dailyValue('vitamin_b12',total(4.8)).label,'200% DV');
+  assert.equal(Nutrition.dailyValue('selenium',total(27.5)).label,'50% DV');
+  assert.equal(Nutrition.dailyValue('sodium',total(4600)).label,'200% DV');
+  assert.equal(Nutrition.dailyValue('vitamin_c',total(0.1)).label,'<1% DV');
+  const lentils=Nutrition.total([{name:'lentils',g:120}],()=>({nutrients:usda.records['172421'].nutrients}),'vitamin_c');
+  assert.equal(Nutrition.dailyValue('vitamin_c',lentils).label,'2% DV');
+  assert.ok(Math.abs(Nutrition.dailyValue('vitamin_c',lentils).percent-2)<1e-10);
+});
+
+test('DV keeps zero, unknown, trace and incomplete coverage distinct', () => {
+  assert.equal(Nutrition.dailyValue('iron',{value:0}).label,'0% DV');
+  for(const value of [null,undefined,NaN,-1,Infinity]) assert.equal(Nutrition.dailyValue('iron',{value,trace:1}).percent,null);
+  const partial=Nutrition.dailyValue('iron',{value:9,missing:1});
+  assert.equal(partial.label,'50% DV');assert.equal(partial.partial,true);
+  assert.equal(Nutrition.dailyValue('iron',{value:9,trace:1}).partial,true);
+  assert.equal(Nutrition.dailyValue('vitamin_k',{value:120}).partial,true);
+  assert.match(Nutrition.dailyValue('vitamin_k',{value:120}).reason,/K1 only/);
+});
+
+test('incompatible measurements and nutrients without a DV never receive a percentage', () => {
+  for(const key of ['folate','niacin','vitamin_a_re','vitamin_d_uk','vitamin_e_uk','carb_uk']) {
+    const dv=Nutrition.dailyValue(key,{value:100});assert.equal(dv.percent,null);assert.equal(dv.label,'DV unavailable');assert.ok(dv.reason.length>20);
+  }
+  for(const key of ['sugars','sugars_uk','mono_fat','poly_fat']) assert.equal(Nutrition.dailyValue(key,{value:100}).label,'No DV set');
+});
+
+test('dashboard labels its FDA reference, partial percentages, limit references and unavailable forms', () => {
+  const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
+  const foods={a:{key:'a',name:'A',nutritionSource:{dataset:'USDA',id:'172421',name:'A'},nutrients:{vitamin_c:0.1,iron:9,sodium:2300}},b:{key:'b',name:'B',nutrients:{}}};
+  const context=vm.createContext({Nutrition,foodByName:name=>foods[name]});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../nutrition-ui.js'),'utf8'),context);
+  const html=context.nutritionDashboard([{name:'a',g:100},{name:'b',g:100}]);
+  assert.match(html,/%DV · US FDA Daily Values/);
+  assert.match(html,/&lt;1% DV/);
+  assert.match(html,/50% DV<small>Partial reference %/);
+  assert.match(html,/100% DV = 2,300 mg/);
+  assert.match(html,/limit reference, not a goal to fill/);
+  assert.match(html,/dietary folate equivalents/);
+});

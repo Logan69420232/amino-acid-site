@@ -25,6 +25,12 @@ Nutrition-only foods do not receive an invented amino-acid profile. If a day inc
 
 USDA total carbohydrate by difference differs from CoFID available carbohydrate expressed as monosaccharide equivalents. Sugars are also kept separate by dataset. Vitamin A RAE (USDA) and RE (CoFID), vitamin D D2+D3 (USDA) and CoFID total (including weighted 25-hydroxy forms where present), and vitamin E alpha-tocopherol (USDA) and CoFID total are not summed together. Separate rows show their amounts and missing coverage. Folate is total folate, not dietary folate equivalents; vitamin K is K1. Fatty-acid imports use grams per 100 g food, not grams per 100 g total fatty acids. Units are checked during both imports.
 
+## Daily Value percentages
+
+The dashboard compares compatible nutrient amounts with the [FDA's current label Daily Values](https://www.fda.gov/food/nutrition-facts-label/daily-value-nutrition-and-supplement-facts-labels), verified 22 September 2026. These are the general reference for adults and children aged 4+, not UK NRVs or personalised age/sex/activity targets. The existing personal protein target is unchanged. Percentages use unrounded amounts divided by the reference, multiplied by 100, then display as whole percentages (positive values below 1% display `<1%`). They are not capped at 100 or coloured as a success/failure score. Sodium, saturated fat and cholesterol have explicit limit-reference notes.
+
+Missing/trace-only quantities show DV unavailable; known zeros show 0%. Known subtotals with missing or trace data are labelled partial. Vitamin K percentages are explicitly partial because only K1 is recorded. Total sugars, monounsaturated fat and polyunsaturated fat have no FDA DV. No percentage is invented for incompatible forms: total folate vs DFE, niacin vs NE, CoFID RE vs RAE, CoFID vitamin D/E totals, or available vs total carbohydrate. Expanding each row explains its denominator or why DV is unavailable. Macro cards show the compatible fat, fibre and USDA carbohydrate DVs; personal protein progress remains separate.
+
 ## Verification
 
 `scripts/test-nutrition.js` checks portion scaling, zero/unknown/trace handling, analytical separation, the CoFID duplicate-code case, source matching, preserved saved-food identities and unique new keys. Browser verification should cover search/filter/add/edit/reload, mixed-source totals, unavailable amino-acid presentation, shared links, account isolation and mobile overflow.
