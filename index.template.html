@@ -380,6 +380,17 @@
   .v2-verdict .short { color: var(--c-limit); font-weight: 600; }
   .v2-overview { display: grid; grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.5fr); gap: 24px; align-items: start; margin-bottom: 24px; }
   .v2-bloom { max-width: 320px; margin: 0 auto; }
+  .v2-bloom-toggle { display: block; width: 100%; padding: 0 0 10px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--c-bcaa); cursor: zoom-in; }
+  .v2-bloom-toggle:hover { background: var(--surface-2); border-color: var(--line); }
+  .v2-bloom-toggle:focus-visible { outline: 2px solid var(--c-bcaa); outline-offset: 4px; }
+  .v2-bloom-toggle > svg { display: block; }
+  .v2-bloom-hint { display: flex; gap: 6px; align-items: center; justify-content: center; font: 500 13px var(--font-sans); }
+  .v2-share-dialog.v2-bloom-dialog { width: min(960px, calc(100% - 24px)); max-height: calc(100dvh - 24px); padding: 16px; }
+  .v2-bloom-dialog .v2-share-head { position: sticky; top: -16px; padding: 8px 0; background: var(--surface); z-index: 1; }
+  .v2-bloom-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+  .v2-bloom-scroll > svg { display: block; min-width: 820px; }
+  .v2-bloom-pan-hint { display: none; }
+  @media (max-width: 880px) { .v2-bloom-pan-hint { display: block; } }
   .v2-overview .v2-sec { margin-top: 0; }
   .v2-nutrients { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
   .v2-nutrient-panel { min-width: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
@@ -3879,7 +3890,7 @@ window.addEventListener("popstate", () => {
       <div class="v2-overview">
         <div>
           <div class="v2-sec">The shape of your day</div>
-          <div class="v2-bloom">${bloom}</div>
+          <button type="button" class="v2-bloom v2-bloom-toggle" id="openDayBloom" aria-label="Enlarge the shape of your day chart" aria-haspopup="dialog" aria-controls="dayBloomDialog">${bloom}<span class="v2-bloom-hint"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>Enlarge chart</span></button>
           <p class="v2-note">Combined amino acid profile of everything you added, per 100 g of protein. Ray length is grams; the darkest rays are BCAAs, the mid tone other essentials, grey non-essentials.</p>
         </div>
         <div>
@@ -3900,6 +3911,12 @@ window.addEventListener("popstate", () => {
           </div>` : ""}
         </div>
       </div>
+      <dialog class="v2-share-dialog v2-bloom-dialog" id="dayBloomDialog" aria-labelledby="dayBloomTitle" aria-describedby="dayBloomDescription">
+        <div class="v2-share-head"><h2 id="dayBloomTitle">The shape of your day</h2><button type="button" class="v2-share-close" id="closeDayBloom" aria-label="Close enlarged chart" autofocus>×</button></div>
+        <p id="dayBloomDescription">Your combined amino acid profile, in grams per 100 g of protein. Dark purple: BCAAs · lighter purple: other essentials · grey: non-essentials.</p>
+        <p class="v2-bloom-pan-hint">Swipe across the chart to see all labels.</p>
+        <div class="v2-bloom-scroll" tabindex="0" role="region" aria-label="Enlarged amino acid chart; scroll horizontally to explore">${bloom}</div>
+      </dialog>
       <div class="v2-sec">Your amino acids · day total</div>
           <p class="cov-legend"><span class="lgt base"></span> baseline requirement, WHO/FAO 2007 at your weight · <span class="lgt tgt"></span> your target, baseline scaled ×${aaScale.toFixed(1)} (our assumption) · <span class="lgt band"></span> indicative ±10% data variation</p>
       ${eaaRows}
@@ -3920,6 +3937,19 @@ window.addEventListener("popstate", () => {
     result.querySelectorAll(".sugg-add").forEach(b => b.addEventListener("click", () => { const c = lastSugg[+b.dataset.i]; addToDay(c.f.name, c.serve); render(); }));
     const gs = result.querySelector("#gapsSignup");
     if (gs) gs.addEventListener("click", () => openAuthSheet("See exactly which foods close your gaps, with portions that do it in one serving."));
+    const bloomDialog = $("dayBloomDialog"), bloomToggle = $("openDayBloom");
+    bloomToggle.addEventListener("click", () => {
+      bloomDialog.showModal();
+      bloomDialog.scrollTop = 0;
+      const chart = bloomDialog.querySelector(".v2-bloom-scroll");
+      chart.scrollLeft = (chart.scrollWidth - chart.clientWidth) / 2;
+    });
+    $("closeDayBloom").addEventListener("click", () => bloomDialog.close());
+    bloomDialog.addEventListener("click", e => {
+      const r = bloomDialog.getBoundingClientRect();
+      if (e.target === bloomDialog && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) bloomDialog.close();
+    });
+    bloomDialog.addEventListener("close", () => bloomToggle.focus({ preventScroll: true }));
     const shareDialog = $("shareDialog"), shareToggle = $("openShareBtn");
     shareToggle.addEventListener("click", () => shareDialog.showModal());
     $("closeShareBtn").addEventListener("click", () => shareDialog.close());
