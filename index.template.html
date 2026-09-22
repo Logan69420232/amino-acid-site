@@ -225,7 +225,24 @@
   .demo-intro h2 { margin: 0 0 8px; font-size: clamp(25px, 3vw, 36px); letter-spacing: -.025em; }
   .demo-intro p { color: var(--ink-2); margin: 0; }
   .demo-frame { background: #191323; border-radius: 20px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 16px 60px #33204415; }
-  .demo-frame video { width: 100%; height: auto; aspect-ratio: 8 / 5; display: block; background: #191323; }
+  .demo-stage { display: grid; grid-template-columns: 24% minmax(0, 1fr); container-type: inline-size; }
+  .demo-copy { display: flex; flex-direction: column; justify-content: space-between; padding: 3.2cqw; color: #fff; }
+  .demo-copy-brand { color: #c5b9d8; font-size: 1.25cqw; font-weight: 600; }
+  .demo-copy h3 { margin: 0 0 3cqw; font-size: 2.9cqw; line-height: 1.2; letter-spacing: -.02em; color: #fff; }
+  .demo-copy p { margin: 0; font-size: 1.5cqw; line-height: 1.6; color: #d4cddd; }
+  .demo-copy-domain { color: #aa98c1; font-size: 1.15cqw; }
+  /* The original video has a baked-in caption panel; crop that panel so the
+     walkthrough can sit beside editable, accessible page copy. */
+  .demo-video { min-width: 0; overflow: hidden; }
+  .demo-frame video { width: 131.578947%; max-width: none; margin-left: -31.578947%; height: auto; aspect-ratio: 8 / 5; display: block; background: #191323; }
+  @media (max-width: 600px) {
+    .demo-stage { display: block; }
+    .demo-copy { padding: 24px; gap: 16px; }
+    .demo-copy-brand { font-size: 12px; }
+    .demo-copy h3 { font-size: 26px; margin-bottom: 12px; }
+    .demo-copy p { font-size: 15px; }
+    .demo-copy-domain { display: none; }
+  }
   .demo-controls { padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 14px; color: #d4cddd; font-size: 13px; border-top: 1px solid #493a5c; }
   .demo-controls button { border: 1px solid #80679c; color: #fff; background: transparent; min-height: 44px; padding: 0 16px; border-radius: 999px; font: inherit; cursor: pointer; white-space: nowrap; }
   .demo-action { display: flex; justify-content: center; margin-top: 24px; }
@@ -1196,7 +1213,14 @@
   <section class="product-demo" aria-labelledby="demoTitle">
     <div class="demo-intro"><h2 id="demoTitle">See your day in amino acids.</h2><p>From your first meal to the full picture.</p></div>
     <div class="demo-frame">
-      <video id="diaryDemo" width="1280" height="800" muted loop playsinline preload="none" poster="/assets/diary-demo-poster.jpg" data-src="/assets/diary-demo.mp4" aria-label="Amino Atlas food diary walkthrough" aria-describedby="demoDescription"></video>
+      <div class="demo-stage">
+        <div class="demo-copy">
+          <span class="demo-copy-brand">AMINODATA</span>
+          <div><h3>Enter your protein intake.</h3><p>See which amino acids you’re missing, optimise your diet, and support your health.</p></div>
+          <span class="demo-copy-domain">aminodata.org</span>
+        </div>
+        <div class="demo-video"><video id="diaryDemo" width="1280" height="800" muted loop playsinline preload="none" poster="/assets/diary-demo-poster.jpg" data-src="/assets/diary-demo.mp4" aria-label="Amino Atlas food diary walkthrough" aria-describedby="demoDescription"></video></div>
+      </div>
       <div class="demo-controls"><span id="demoDescription">22-second demo · Add breakfast, edit portions, see your amino acid profile.</span><button type="button" id="demoToggle" aria-controls="diaryDemo">Play demo</button></div>
     </div>
     <div class="demo-action"><a href="/?view=diary" id="tryDiary">Try the diary →</a></div>
