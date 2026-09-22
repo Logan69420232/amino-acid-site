@@ -228,8 +228,11 @@ for (const f of foods) {
   f.slug = slug;
 }
 
+const nutritionFoods = require('./lib/build-nutrition').enrich(foods, load('nutrition_usda.json'), load('nutrition_cofid.json'));
+console.log(`Nutrition: ${foods.filter(f=>f.nutritionSource).length} atlas profiles enriched; ${nutritionFoods.length} additional diary foods`);
 const atlas = {
   foods,
+  nutritionFoods,
   who_pattern_mg_per_g_protein: (suppPack && suppPack.who_pattern_mg_per_g_protein) ||
     { histidine: 15, isoleucine: 30, leucine: 59, lysine: 45, saa: 22, aaa: 38, threonine: 23, tryptophan: 6, valine: 39 },
   who_requirements_mg_per_kg: (suppPack && suppPack.who_requirements_mg_per_kg) ||
@@ -267,6 +270,8 @@ for (const f of foods) {
 const template = fs.readFileSync(path.join(root, "index.template.html"), "utf8");
 const intakeTargets = fs.readFileSync(path.join(root, "lib", "intake-targets.js"), "utf8");
 const out = template.replace("__INJECT_DATA__", () => JSON.stringify(atlas))
+  .replace("__INJECT_NUTRITION__", () => fs.readFileSync(path.join(root, "lib", "nutrition.js"), "utf8"))
+  .replace("__INJECT_NUTRITION_UI__", () => fs.readFileSync(path.join(root, "nutrition-ui.js"), "utf8"))
   .replace("__INJECT_ACCOUNT_STORAGE__", () => fs.readFileSync(path.join(root, "lib", "account-storage.js"), "utf8"))
   .replace("__INJECT_INTAKE_TARGETS__", () => intakeTargets)
   .replace("__INJECT_INTAKE_UI__", () => fs.readFileSync(path.join(root, "intake-ui.js"), "utf8"));

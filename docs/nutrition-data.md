@@ -1,0 +1,30 @@
+# Nutrition data
+
+The diary uses USDA first and UK CoFID as a separate catalogue. Its dashboard shows portion-adjusted amounts of vitamins, minerals and macros, not micronutrient intake recommendations or diagnoses. Existing amino-acid food names, keys and macro estimates are retained so saved diaries continue to resolve.
+
+## Sources and refresh
+
+- [USDA FoodData Central SR Legacy, April 2018](https://fdc.nal.usda.gov/download-datasets/), public domain. The same release supplies the existing amino-acid profiles. Run `npm run refresh-data` to download and regenerate both datasets. `scripts/import_nutrition_usda.js` reads nutrient IDs and validates units; `data/nutrition_usda.json` records the SHA-256 of the source nutrient CSV.
+- [UK CoFID 2021](https://www.gov.uk/government/publications/composition-of-foods-integrated-dataset-cofid), Crown copyright, Open Government Licence v3.0. Download the linked official workbook, then run `python scripts/import_nutrition_cofid.py path/to/CoFID.xlsx` with openpyxl installed. This reads the workbook without modifying it and records its SHA-256 in `data/nutrition_cofid.json`.
+
+Generated JSON is committed; deployment does not need network access, Python or openpyxl. Run `npm test` and `npm run build` after refreshing. No API key is required. Do not mix later releases without reviewing nutrient definitions and saved food identities.
+
+The initial import contains 7,448 USDA records (excluding baby foods) and 2,778 CoFID records. It enriches 4,169 existing atlas profiles and adds 6,076 diary-search foods, for 10,259 searchable diary entries. The amino-acid database/compare pages retain their existing 4,183 profiles. The diary source selector can show all foods, USDA or UK CoFID.
+
+## Matching and missing information
+
+USDA enrichment uses explicit FDC/NDB identifiers, exact citation descriptions (comma token ordering ignored), or five documented reference matches in `lib/build-nutrition.js`. There is no fuzzy nutrient matching. Fourteen existing profiles remain without a matched micronutrient record, including supplement blends with no product-specific source. An existing ground-beef profile labelled 90% lean cites an 80% lean record; its existing values are preserved but it deliberately receives no new micronutrients.
+
+CoFID uses code plus a stable hash of its original food name: the official workbook reuses code `13-669` for two different foods. The source code and food description remain visible in dashboard citations. CoFID alcoholic beverages (group Q) are measured per 100 ml and excluded from this gram-based diary. Other records lacking numeric protein or energy are also excluded; excluded identities are retained in the generated file.
+
+All imports retain zero, omit blanks/unavailable values, and preserve CoFID `Tr` as `trace`. Portion totals multiply reported per-100-g values by grams / 100. Missing values never become zero; incomplete totals say Partial and can be expanded to show missing foods. Trace values are listed separately from numeric totals. Food references, gram portions and meal assignments use the existing account-scoped storage and sync flow; no new personal-data collection is introduced.
+
+Nutrition-only foods do not receive an invented amino-acid profile. If a day includes one, nutrition totals still work, while the complete daily amino-acid assessment, recommendations and profile image are unavailable. Shared diary links still work, and history reports amino-acid balance as unavailable. This avoids interpreting unknown amino acids as deficiencies.
+
+## Definitions kept separate
+
+USDA total carbohydrate by difference differs from CoFID available carbohydrate expressed as monosaccharide equivalents. Sugars are also kept separate by dataset. Vitamin A RAE (USDA) and RE (CoFID), vitamin D D2+D3 (USDA) and CoFID total (including weighted 25-hydroxy forms where present), and vitamin E alpha-tocopherol (USDA) and CoFID total are not summed together. Separate rows show their amounts and missing coverage. Folate is total folate, not dietary folate equivalents; vitamin K is K1. Fatty-acid imports use grams per 100 g food, not grams per 100 g total fatty acids. Units are checked during both imports.
+
+## Verification
+
+`scripts/test-nutrition.js` checks portion scaling, zero/unknown/trace handling, analytical separation, the CoFID duplicate-code case, source matching, preserved saved-food identities and unique new keys. Browser verification should cover search/filter/add/edit/reload, mixed-source totals, unavailable amino-acid presentation, shared links, account isolation and mobile overflow.

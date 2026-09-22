@@ -438,6 +438,30 @@
   .v2-stat.good .v { color: var(--c-bcaa); }
   .v2-sec { font-family: var(--font-serif); font-weight: 700; font-size: 18px; margin: 14px 0 8px; }
   .v2-note { color: var(--ink-3); font-size: 12.5px; margin: 10px 0 0; max-width: 70ch; }
+  [data-aa-only][hidden] { display: none !important; }
+  .nutrition-dashboard { margin: 24px 0 32px; }
+  .nutrition-dashboard > .v2-note { max-width: 90ch; margin-bottom: 16px; }
+  .nutrition-macros { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-bottom: 18px; }
+  .nutrition-macros .v { font-size: 22px; }
+  .nutrition-macros small { color: var(--ink-3); font-size: 12px; }
+  .nutrition-panels { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; align-items: start; }
+  .nutrition-panel { min-width: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .nutrition-panel > summary { padding: 16px; background: var(--surface-2); font-size: 17px; font-weight: 700; cursor: pointer; }
+  .nutrition-row { border-top: 1px solid var(--line); }
+  .nutrition-row summary { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 11px 16px; cursor: pointer; font-size: 14px; }
+  .nutrition-row summary::marker { content: ''; }
+  .nutrition-row summary::-webkit-details-marker { display: none; }
+  .nutrition-row summary > span:first-child { min-width: 0; }
+  .nutrition-amount { text-align: right; flex: none; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .nutrition-amount small { display: block; font-size: 11px; font-weight: 400; color: var(--ink-3); }
+  .nutrition-row p { font-size: 12px; padding: 0 16px 12px; margin: 0; color: var(--ink-2); }
+  .nutrition-sources { margin-top: 14px; font-size: 13px; color: var(--ink-2); }
+  .nutrition-sources summary { cursor: pointer; }
+  .nutrition-sources li { margin-bottom: 8px; }
+  .nutrition-source-select { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; }
+  .nutrition-source-select select { min-height: 40px; border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 10px; background: var(--surface); color: var(--ink); }
+  .food-nutrition-source { display: block; color: var(--ink-3); font-size: 11px; margin-top: 4px; }
+  @media(max-width:700px) { .nutrition-panels { grid-template-columns: 1fr; } .nutrition-macros { grid-template-columns: repeat(2,minmax(0,1fr)); } }
   .v2-gaps { background: var(--surface-2); border-radius: 14px; padding: 16px 18px 18px; margin: 0 0 20px; }
   .v2-gaps .v2-sec { margin-top: 0; }
   .gap-list { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--ink-2); }
@@ -1232,8 +1256,9 @@
     <div class="day-nav" id="dayTabs" role="group" aria-label="Diary day navigation"></div>
     <div class="meal-editor" id="mealEditor" hidden>
     <div class="meal-editor-head"><span id="mealEditorLabel">Add food</span><button type="button" class="meal-close" id="mealEditorClose">Done</button></div>
+    <label class="nutrition-source-select">Food source <select id="diaryFoodSource"><option value="all">All foods</option><option value="USDA">USDA foods</option><option value="CoFID">UK foods · CoFID</option></select></label>
     <form class="v2-form" id="v2Form" autocomplete="off">
-      <div class="v2-search"><input id="v2Food" placeholder="Search a protein source (chicken breast, lentils, whey, eggs...)" aria-label="Protein source"  aria-autocomplete="list" aria-controls="v2DD" /><div class="v2-dd" id="v2DD" role="listbox" hidden></div></div>
+      <div class="v2-search"><input id="v2Food" placeholder="Search a food (lentils, chicken, apples...)" aria-label="Food to add" aria-autocomplete="list" aria-controls="v2DD" /><div class="v2-dd" id="v2DD" role="listbox" hidden></div></div>
       <span class="v2-g"><input id="v2Grams" type="number" min="5" max="2000" step="5" placeholder="100" aria-label="Amount in grams" /> g</span>
       <button type="submit" class="v2-add">Add food</button>
     </form>
@@ -1325,7 +1350,12 @@
 <script>
 /* ================= DATA ================= */
 __INJECT_INTAKE_TARGETS__
+__INJECT_NUTRITION__
 const ATLAS = __INJECT_DATA__;
+const DIARY_FOODS = [...ATLAS.foods, ...(ATLAS.nutritionFoods || [])];
+const FOOD_BY_NAME = new Map(DIARY_FOODS.map(f=>[f.name,f]));
+ATLAS.foods.forEach(f=>{if(f.usda_name&&!FOOD_BY_NAME.has(f.usda_name))FOOD_BY_NAME.set(f.usda_name,f);});
+__INJECT_NUTRITION_UI__
 
 const AA_META = [
   ["leucine", "Leucine", "b"], ["isoleucine", "Isoleucine", "b"], ["valine", "Valine", "b"],
@@ -1728,14 +1758,14 @@ function searchScore(f, toks, q, fuzzy) {
   } else if (/\b(raw|grilled|roasted|boiled|cooked)\b/.test(name)) s += 6;
   return s;
 }
-function rankFoods(q, limit) {
+function rankFoods(q, limit, catalogue = ATLAS.foods) {
   q = (q || "").trim().toLowerCase();
   const toks = searchTokens(q);
   if (!toks.length) return [];
   let out = [];
-  for (const f of ATLAS.foods) { const sc = searchScore(f, toks, q); if (sc !== null) out.push([sc, f]); }
+  for (const f of catalogue) { const sc = searchScore(f, toks, q); if (sc !== null) out.push([sc, f]); }
   if (!out.length) { // nothing exact: retry forgiving one typo per word ("chickn" finds chicken)
-    for (const f of ATLAS.foods) { const sc = searchScore(f, toks, q, true); if (sc !== null) out.push([sc, f]); }
+    for (const f of catalogue) { const sc = searchScore(f, toks, q, true); if (sc !== null) out.push([sc, f]); }
   }
   out.sort((a, b) => b[0] - a[0] || a[1].name.length - b[1].name.length);
   const list = out.map(x => x[1]);
@@ -2403,7 +2433,7 @@ function openCompareFoods(push, initialFoods) {
   page.querySelector("#foodCompareForm").addEventListener("submit", e => {
     e.preventDefault();
     const names = [...page.querySelectorAll(".food-pick")].map(i => i.value.trim()).filter(Boolean);
-    const matched = names.map(n => foodByName(n) || rankFoods(n, 1)[0]).filter(Boolean);
+    const matched = names.map(n => ATLAS.foods.find(f=>f.name===n) || rankFoods(n, 1)[0]).filter(Boolean);
     const foods = [...new Map(matched.map(f => [f.id, f])).values()];
     const hint = page.querySelector("#foodPickHint");
     if (foods.length < 2) {
@@ -2930,9 +2960,9 @@ function dayIntake(d) {
     if (!f) return;
     prot += f.protein_g_per_100g * e.g / 100;
     if (f.kcal != null) { kcal += f.kcal * e.g / 100; kcalKnown = true; }
-    AA_META.forEach(m => totals[m[0]] += f.aa[m[0]] * e.g / 100);
+    AA_META.forEach(m => totals[m[0]] += (f.aa[m[0]] || 0) * e.g / 100);
   });
-  const balance = prot > 0
+  const balance = !(d.entries || []).every(e=>Nutrition.hasAminoAcids(foodByName(e.name))) ? null : prot > 0
     ? Math.min(...SCORE_ROWS.map(([id, , keys]) => keys.reduce((s, k) => s + totals[k], 0) / prot * 1000 / WHO[id]))
     : 0;
   return { prot, kcal: kcalKnown ? kcal : null, balance };
@@ -2976,7 +3006,7 @@ function openHistorySheet() {
         ${x.i === log.active ? '<span class="hist-now">editing now</span>' : ""}
         <button type="button" class="v2-share-sec hist-open" data-i="${x.i}">Open this day</button>
       </div>
-      ${x.d.entries.length ? `<p class="hist-stats"><b>${x.prot.toFixed(0)} g protein</b> · ${Math.round(x.prot / target * 100)}% of target${x.kcal != null ? ` · ${Math.round(x.kcal)} kcal` : ""} · balance ${Math.round(x.balance * 100)}% · ${x.d.entries.length} source${x.d.entries.length === 1 ? "" : "s"}</p>
+      ${x.d.entries.length ? `<p class="hist-stats"><b>${x.prot.toFixed(0)} g protein</b> · ${Math.round(x.prot / target * 100)}% of target${x.kcal != null ? ` · ${Math.round(x.kcal)} kcal` : ""} · ${x.balance===null ? "amino acid balance unavailable" : "balance "+Math.round(x.balance * 100)+"%"} · ${x.d.entries.length} source${x.d.entries.length === 1 ? "" : "s"}</p>
       <p class="hist-foods">${x.d.entries.slice(0, 4).map(e => `${e.g} g ${e.name.split(",")[0]}`).join(" · ")}${x.d.entries.length > 4 ? ` · +${x.d.entries.length - 4} more` : ""}</p>` : '<p class="hist-stats">Nothing logged this day.</p>'}
       ${x.d.note ? `<p class="hist-note">"${x.d.note}"</p>` : ""}
     </div>`).join("")}`;
@@ -3121,7 +3151,7 @@ else window.addEventListener("load", initAuth);
    so totals, bars, suggestions and share links are untouched. */
 const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"], ["snacks", "Snacks"], ["other", "Uncategorized"]];
 const MEAL_LABEL = Object.fromEntries(MEALS);
-function foodByName(n) { return ATLAS.foods.find(f => f.name === n) || ATLAS.foods.find(f => f.usda_name === n); }
+function foodByName(n) { return FOOD_BY_NAME.get(n); }
 function updateDayBtn() {}
 function todayISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
 function blankLogDay(date) { return { date: date || todayISO(), note: "", entries: [] }; }
@@ -3180,11 +3210,8 @@ dayList.innerHTML = ATLAS.foods.slice().sort((a, b) => a.name.localeCompare(b.na
 document.body.appendChild(dayList);
 
 function openDay() {
-  lastFocus = document.activeElement;
-  renderDay();
-  overlay.hidden = false;
-  document.body.style.overflow = "hidden";
-  sheet.querySelector(".close").focus();
+  showView('day');
+  if(window.__v2Render)window.__v2Render();
 }
 
 /* Bar with two markers: faint = RDA baseline, dark = the user's target. % shown vs target. */
@@ -3273,7 +3300,7 @@ function renderDay() {
   day.forEach(e => {
     const f = foodByName(e.name);
     protTotal += f.protein_g_per_100g * e.g / 100;
-    AA_META.forEach(m => totals[m[0]] += f.aa[m[0]] * e.g / 100);
+    AA_META.forEach(m => totals[m[0]] += (f.aa[m[0]] || 0) * e.g / 100);
   });
   const protFloor = weight * ATLAS.protein_rda_g_per_kg;
   const protThrive = getThriveG(weight);
@@ -3542,7 +3569,7 @@ window.addEventListener("popstate", () => {
   const $ = id => document.getElementById(id);
   const food = $("v2Food"), grams = $("v2Grams"), err = $("v2Err"), list = $("v2List"), result = $("v2Result");
   if (!food) return;
-  $("v2Count").textContent = ATLAS.foods.length.toLocaleString();
+  $("v2Count").textContent = DIARY_FOODS.length.toLocaleString();
   $("v2ToAtlas").addEventListener("click", e => { e.preventDefault(); showView("atlas"); });
   $("atlasBack").addEventListener("click", e => { e.preventDefault(); showView("day"); });
 
@@ -3555,6 +3582,7 @@ window.addEventListener("popstate", () => {
   window.__v2ResetAccount = () => {
     editingMeal = null; sharedNotice = false; last = null; lastSugg = [];
     expandedMeals.clear(); hideDD(); food.value = ""; grams.value = "100";
+    $("diaryFoodSource").value = "all";
     $("dayMeta").hidden = true;
     currentMeal = store.getItem("aa_meal") || "breakfast";
   };
@@ -3584,7 +3612,7 @@ window.addEventListener("popstate", () => {
     const h = location.hash.replace(/^#/, "");
     if (!/^d=/.test(h)) return false;
     const params = new URLSearchParams(h);
-    const byKey = {}; ATLAS.foods.forEach(f => byKey[f.key] = f);
+    const byKey = {}; DIARY_FOODS.forEach(f => byKey[f.key] = f);
     const day = (params.get("d") || "").split(",").map(x => { const [k, g] = x.split(":"); const f = byKey[k]; return f ? { name: f.name, g: clamp(g, 5, 2000, 100) } : null; }).filter(Boolean);
     if (!day.length) return false;
     const log = loadLog();
@@ -3642,10 +3670,14 @@ window.addEventListener("popstate", () => {
   }
   window.__aaShareCard = shareCard;
   async function copyText(t) { try { await navigator.clipboard.writeText(t); return true; } catch (e) { return false; } }
-  function shareText() { return `My day in amino acids: ${last.prot.toFixed(0)} g protein from ${last.day.length} source${last.day.length === 1 ? "" : "s"}, amino acid balance ${Math.round(last.score * 100)}%. See the shape of yours:`; }
+  function shareText() { return last.aaComplete ? `My day in amino acids: ${last.prot.toFixed(0)} g protein from ${last.day.length} source${last.day.length === 1 ? "" : "s"}, amino acid balance ${Math.round(last.score * 100)}%. See the shape of yours:` : `My food diary: ${last.prot.toFixed(0)} g protein from ${last.day.length} foods. See my logged nutrition:`; }
 
 
   const dd = $("v2DD");
+  function diaryMatches(q, limit) {
+    const source = $("diaryFoodSource").value;
+    return rankFoods(q, limit, source === 'all' ? DIARY_FOODS : DIARY_FOODS.filter(f=>f.nutritionSource?.dataset===source));
+  }
   let ddItems = [], ddIdx = -1, ddTimer = null;
   function hideDD() { dd.hidden = true; dd.innerHTML = ""; ddItems = []; ddIdx = -1; }
   function pick(f) {
@@ -3659,17 +3691,18 @@ window.addEventListener("popstate", () => {
   function showDD() {
     const q = food.value.trim();
     if (q.length < 2) return hideDD();
-    ddItems = rankFoods(q, 8);
+    ddItems = diaryMatches(q, 8);
     if (!ddItems.length) return hideDD();
     ddIdx = 0;
     dd.innerHTML = ddItems.map((f, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${i === 0}">
-      <span><span class="nm">${f.name}</span>${stateTagHTML(f)}${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
-      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${CAT_LABEL[f.category] || ""}${practicalPortions(f).length ? ` · ${practicalPortions(f)[0][0]} ≈ ${practicalPortions(f)[0][1]} g` : ""}</span></button>`).join("");
+      <span><span class="nm">${html(f.name)}</span>${stateTagHTML(f)}${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
+      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span></button>`).join("");
     dd.hidden = false;
     dd.querySelectorAll("button").forEach(b => b.addEventListener("mousedown", ev => { ev.preventDefault(); pick(ddItems[+b.dataset.i]); }));
   }
   food.addEventListener("input", () => { clearTimeout(ddTimer); ddTimer = setTimeout(showDD, 60); });
   food.addEventListener("focus", showDD);
+  $("diaryFoodSource").addEventListener("change", () => { hideDD(); food.focus(); showDD(); });
   food.addEventListener("keydown", e => {
     if (dd.hidden) return;
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -3698,7 +3731,7 @@ window.addEventListener("popstate", () => {
   });
   $("v2Form").addEventListener("submit", e => {
     e.preventDefault();
-    const f = foodByName(food.value) || rankFoods(food.value, 1)[0];   // best match if not picked explicitly
+    const f = diaryMatches(food.value, 1)[0];
     if (!f) { err.hidden = false; food.focus(); return; }
     pick(f);
   });
@@ -3770,7 +3803,7 @@ window.addEventListener("popstate", () => {
     const rowHtml = (e, i) => {
       const f = foodByName(e.name);
       const name = html(e.name);
-      return `<div class="v2-item"><div><span class="nm">${name}</span>
+      return `<div class="v2-item"><div><span class="nm">${name}</span><span class="food-nutrition-source">${f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
         <span class="qty"><input type="number" min="5" max="2000" step="5" value="${e.g}" data-i="${i}" aria-label="Grams of ${name}"> g</span></div>
         <span class="cal">${f.kcal == null ? "—" : (f.kcal * e.g / 100).toFixed(1)}<small>${f.kcal == null ? "kcal unavailable" : "kcal"}</small></span>
         <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button></div>`;
@@ -3830,7 +3863,7 @@ window.addEventListener("popstate", () => {
       prot += f.protein_g_per_100g * e.g / 100;
       if (f.kcal != null) { kcalTot += f.kcal * e.g / 100; fatTot += (f.fat || 0) * e.g / 100; carbTot += (f.carb || 0) * e.g / 100; }
       else macroMiss++;
-      AA_META.forEach(m => totals[m[0]] += f.aa[m[0]] * e.g / 100);
+      AA_META.forEach(m => totals[m[0]] += (f.aa[m[0]] || 0) * e.g / 100);
     });
 
     const pseudo = { id: -1, name: "Your day", state: "as sold", protein_g_per_100g: prot || 1, aa: totals };
@@ -3842,13 +3875,14 @@ window.addEventListener("popstate", () => {
     const complete = min.ratio >= 1;
 
     const shortOn = SCORE_ROWS.filter(([rid, , keys]) => keys.reduce((s, k) => s + totals[k], 0) * 1000 < WHO_KG[rid] * weight * aaScale).map(([, l]) => l.toLowerCase());
-    const verdict = shortOn.length
+    const aaComplete = day.every(e=>Nutrition.hasAminoAcids(foodByName(e.name)));
+    const verdict = !aaComplete ? 'Some foods have no amino acid profile available. Your nutrition totals are shown below; a complete daily amino acid assessment cannot be calculated.' : shortOn.length
       ? `Against your target you're still short on <span class="short">${shortOn.join(", ")}</span>. Add a source rich in ${shortOn[0]}, or increase a portion.`
       : "Every essential amino acid target is covered for the day.";
     const gaps = SCORE_ROWS.map(([rid, label, keys]) => { const got = keys.reduce((t, k) => t + totals[k], 0), need = WHO_KG[rid] * weight * aaScale / 1000; return { rid, label, keys, got, need, gap: Math.max(0, need - got) }; }).filter(g => g.gap > 0.005);
     const protGap = Math.max(0, protThrive - prot);
     const vegan = store.getItem("aa_diet") === "vegan";
-    lastSugg = suggestFoods(day, gaps, protGap, protThrive - prot, vegan);
+    lastSugg = aaComplete ? suggestFoods(day, gaps, protGap, protThrive - prot, vegan) : [];
     /* The bars above already carry the numbers; this is just the one-line lead. */
     const worstGap = gaps.slice().sort((a, b) => b.gap - a.gap)[0];
     const gapSummary = !gaps.length ? "" : gaps.length <= 3
@@ -3871,11 +3905,11 @@ window.addEventListener("popstate", () => {
       </div>`) : `<p class="v2-p v2-done">Every essential amino acid and your protein target are covered. Nice day.</p>`;
 
     // static bloom: strip the hover class so tooltips never look up a pseudo food
-    const bloom = renderBloom(pseudo, { unit: "protein", band: false }).replace(/ class="ray"[^>]*?(?=\/>)/g, "");
+    const bloom = aaComplete ? renderBloom(pseudo, { unit: "protein", band: false }).replace(/ class="ray"[^>]*?(?=\/>)/g, "") : '';
 
-    const eaaRows = groupedNeedRows(totals, weight, aaScale, true);
+    const eaaRows = aaComplete ? groupedNeedRows(totals, weight, aaScale, true) : '';
 
-    last = { day, prot, totals, eaa, score: min.ratio, complete, minLabel: min.label };
+    last = { day, prot, totals, eaa, score: min.ratio, complete, minLabel: min.label, aaComplete };
     const link = dayLink(), enc = encodeURIComponent;
     result.hidden = false;
     result.innerHTML = `
@@ -3888,7 +3922,6 @@ window.addEventListener("popstate", () => {
           <div class="covbars">${covRow2("Protein", prot, protFloor, protThrive, undefined, "protein")}</div>
         </div>
       </div>
-      ${kcalTot > 0 ? `<p class="v2-macros">Carbs ${carbTot.toFixed(0)} g · Fat ${fatTot.toFixed(0)} g · Protein ${prot.toFixed(0)} g${macroMiss ? ` <span>(macros unknown for ${macroMiss} item${macroMiss === 1 ? "" : "s"})</span>` : ""}</p>` : ""}
       <p class="v2-targets-line">Targets for ${displayWeight} ${wUnit}, ${protThrive.toFixed(0)} g protein a day${getIntakeProfile().activity ? " · " + IntakeTargets.activities.find(a => a.id === getIntakeProfile().activity).label.toLowerCase() : ""}${vegan ? ", vegan sources" : ""}. ${authedUser ? `<button type="button" class="linkish" id="v2ToAcct">Edit in your account</button>` : `<button type="button" class="linkish" id="v2ToSignup">Set yours with a free account</button>`}</p>
       ${IntakeTargets.calorieTarget(weight, getIntakeProfile()) ? `<p class="v2-energy-target"><b>${Math.round(kcalTot).toLocaleString()} / ${IntakeTargets.calorieTarget(weight, getIntakeProfile()).toLocaleString()} kcal</b> logged · ${getIntakeProfile().calorieMode === "manual" ? "your calorie target" : "estimated daily maintenance"}${macroMiss ? " · some food calories are unavailable" : ""}. <span>This total only includes foods you have logged.</span></p>` : ""}
       <p class="v2-verdict">${verdict}</p>
@@ -3911,7 +3944,7 @@ window.addEventListener("popstate", () => {
         </div>
         <span class="v2-share-msg" id="shareMsg" role="status" hidden></span>
       </dialog>
-      <div class="v2-overview">
+      <div class="v2-overview" data-aa-only>
         <div>
           <div class="v2-sec">The shape of your day</div>
           <button type="button" class="v2-bloom v2-bloom-toggle" id="openDayBloom" aria-label="Enlarge the shape of your day chart" aria-haspopup="dialog" aria-controls="dayBloomDialog">${bloom}<span class="v2-bloom-hint"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>Enlarge chart</span></button>
@@ -3926,13 +3959,7 @@ window.addEventListener("popstate", () => {
             <div class="v2-stat ${complete ? "good" : "limit"}"><div class="k">Amino acid balance</div><div class="v">${Math.round(min.ratio * 100)}%<small> ${complete ? "well balanced" : "limited by " + min.label.toLowerCase()}</small></div></div>
           </div>
           <p class="v2-note v2-balance-note">Amino acid balance measures the proportions in your protein, not how much of your daily target you've eaten. Your daily progress is the big number at the top and the bars below.</p>
-          ${kcalTot > 0 ? `<div class="v2-sec">Calories and macros · day total</div>
-          <div class="v2-stats v2-stats-4">
-            <div class="v2-stat"><div class="k">Calories</div><div class="v">${Math.round(kcalTot)}<small> kcal</small></div></div>
-            <div class="v2-stat"><div class="k">Protein</div><div class="v">${prot.toFixed(0)}<small> g</small></div></div>
-            <div class="v2-stat"><div class="k">Carbs</div><div class="v">${carbTot.toFixed(0)}<small> g</small></div></div>
-            <div class="v2-stat"><div class="k">Fat</div><div class="v">${fatTot.toFixed(0)}<small> g</small></div></div>
-          </div>` : ""}
+
         </div>
       </div>
       <dialog class="v2-share-dialog v2-bloom-dialog" id="dayBloomDialog" aria-labelledby="dayBloomTitle" aria-describedby="dayBloomDescription">
@@ -3941,6 +3968,8 @@ window.addEventListener("popstate", () => {
         <p class="v2-bloom-pan-hint">Swipe across the chart to see all labels.</p>
         <div class="v2-bloom-scroll" tabindex="0" role="region" aria-label="Enlarged amino acid chart; scroll horizontally to explore">${bloom}</div>
       </dialog>
+      ${nutritionDashboard(day)}
+      <div data-aa-only>
       <div class="v2-sec">Your amino acids · day total</div>
           <p class="cov-legend"><span class="lgt base"></span> baseline requirement, WHO/FAO 2007 at your weight · <span class="lgt tgt"></span> your target, baseline scaled ×${aaScale.toFixed(1)} (our assumption) · <span class="lgt band"></span> indicative ±10% data variation</p>
       ${eaaRows}
@@ -3948,7 +3977,14 @@ window.addEventListener("popstate", () => {
         <summary>How to read these numbers</summary>
           <p class="v2-note">The faint line marks the published baseline requirement (WHO/FAO 2007 at your body weight); the dark line is your target, that baseline scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein goal. No official amino acid figures exist for intakes above the baseline, so the proportional scaling is our assumption, shown here rather than hidden. Percentages are against your target; bars stay amber until they reach it. The grey band at each bar's tip is an indicative ±10% allowance for variation in food composition data, not a measured confidence interval: lab analyses of the same food vary with breed, feed, season and processing. To be sure a target is truly met, get the whole band past the dark line, which in practice means aiming about 10% over it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar at the top of your results is the one to watch for quantity; the amino acid bars here tell you whether that protein was the right kind.</p>
       </details>
-      ${gapsHtml}`;
+      ${gapsHtml}</div>`;
+
+    if(!aaComplete) {
+      result.querySelectorAll('[data-aa-only]').forEach(e=>e.hidden=true);
+      $("dlCardBtn").disabled=true;
+      $("dlCardBtn").textContent='Image unavailable · incomplete amino acid data';
+      $("shareDescription").textContent='Share a link to your food diary and nutrition totals.';
+    }
 
     const toAcct = result.querySelector("#v2ToAcct");
     if (toAcct) toAcct.addEventListener("click", openAccountPage);
@@ -3991,6 +4027,10 @@ window.addEventListener("popstate", () => {
     $("shareBtn").addEventListener("click", async () => {
       const url = dayLink(), text = shareText();
       try {
+        if(!last.aaComplete) {
+          if(navigator.share){await navigator.share({title:'My food diary',text,url});return;}
+          msg((await copyText(url))?'Link copied.':'Sharing is unavailable. Use Copy link.');return;
+        }
         const blob = await shareCard(); const file = new File([blob], "my-day-in-amino-acids.png", { type: "image/png" });
         if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text, url }); return; }
         if (navigator.share) { await navigator.share({ title: "My day in amino acids", text, url }); return; }
