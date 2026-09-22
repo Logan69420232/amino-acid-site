@@ -403,6 +403,7 @@ ${f.kcal != null ? `<div><span>Energy /100 g</span><b>${f.kcal} kcal</b></div><d
 <a class="cta" href="/#add=${f.slug}">Add to my day</a><a class="cta alt" href="/database/${f.slug}">Open interactive profile</a>
 <p class="note byline"><img class="avatar" src="/assets/logan-king.jpg" alt="Logan King" width="26" height="26" loading="lazy"><img class="avatar" src="/assets/paul-morgan.jpg" alt="Dr Paul T Morgan" width="26" height="26" loading="lazy"> By <a href="https://logantalkshealth.com/" rel="author">Logan King</a> and <a href="https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan" rel="author">Dr Paul T Morgan</a>, Senior Lecturer in Human Nutrition and Metabolism, Manchester Metropolitan University.</p>
 <p class="note">Amino acid score compares this food's scarcest essential amino acid with the WHO/FAO/UNU 2007 adult pattern; 100%+ means every essential amino acid is carried in good proportion. Data: ${srcLinkHTML(f)}. Educational reference, not medical advice.</p>
+<p class="note"><a href="mailto:logan@nfsupplements.co.uk?subject=${encodeURIComponent("Aminodata feedback: " + f.name)}&amp;body=${encodeURIComponent("\n\nPage: " + BASE + "/food/" + f.slug)}">Send feedback about this food</a></p>
 </div></body></html>`;
   fs.writeFileSync(path.join(root, "dist", "food", f.slug + ".html"), page);
 }
