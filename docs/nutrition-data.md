@@ -31,6 +31,18 @@ The dashboard compares compatible nutrient amounts with the [FDA's current label
 
 Missing/trace-only quantities show DV unavailable; known zeros show 0%. Known subtotals with missing or trace data are labelled partial. Vitamin K percentages are explicitly partial because only K1 is recorded. Total sugars, monounsaturated fat and polyunsaturated fat have no FDA DV. No percentage is invented for incompatible forms: total folate vs DFE, niacin vs NE, CoFID RE vs RAE, CoFID vitamin D/E totals, or available vs total carbohydrate. Expanding each row explains its denominator or why DV is unavailable. Macro cards show the compatible fat, fibre and USDA carbohydrate DVs; personal protein progress remains separate.
 
+## Lipids and DV bars
+
+The Lipids panel groups total fat, monounsaturated and polyunsaturated fats, omega-3 (ALA, DHA, EPA, DPA), omega-6 (AA and LA), saturated fat, trans fat, cholesterol and phytosterols. Indentation shows components; these are not additional amounts to sum into total fat. FDA DVs are shown for total fat, saturated fat and cholesterol; none are invented for other lipid rows.
+
+USDA imports use specifically identified ALA (1404), DHA (1272), EPA (1278), DPA (1280), arachidonic acid (1406), linoleic acid (1316), total trans fatty acids (1257), and total phytosterols (1283). Undifferentiated 18:2/18:3/20:4 are not substituted for specific isomers. [USDA fatty-acid definitions](https://fdc.nal.usda.gov/Foundation_Foods_Documentation/) distinguish these forms.
+
+CoFID omega totals and trans fat come from Proximates `TOTn3PFOD`, `TOTn6PFOD`, `FODTRANS`. Individual fatty acids come exclusively from `1.12 (PUFA per 100gFood)` using specifically identified n-3/n-6 columns, never the per-100-g-fatty-acid sheet. Phytosterols use `Total PHYTO` from `1.13 Phytosterols`, without adding constituent sterols or mixed cholesterol/sterol columns. All units are checked by the importer.
+
+Reported omega totals always take priority, including zeros and traces. If none is reported, the dashboard sums known ALA/DHA/EPA/DPA or LA/AA as an explicitly partial component subtotal. It does not assume other species are zero, add a total to its components, or replace missing individual measurements. Subtotals are calculated per food before portion scaling, so mixed-source days cannot double-count reported totals.
+
+All compatible numeric DVs now have decorative bars alongside accessible percentage text. Visual fill is clamped to 0–100%; text remains uncapped. Stripes mark partial coverage. Unknown, trace-only, incompatible and no-DV rows have no misleading empty bar. Bars are neutral rather than success/failure indicators, including limit-reference nutrients.
+
 ## Verification
 
 `scripts/test-nutrition.js` checks portion scaling, zero/unknown/trace handling, analytical separation, the CoFID duplicate-code case, source matching, preserved saved-food identities and unique new keys. Browser verification should cover search/filter/add/edit/reload, mixed-source totals, unavailable amino-acid presentation, shared links, account isolation and mobile overflow.

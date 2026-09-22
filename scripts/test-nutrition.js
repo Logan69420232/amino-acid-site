@@ -108,3 +108,53 @@ test('dashboard labels its FDA reference, partial percentages, limit references 
   assert.match(html,/limit reference, not a goal to fill/);
   assert.match(html,/dietary folate equivalents/);
 });
+
+test('lipid imports use specifically identified fatty acids and food-basis grams', () => {
+  const bacon=Object.values(cofid.records).find(r=>r.code==='19-500');
+  assert.equal(bacon.nutrients.omega_3,0.31);assert.equal(bacon.nutrients.ala,0.22);
+  assert.equal(bacon.nutrients.la,2.22);assert.equal(bacon.nutrients.dha,0.02);
+  assert.equal(bacon.nutrients.trans_fat,0.01);assert.equal(bacon.nutrients.phytosterols,0.1);
+  const lentils=usda.records['172421'].nutrients;
+  assert.equal(lentils.trans_fat,0);assert.equal(lentils.epa,0);assert.equal(lentils.dha,0);
+  assert.equal(lentils.ala,undefined); // Undifferentiated 18:3 is not ALA.
+  assert.equal(Nutrition.definitions.find(d=>d.key==='ala').usdaId,1404);
+  assert.equal(Nutrition.definitions.find(d=>d.key==='aa_fat').usdaId,1406);
+  const total=Nutrition.total([{name:'bacon',g:200}],()=>bacon,'omega_3');
+  assert.equal(total.value,0.62);assert.equal(total.derived,0);
+});
+
+test('reported omega totals take priority over components, including reported zero', () => {
+  const food={nutrients:{omega_3:1,ala:0.8,epa:0.2,dha:0.1,dpa:0.1,omega_6:0,la:2}};
+  const day=[{name:'test',g:100}];
+  assert.equal(Nutrition.total(day,()=>food,'omega_3').value,1);
+  assert.equal(Nutrition.total(day,()=>food,'omega_6').value,0);
+  assert.equal(Nutrition.total(day,()=>food,'omega_3').derived,0);
+});
+
+test('omega component sums retain partial, unknown and trace coverage without inventing fatty acids', () => {
+  const food={nutrients:{ala:0.5,epa:0.1,dha:'trace'}};
+  const total=Nutrition.total([{name:'test',g:200}],()=>food,'omega_3');
+  assert.equal(total.value,1.2);assert.equal(total.derived,1);assert.equal(total.trace,1);
+  const missing=Nutrition.total([{name:'test',g:100}],()=>({nutrients:{}}),'omega_3');
+  assert.equal(missing.value,null);assert.equal(missing.missing,1);assert.equal(missing.derived,0);
+  const trace=Nutrition.total([{name:'test',g:100}],()=>({nutrients:{ala:'trace'}}),'omega_3');
+  assert.equal(trace.value,null);assert.equal(trace.trace,1);
+  for(const key of ['omega_3','ala','dha','epa','dpa','omega_6','la','aa_fat','trans_fat','phytosterols']) assert.equal(Nutrition.dailyValue(key,total).label,'No DV set');
+});
+
+test('DV bars cap visually, retain percentage text, mark partial coverage and omit unavailable DVs', () => {
+  const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
+  const food={key:'a',name:'A',nutrients:{vitamin_c:180,iron:0,ala:0.5}};
+  const context=vm.createContext({Nutrition,foodByName:()=>food});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../nutrition-ui.js'),'utf8'),context);
+  const html=context.nutritionDashboard([{name:'a',g:100}]);
+  const section=key=>html.match(new RegExp('data-nutrient="'+key+'"[\\s\\S]*?</details>'))[0];
+  assert.match(section('vitamin_c'),/width:100.00%/);assert.match(section('vitamin_c'),/200% DV/);
+  assert.match(section('iron'),/width:0.00%/);
+  assert.doesNotMatch(section('iodine'),/nutrition-meter/);
+  assert.doesNotMatch(section('omega_3'),/nutrition-meter/);
+  assert.match(section('omega_3'),/Partial amount/);
+  assert.match(section('omega_3'),/partial component sum/);
+  assert.match(html,/<summary>Lipids<\/summary>/);
+  assert.equal((html.match(/data-nutrient="cholesterol"/g)||[]).length,1);
+});

@@ -12,6 +12,9 @@ mapping = {
     'PROT': 'protein', 'FAT': 'fat', 'CHO': 'carb_uk', 'KCALS': 'kcal',
     'AOACFIB': 'fibre', 'TOTSUG': 'sugars_uk', 'SATFOD': 'saturated_fat',
     'MONOFOD': 'mono_fat', 'POLYFOD': 'poly_fat', 'CHOL': 'cholesterol',
+    'TOTn3PFOD':'omega_3','TOTn6PFOD':'omega_6','FODTRANS':'trans_fat',
+    'FOD18:3cn3':'ala','FOD22:6cn3':'dha','FOD20:5cn3':'epa','FOD22:5cn3':'dpa',
+    'FOD20:4cn6':'aa_fat','FOD18:2cn6':'la','Total PHYTO':'phytosterols',
     'NA':'sodium','K':'potassium','CA':'calcium','MG':'magnesium','P':'phosphorus',
     'FE':'iron','CU':'copper','ZN':'zinc','CL':'chloride','MN':'manganese','SE':'selenium','I':'iodine',
     'RETEQU':'vitamin_a_re','VITD':'vitamin_d_uk','VITE':'vitamin_e_uk','VITK1':'vitamin_k',
@@ -22,8 +25,10 @@ units = dict.fromkeys(['PROT','FAT','CHO','AOACFIB','TOTSUG','SATFOD','MONOFOD',
 units.update(dict.fromkeys(['CHOL','NA','K','CA','MG','P','FE','CU','ZN','CL','MN','VITE','THIA','RIBO','NIAC','VITB6','PANTO','VITC'], 'mg'))
 units.update(dict.fromkeys(['SE','I','RETEQU','VITD','VITK1','VITB12','FOLT','BIOT'], 'µg'))
 units['KCALS'] = 'kcal'
+units.update(dict.fromkeys(['TOTn3PFOD','TOTn6PFOD','FODTRANS','FOD18:3cn3','FOD22:6cn3','FOD20:5cn3','FOD22:5cn3','FOD20:4cn6','FOD18:2cn6'], 'g'))
+units['Total PHYTO'] = 'mg'
 records = {}
-for sheet_name in ['1.3 Proximates', '1.4 Inorganics', '1.5 Vitamins']:
+for sheet_name in ['1.3 Proximates', '1.4 Inorganics', '1.5 Vitamins', '1.12 (PUFA per 100gFood)', '1.13 Phytosterols']:
     rows = iter(workbook[sheet_name].values)
     labels, codes, descriptions = next(rows), next(rows), next(rows)
     for column, code in enumerate(codes):
