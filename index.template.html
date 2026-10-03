@@ -395,6 +395,7 @@
   .v2-targets-line .linkish { font-size: inherit; font-weight: 500; }
   .v2-verdict { color: var(--ink-2); font-size: 16px; margin: 0 0 18px; max-width: 70ch; }
   .v2-verdict .short { color: var(--c-limit); font-weight: 600; }
+  .v2-verdict .aa-left-out { display: block; margin-top: 6px; font-size: 13.5px; color: var(--ink-3); }
   .v2-overview { display: grid; grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.5fr); gap: 24px; align-items: start; margin-bottom: 24px; }
   .v2-bloom { max-width: 320px; margin: 0 auto; }
   .v2-bloom-toggle { display: block; width: 100%; padding: 0 0 10px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--c-bcaa); cursor: zoom-in; }
@@ -3867,27 +3868,35 @@ window.addEventListener("popstate", () => {
 
     const totals = {}; AA_META.forEach(m => totals[m[0]] = 0);
     let prot = 0, kcalTot = 0, fatTot = 0, carbTot = 0, macroMiss = 0;
+    /* Foods without an amino acid profile still count for protein and nutrition,
+       but are left out of the amino acid totals rather than hiding them. */
+    let aaProt = 0; const aaMissing = [];
     day.forEach(e => {
       const f = foodByName(e.name);
       prot += f.protein_g_per_100g * e.g / 100;
       if (f.kcal != null) { kcalTot += f.kcal * e.g / 100; fatTot += (f.fat || 0) * e.g / 100; carbTot += (f.carb || 0) * e.g / 100; }
       else macroMiss++;
-      AA_META.forEach(m => totals[m[0]] += (f.aa[m[0]] || 0) * e.g / 100);
+      if (Nutrition.hasAminoAcids(f)) {
+        aaProt += f.protein_g_per_100g * e.g / 100;
+        AA_META.forEach(m => totals[m[0]] += (f.aa[m[0]] || 0) * e.g / 100);
+      } else aaMissing.push(e.name);
     });
 
-    const pseudo = { id: -1, name: "Your day", state: "as sold", protein_g_per_100g: prot || 1, aa: totals };
-    const perP = k => totals[k] / (prot || 1) * 100;
+    /* Per-protein figures use only the protein that came with an amino acid profile. */
+    const pseudo = { id: -1, name: "Your day", state: "as sold", protein_g_per_100g: aaProt || 1, aa: totals };
+    const perP = k => totals[k] / (aaProt || 1) * 100;
     const eaa = AA_META.filter(m => m[2] !== "n").reduce((s, m) => s + perP(m[0]), 0);
     const bcaa = AA_META.filter(m => m[2] === "b").reduce((s, m) => s + perP(m[0]), 0);
-    const rows = SCORE_ROWS.map(([id, label, keys]) => { const mgg = keys.reduce((s, k) => s + totals[k], 0) / (prot || 1) * 1000; return { id, label, ratio: mgg / WHO[id] }; });
+    const rows = SCORE_ROWS.map(([id, label, keys]) => { const mgg = keys.reduce((s, k) => s + totals[k], 0) / (aaProt || 1) * 1000; return { id, label, ratio: mgg / WHO[id] }; });
     const min = rows.reduce((a, b) => b.ratio < a.ratio ? b : a, rows[0]);
     const complete = min.ratio >= 1;
 
     const shortOn = SCORE_ROWS.filter(([rid, , keys]) => keys.reduce((s, k) => s + totals[k], 0) * 1000 < WHO_KG[rid] * weight * aaScale).map(([, l]) => l.toLowerCase());
-    const aaComplete = day.every(e=>Nutrition.hasAminoAcids(foodByName(e.name)));
-    const verdict = !aaComplete ? 'Some foods have no amino acid profile available. Your nutrition totals are shown below; a complete daily amino acid assessment cannot be calculated.' : shortOn.length
+    const aaComplete = aaMissing.length < day.length;   // true when at least one food has an amino acid profile
+    const aaNote = !aaMissing.length ? "" : ` <span class="aa-left-out">Not counted in the amino acid totals, because no amino acid profile is available: ${aaMissing.map(html).join("; ")}.</span>`;
+    const verdict = (!aaComplete ? 'None of these foods has an amino acid profile available, so only your nutrition totals are shown below.' : shortOn.length
       ? `Against your target you're still short on <span class="short">${shortOn.join(", ")}</span>. Add a source rich in ${shortOn[0]}, or increase a portion.`
-      : "Every essential amino acid target is covered for the day.";
+      : "Every essential amino acid target is covered for the day.") + (aaComplete ? aaNote : "");
     const gaps = SCORE_ROWS.map(([rid, label, keys]) => { const got = keys.reduce((t, k) => t + totals[k], 0), need = WHO_KG[rid] * weight * aaScale / 1000; return { rid, label, keys, got, need, gap: Math.max(0, need - got) }; }).filter(g => g.gap > 0.005);
     const protGap = Math.max(0, protThrive - prot);
     const vegan = store.getItem("aa_diet") === "vegan";
