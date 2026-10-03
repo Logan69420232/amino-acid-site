@@ -158,3 +158,15 @@ test('DV bars cap visually, retain percentage text, mark partial coverage and om
   assert.match(html,/<summary>Lipids<\/summary>/);
   assert.equal((html.match(/data-nutrient="cholesterol"/g)||[]).length,1);
 });
+
+test('breakdown lists each food\'s contribution, largest first, without inventing zeros', () => {
+  const foods = { a:{nutrients:{iron:2}}, b:{nutrients:{iron:10}}, c:{nutrients:{iron:'Tr'}}, d:{nutrients:{}} };
+  const rows = Nutrition.breakdown([{name:'a',g:100},{name:'b',g:50},{name:'c',g:100},{name:'d',g:100},{name:'a',g:0}], n=>foods[n], 'iron');
+  assert.deepEqual(rows.map(r=>r.name), ['b','a','c','d']);
+  assert.equal(rows[0].value, 5); assert.equal(rows[1].value, 2);
+  assert.ok(Math.abs(rows[0].share - 5/7) < 1e-10);
+  assert.equal(rows[2].value, null); assert.equal(rows[2].trace, true); assert.equal(rows[2].share, null);
+  assert.equal(rows[3].value, null); assert.equal(rows[3].trace, false);
+  const sum = rows.reduce((s,r)=>s+(r.value||0),0);
+  assert.equal(sum, Nutrition.total([{name:'a',g:100},{name:'b',g:50},{name:'c',g:100},{name:'d',g:100}], n=>foods[n], 'iron').value);
+});

@@ -15,9 +15,19 @@ function nutritionDashboard(day) {
     return `<span class="nutrition-meter${dv.partial?' is-partial':''}" aria-hidden="true"><span style="width:${Math.min(100,Math.max(0,dv.percent)).toFixed(2)}%"></span></span>`;
   }
   const lipidDepth={mono_fat:1,poly_fat:1,omega_3:2,omega_6:2,ala:3,dha:3,epa:3,dpa:3,aa_fat:3,la:3,saturated_fat:1,trans_fat:1};
+  function sourcesList(d) {
+    const rows=Nutrition.breakdown(day,foodByName,d.key);
+    if(!rows.some(r=>r.value!==null||r.trace))return '';
+    return `<div class="nutrient-sources"><div class="nutrient-sources-h">Where it comes from</div><ul>${rows.map(r=>{
+      const amt=r.value!==null?Nutrition.format(r.value)+' '+esc(d.unit):r.trace?'Trace':'No data';
+      const pct=r.share===null?'':(r.share>0&&r.share<0.005?'<1':String(Math.round(r.share*100)))+'%';
+      return `<li class="${r.value===null?'is-unknown':''}"><span class="ns-name">${esc(r.name)} <small>${Nutrition.format(r.g)} g</small></span><span class="ns-bar" aria-hidden="true"><span style="width:${r.share===null?0:Math.min(100,r.share*100).toFixed(2)}%"></span></span><span class="ns-amt">${amt}</span><span class="ns-pct">${pct}</span></li>`;
+    }).join('')}</ul></div>`;
+  }
   function row(d) {
     const t=total(d.key), dv=Nutrition.dailyValue(d.key,t);
     return `<details class="nutrition-row" data-nutrient="${d.key}"><summary><span class="nutrition-label" style="--nutrient-depth:${lipidDepth[d.key]||0}">${esc(d.label)}${meter(dv)}</span><span class="nutrition-amount">${display(t,d.unit)}${(t.missing||t.derived)&&t.value!==null?'<small>Partial amount</small>':''}<span class="nutrition-dv" data-dv="${d.key}">${esc(dv.label)}${dv.percent!==null&&dv.partial?'<small>Partial reference %</small>':''}</span></span></summary>
+      ${sourcesList(d)}
       <p>${dv.reference?'100% DV = '+Nutrition.format(dv.reference)+' '+esc(d.unit)+'. ':''}${esc(dv.reason)}${['sodium','saturated_fat','cholesterol'].includes(d.key)?' This is a limit reference, not a goal to fill.':''}</p>
       ${t.derived?`<p>${t.derived} entr${t.derived===1?'y uses':'ies use'} a partial component sum because no omega total was reported: ${d.key==='omega_3'?'ALA + DHA + EPA + DPA':'LA + arachidonic acid'}, where known. Other or unidentified fatty acids may be missing. A reported total takes priority and is never added to its components.</p>`:''}
       <p>Measured or reported amounts available for ${t.known} of ${day.length} logged entries.${t.trace?' '+t.trace+' report a trace amount, not included in the numeric total.':''}${t.missing?' Missing data for: '+t.missingFoods.map(esc).join('; ')+'.':''}</p></details>`;

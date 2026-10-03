@@ -465,6 +465,18 @@
   .nutrition-lipids .nutrition-row:nth-child(2n) { background: var(--surface-2); }
   .nutrition-panel-note { padding: 10px 16px; margin: 0; font-size: 12px; color: var(--ink-2); }
   .nutrition-row p { font-size: 12px; padding: 0 16px 12px; margin: 0; color: var(--ink-2); }
+  .nutrient-sources { padding: 0 16px 12px; }
+  .nutrient-sources-h { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+  .nutrient-sources ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .nutrient-sources li { display: grid; grid-template-columns: minmax(0, 1fr) 90px 84px 40px; gap: 10px; align-items: center; font-size: 13px; }
+  .nutrient-sources .ns-name { min-width: 0; overflow-wrap: anywhere; }
+  .nutrient-sources .ns-name small { color: var(--ink-3); font-size: 11.5px; white-space: nowrap; }
+  .nutrient-sources .ns-bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+  .nutrient-sources .ns-bar span { display: block; height: 100%; border-radius: 3px; background: var(--c-bcaa); }
+  .nutrient-sources .ns-amt, .nutrient-sources .ns-pct { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .nutrient-sources .ns-pct { color: var(--ink-3); }
+  .nutrient-sources li.is-unknown { color: var(--ink-3); }
+  @media (max-width: 560px) { .nutrient-sources li { grid-template-columns: minmax(0, 1fr) 76px 36px; } .nutrient-sources .ns-bar { display: none; } }
   .nutrition-sources { margin-top: 14px; font-size: 13px; color: var(--ink-2); }
   .nutrition-sources summary { cursor: pointer; }
   .nutrition-sources li { margin-bottom: 8px; }
