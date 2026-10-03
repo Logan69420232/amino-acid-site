@@ -1281,7 +1281,7 @@
     <label class="nutrition-source-select">Food source <select id="diaryFoodSource"><option value="all">All foods</option><option value="USDA">USDA foods</option><option value="CoFID">UK foods · CoFID</option></select></label>
     <form class="v2-form" id="v2Form" autocomplete="off">
       <div class="v2-search"><input id="v2Food" placeholder="Search a food (lentils, chicken, apples...)" aria-label="Food to add" aria-autocomplete="list" aria-controls="v2DD" /><div class="v2-dd" id="v2DD" role="listbox" hidden></div></div>
-      <span class="v2-g"><input id="v2Grams" type="number" min="5" max="2000" step="5" placeholder="100" aria-label="Amount in grams" /> g</span>
+      <span class="v2-g"><input id="v2Grams" type="number" min="0.1" max="2000" step="any" placeholder="100" aria-label="Amount in grams" /> g</span>
       <button type="submit" class="v2-add">Add food</button>
     </form>
     <p class="v2-err" id="v2Err" hidden>Pick a food from the list first.</p>
@@ -2143,7 +2143,7 @@ function renderDetail(id) {
       <div class="calc-controls">
         <div class="ctl-group">
           <span class="ctl-label">This portion</span>
-          <label><input id="calcPortion" type="number" min="5" max="1000" step="5" value="${portion}" aria-label="Portion in grams" /> g of ${f.name.split("(")[0].trim().toLowerCase()}</label>
+          <label><input id="calcPortion" type="number" min="0.1" max="1000" step="any" value="${portion}" aria-label="Portion in grams" /> g of ${f.name.split("(")[0].trim().toLowerCase()}</label>
           ${practicalPortions(f).length ? `<div class="pp-row">${practicalPortions(f).map(p => `<button type="button" class="pp-chip" data-g="${p[1]}">${p[0]} · ${p[1]} g</button>`).join("")}</div>` : ""}
         </div>
       </div>
@@ -2182,7 +2182,7 @@ function renderDetail(id) {
     renderDetail(id);
   });
   sheet.querySelector("#calcPortion").addEventListener("change", e => {
-    store.setItem("aa_portion_" + f.id, Math.max(5, Math.min(1000, +e.target.value || 100)));
+    store.setItem("aa_portion_" + f.id, Math.max(0.1, Math.min(1000, +e.target.value || 100)));
     renderDetail(id);
   });
   sheet.querySelectorAll(".pp-chip").forEach(b => b.addEventListener("click", () => {
@@ -3331,7 +3331,7 @@ function renderDay() {
     const f = foodByName(e.name);
     return `<div class="day-row">
       <span class="nm">${e.name}</span>
-      <label>Portion <input data-idx="${i}" class="day-g" type="number" min="5" max="2000" step="5" value="${e.g}" aria-label="Portion of ${e.name} in grams"> g</label>
+      <label>Portion <input data-idx="${i}" class="day-g" type="number" min="0.1" max="2000" step="any" value="${e.g}" aria-label="Portion of ${e.name} in grams"> g</label>
       <span class="sub">${(f.protein_g_per_100g * e.g / 100).toFixed(1)} g protein</span>
       <button class="rm" data-idx="${i}" aria-label="Remove ${e.name}">✕</button></div>`;
   }).join("");
@@ -3370,7 +3370,7 @@ function renderDay() {
       ${day.length ? `<div class="day-list">${rows}</div>` : '<p class="calc-summary">Nothing added yet. Pick your first food below, or use "Add to my day" on any food\'s profile.</p>'}
       <div class="day-add">
         <input id="dayPick" list="dayFoodList" placeholder="Type a food… (any of ${ATLAS.foods.length.toLocaleString()})" aria-label="Choose a food" />
-        <span><input id="dayPickG" type="number" min="5" max="2000" step="5" value="100" aria-label="Portion in grams"> g</span>
+        <span><input id="dayPickG" type="number" min="0.1" max="2000" step="any" value="100" aria-label="Portion in grams"> g</span>
         <button id="dayPickAdd">Add</button>
         <span id="dayPickErr" style="color:var(--c-limit);font-size:12px;" hidden>Pick a food from the list first</span>
       </div>
@@ -3397,7 +3397,7 @@ function renderDay() {
   sheet.querySelector("#dayPickAdd").addEventListener("click", () => {
     const f = foodByName(pick.value);
     if (!f) { sheet.querySelector("#dayPickErr").hidden = false; return; }
-    addToDay(f.name, Math.max(5, Math.min(2000, +pickG.value || 100)));
+    addToDay(f.name, Math.max(0.1, Math.min(2000, +pickG.value || 100)));
     renderDay();
   });
   sheet.querySelector("#dayWeight").addEventListener("change", e => {
@@ -3414,7 +3414,7 @@ function renderDay() {
   });
   sheet.querySelectorAll(".day-g").forEach(inp => inp.addEventListener("change", e => {
     const d = loadDay();
-    d[+e.target.dataset.idx].g = Math.max(5, Math.min(2000, +e.target.value || 100));
+    d[+e.target.dataset.idx].g = Math.max(0.1, Math.min(2000, +e.target.value || 100));
     saveDay(d); renderDay();
   }));
   sheet.querySelectorAll(".day-row .rm").forEach(b => b.addEventListener("click", e => {
@@ -3624,7 +3624,7 @@ window.addEventListener("popstate", () => {
 
   /* ----- share link: the day, weight and target live in the URL hash ----- */
   function dayLink() {
-    const parts = loadDay().map(e => { const f = foodByName(e.name); return f ? f.key + ":" + Math.round(e.g) : null; }).filter(Boolean);
+    const parts = loadDay().map(e => { const f = foodByName(e.name); return f ? f.key + ":" + (Math.round(e.g * 10) / 10) : null; }).filter(Boolean);
     const t = getThriveG(getWeight());
     const u = new URL(location.href); u.search = "";
     u.hash = "d=" + parts.join(",") + "&w=" + getWeight() + (t ? "&t=" + t : "");
@@ -3635,7 +3635,7 @@ window.addEventListener("popstate", () => {
     if (!/^d=/.test(h)) return false;
     const params = new URLSearchParams(h);
     const byKey = {}; DIARY_FOODS.forEach(f => byKey[f.key] = f);
-    const day = (params.get("d") || "").split(",").map(x => { const [k, g] = x.split(":"); const f = byKey[k]; return f ? { name: f.name, g: clamp(g, 5, 2000, 100) } : null; }).filter(Boolean);
+    const day = (params.get("d") || "").split(",").map(x => { const [k, g] = x.split(":"); const f = byKey[k]; return f ? { name: f.name, g: clamp(g, 0.1, 2000, 100) } : null; }).filter(Boolean);
     if (!day.length) return false;
     const log = loadLog();
     const cur = log.days[log.active];
@@ -3706,7 +3706,7 @@ window.addEventListener("popstate", () => {
     /* Picking a suggestion adds it straight to the day: typed grams win,
        otherwise the typical serving. The row's amount stays editable. */
     hideDD();
-    if (!addToDay(f.name, clamp(grams.value, 5, 2000, f.serving_g || 100))) return;
+    if (!addToDay(f.name, clamp(grams.value, 0.1, 2000, f.serving_g || 100))) return;
     food.value = ""; grams.value = ""; err.hidden = true;
     hideDD(); render(); food.focus();
   }
@@ -3826,7 +3826,7 @@ window.addEventListener("popstate", () => {
       const f = foodByName(e.name);
       const name = html(e.name);
       return `<div class="v2-item"><div><span class="nm">${name}</span><span class="food-nutrition-source">${f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
-        <span class="qty"><input type="number" min="5" max="2000" step="5" value="${e.g}" data-i="${i}" aria-label="Grams of ${name}"> g</span></div>
+        <span class="qty"><input type="number" min="0.1" max="2000" step="any" value="${e.g}" data-i="${i}" aria-label="Grams of ${name}"> g</span></div>
         <span class="cal">${f.kcal == null ? "—" : (f.kcal * e.g / 100).toFixed(1)}<small>${f.kcal == null ? "kcal unavailable" : "kcal"}</small></span>
         <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button></div>`;
     };
@@ -3855,7 +3855,7 @@ window.addEventListener("popstate", () => {
     }));
     list.querySelectorAll(".v2-item input").forEach(inp => inp.addEventListener("change", ev => {
       const i = +ev.target.dataset.i;
-      const d = loadDay(); d[i].g = clamp(ev.target.value, 5, 2000, 100); saveDay(d); render();
+      const d = loadDay(); d[i].g = clamp(ev.target.value, 0.1, 2000, 100); saveDay(d); render();
       list.querySelector(`.v2-item input[data-i="${i}"]`).focus();
     }));
     list.querySelectorAll(".rm").forEach(b => b.addEventListener("click", () => {
