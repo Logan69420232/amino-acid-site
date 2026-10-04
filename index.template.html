@@ -3651,43 +3651,83 @@ window.addEventListener("popstate", () => {
 
   /* ----- share card: 1080x1080 image of the day ----- */
   function shareCard() {
-    const W = 1080, H = 1080, c = document.createElement("canvas"); c.width = W; c.height = H;
+    /* Portrait card: macros, amino acid bloom and figures, then the day's foods. Height grows with the food list. */
+    const MAX_ROWS = 14, ROW_H = 46;
+    const shown = last.day.slice(0, MAX_ROWS), extra = last.day.length - shown.length;
+    const FOODS_Y = 1010, listH = 64 + shown.length * ROW_H + (extra > 0 ? ROW_H : 0);
+    const W = 1080, H = FOODS_Y + listH + 110;
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
     const x = c.getContext("2d"), cs = getComputedStyle(document.documentElement);
     const v = n => cs.getPropertyValue(n).trim();
-    const col = { b: v("--c-bcaa"), e: v("--c-ess"), n: v("--c-non"), bg: v("--bg") || "#fff", ink: v("--ink"), ink2: v("--ink-2"), ink3: v("--ink-3"), limit: v("--c-limit"), line: v("--line-strong") };
+    const col = { b: v("--c-bcaa"), e: v("--c-ess"), n: v("--c-non"), bg: v("--bg") || "#fff", surf: v("--surface-2") || "#f3f3f1", ink: v("--ink"), ink2: v("--ink-2"), ink3: v("--ink-3"), limit: v("--c-limit"), line: v("--line-strong") };
     const sans = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif", serif = "Georgia, 'Times New Roman', serif";
+    const fit = (text, maxW) => { if (x.measureText(text).width <= maxW) return text; let t = text; while (t.length > 4 && x.measureText(t + "…").width > maxW) t = t.slice(0, -1); return t.trimEnd() + "…"; };
+    const num = (val, dp) => val === null || val === undefined ? "n/a" : (+val).toLocaleString("en-GB", { maximumFractionDigits: dp });
+    const tot = key => Nutrition.total(last.day, foodByName, key);
     x.fillStyle = col.bg; x.fillRect(0, 0, W, H);
-    x.fillStyle = col.ink3; x.font = "600 24px " + sans; x.fillText("aminodata.org", 72, 92);
-    x.fillStyle = col.ink; x.font = "700 60px " + serif; x.fillText("My day in amino acids", 72, 168);
+    x.fillStyle = col.ink3; x.font = "600 24px " + sans; x.fillText("aminodata.org", 72, 86);
+    x.fillStyle = col.ink; x.font = "700 60px " + serif; x.fillText("My day in amino acids", 72, 160);
+
+    // macronutrients
+    const carbT = tot("carb").value !== null ? tot("carb") : tot("carb_uk");
+    const macros = [["Calories", tot("kcal"), "kcal", 0], ["Protein", { value: last.prot, missing: 0 }, "g", 0], ["Carbs", carbT, "g", 0], ["Fat", tot("fat"), "g", 0], ["Fibre", tot("fibre"), "g", 0]];
+    const tileW = (W - 144 - 4 * 16) / 5, tileY = 204, tileH = 132;
+    macros.forEach(([label, t, unit], i) => {
+      const tx = 72 + i * (tileW + 16);
+      x.fillStyle = col.surf; x.beginPath(); x.roundRect(tx, tileY, tileW, tileH, 16); x.fill();
+      x.fillStyle = col.ink3; x.font = "600 19px " + sans; x.fillText(label.toUpperCase(), tx + 18, tileY + 38);
+      x.fillStyle = col.ink; x.font = "700 44px " + serif; const valTxt = num(t.value, 0); x.fillText(valTxt, tx + 18, tileY + 92);
+      const vw = x.measureText(valTxt).width;
+      x.fillStyle = col.ink2; x.font = "500 22px " + sans; x.fillText(t.value === null ? "" : unit + (t.missing ? "*" : ""), tx + 24 + vw, tileY + 92);
+    });
+    if (macros.some(m => m[1].missing && m[1].value !== null)) { x.fillStyle = col.ink3; x.font = "400 20px " + sans; x.fillText("* partial: some foods have no value recorded for this", 72, tileY + tileH + 34); }
+
     // bloom
-    const cx = 330, cy = 600, r0 = 64, maxLen = 230;
-    const vals = AA_META.map(m => ({ cls: m[2], val: last.totals[m[0]] / (last.prot || 1) * 100 }));
+    const cx = 300, cy = 660, r0 = 56, maxLen = 196;
+    const vals = AA_META.map(m => ({ cls: m[2], val: last.totals[m[0]] }));
     const scale = maxLen / (Math.max(...vals.map(d => d.val)) || 1);
     vals.forEach((d, i) => {
       const ang = (i / vals.length) * Math.PI * 2 - Math.PI / 2, cO = Math.cos(ang), sn = Math.sin(ang), len = d.val * scale;
-      x.strokeStyle = { b: col.b, e: col.e, n: col.n }[d.cls]; x.lineWidth = 20; x.lineCap = "round"; x.globalAlpha = 0.92;
+      x.strokeStyle = { b: col.b, e: col.e, n: col.n }[d.cls]; x.lineWidth = 18; x.lineCap = "round"; x.globalAlpha = 0.92;
       x.beginPath(); x.moveTo(cx + cO * r0, cy + sn * r0); x.lineTo(cx + cO * (r0 + len), cy + sn * (r0 + len)); x.stroke();
     });
-    x.globalAlpha = 1; x.fillStyle = col.b; x.globalAlpha = 0.12; x.beginPath(); x.arc(cx, cy, 54, 0, Math.PI * 2); x.fill(); x.globalAlpha = 1;
-    // numbers
-    const rx = 600;
-    x.fillStyle = col.ink; x.font = "700 96px " + serif; x.fillText(last.prot.toFixed(0) + " g", rx, 420);
-    x.fillStyle = col.ink2; x.font = "500 28px " + sans; x.fillText("protein from " + last.day.length + " source" + (last.day.length === 1 ? "" : "s"), rx, 462);
-    x.fillStyle = last.complete ? col.b : col.limit; x.font = "700 72px " + serif; x.fillText(Math.round(last.score * 100) + "%", rx, 580);
-    x.fillStyle = col.ink2; x.font = "500 28px " + sans; x.fillText(last.complete ? "amino acid balance, well balanced" : "balance limited by " + last.minLabel.toLowerCase(), rx, 622);
-    x.fillStyle = col.ink; x.font = "700 60px " + serif; x.fillText(last.eaa.toFixed(0) + " g", rx, 730);
-    x.fillStyle = col.ink2; x.font = "500 28px " + sans; x.font = "500 24px " + sans; x.fillText("essential amino acids / 100 g protein", rx, 770);
-    // legend + foods
-    let ly = 880; [["b", "BCAAs"], ["e", "Other essential"], ["n", "Non-essential"]].forEach(([k, t], i) => {
-      x.fillStyle = { b: col.b, e: col.e, n: col.n }[k]; x.beginPath(); x.arc(84 + i * 250, ly - 8, 9, 0, Math.PI * 2); x.fill();
-      x.fillStyle = col.ink2; x.font = "500 24px " + sans; x.fillText(t, 104 + i * 250, ly);
+    x.globalAlpha = 0.12; x.fillStyle = col.b; x.beginPath(); x.arc(cx, cy, 46, 0, Math.PI * 2); x.fill(); x.globalAlpha = 1;
+    // amino acid figures
+    const rx = 590;
+    x.fillStyle = last.complete ? col.b : col.limit; x.font = "700 84px " + serif; x.fillText(Math.round(last.score * 100) + "%", rx, 560);
+    x.fillStyle = col.ink2; x.font = "500 26px " + sans; x.fillText(fit(last.complete ? "amino acid balance, well balanced" : "balance limited by " + last.minLabel.toLowerCase(), W - 72 - rx), rx, 600);
+    x.fillStyle = col.ink; x.font = "700 60px " + serif; x.fillText(last.eaa.toFixed(0) + " g", rx, 706);
+    x.fillStyle = col.ink2; x.font = "500 24px " + sans; x.fillText("essential amino acids / 100 g protein", rx, 744);
+    x.fillStyle = col.ink; x.font = "700 60px " + serif; x.fillText(last.day.length + "", rx, 846);
+    x.fillStyle = col.ink2; x.font = "500 24px " + sans; x.fillText("food" + (last.day.length === 1 ? "" : "s") + " logged", rx, 884);
+    // legend
+    [["b", "BCAAs"], ["e", "Other essential"], ["n", "Non-essential"]].forEach(([k, t], i) => {
+      x.fillStyle = { b: col.b, e: col.e, n: col.n }[k]; x.beginPath(); x.arc(84 + i * 250, 942, 9, 0, Math.PI * 2); x.fill();
+      x.fillStyle = col.ink2; x.font = "500 24px " + sans; x.fillText(t, 104 + i * 250, 950);
     });
-    x.fillStyle = col.ink3; x.font = "400 24px " + sans;
-    const foods = last.day.slice(0, 4).map(e => e.g + " g " + e.name.split(",")[0]).join("  ·  ") + (last.day.length > 4 ? "  ·  +" + (last.day.length - 4) + " more" : "");
-    x.fillText(foods.length > 78 ? foods.slice(0, 76) + "..." : foods, 72, 940);
-    x.fillStyle = col.line; x.fillRect(72, 976, W - 144, 2);
-    x.fillStyle = col.ink2; x.font = "600 26px " + sans; x.fillText("Stop tracking protein. Start tracking amino acids.", 72, 1024);
-    x.fillStyle = col.ink3; x.font = "400 22px " + sans; x.textAlign = "right"; x.fillText(location.host, W - 72, 1024); x.textAlign = "left";
+
+    // the day's foods
+    x.fillStyle = col.line; x.fillRect(72, FOODS_Y - 22, W - 144, 2);
+    const cG = 700, cP = 850, cK = W - 72;           // right edges of the amount, protein and kcal columns
+    x.fillStyle = col.ink3; x.font = "600 19px " + sans; x.fillText("WHAT I ATE", 72, FOODS_Y + 22);
+    x.textAlign = "right"; x.fillText("AMOUNT", cG, FOODS_Y + 22); x.fillText("PROTEIN", cP, FOODS_Y + 22); x.fillText("KCAL", cK, FOODS_Y + 22); x.textAlign = "left";
+    shown.forEach((e, i) => {
+      const f = foodByName(e.name), y = FOODS_Y + 64 + i * ROW_H + 30;
+      if (i % 2 === 0) { x.fillStyle = col.surf; x.beginPath(); x.roundRect(60, y - 32, W - 120, ROW_H - 4, 8); x.fill(); }
+      x.fillStyle = col.ink; x.font = "500 25px " + sans; x.fillText(fit(e.name, cG - 150 - 72), 72, y);
+      x.textAlign = "right"; x.fillStyle = col.ink2; x.font = "500 24px " + sans;
+      x.fillText(num(e.g, 1) + " g", cG, y);
+      x.fillText(num(f.protein_g_per_100g * e.g / 100, 1) + " g", cP, y);
+      x.fillText(f.kcal != null ? num(f.kcal * e.g / 100, 0) : "n/a", cK, y);
+      x.textAlign = "left";
+    });
+    if (extra > 0) { x.fillStyle = col.ink3; x.font = "500 24px " + sans; x.fillText("+ " + extra + " more food" + (extra === 1 ? "" : "s"), 72, FOODS_Y + 64 + shown.length * ROW_H + 30); }
+
+    // footer
+    const fy = H - 44;
+    x.fillStyle = col.line; x.fillRect(72, fy - 46, W - 144, 2);
+    x.fillStyle = col.ink2; x.font = "600 24px " + sans; x.fillText("Stop tracking protein. Start tracking amino acids.", 72, fy);
+    x.fillStyle = col.ink3; x.font = "400 20px " + sans; x.textAlign = "right"; x.fillText(location.host, W - 72, fy); x.textAlign = "left";
     return new Promise(res => c.toBlob(res, "image/png"));
   }
   window.__aaShareCard = shareCard;
