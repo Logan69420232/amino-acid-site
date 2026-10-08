@@ -614,6 +614,13 @@
   .hc-day { position: absolute; bottom: -22px; font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
   .hist-target { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--ink); opacity: 0.35; pointer-events: none; }
   .hist-chart-note { font-size: 12px; color: var(--ink-3); margin: 0 0 6px; }
+  .hist-metrics { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 4px; }
+  .hm-chip { border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); border-radius: 999px; padding: 6px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .hm-chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .hc-bar.neutral { background: var(--c-bcaa); opacity: 0.6; }
+  .hl-x, .hl-y { font-size: 11px; fill: var(--ink-3); font-family: var(--font-sans); }
+  .hist-legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--ink-2); margin: 2px 0 2px; }
+  .hist-legend .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: -1px; }
   .hist-card { background: var(--surface-2); border-radius: 12px; padding: 14px 16px; margin-top: 10px; }
   .hist-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .hist-date { font-family: var(--font-serif); font-weight: 700; font-size: 18px; }
@@ -3008,20 +3015,21 @@ function renderAccountPage() {
 
 /* ================= data over time: the week in review ================= */
 function dayIntake(d) {
-  let prot = 0, kcal = 0, kcalKnown = false;
+  let prot = 0, kcal = 0, fat = 0, carb = 0, kcalKnown = false;
   const totals = {}; AA_META.forEach(m => totals[m[0]] = 0);
   (d.entries || []).forEach(e => {
     const f = foodByName(e.name);
     if (!f) return;
     prot += f.protein_g_per_100g * e.g / 100;
-    if (f.kcal != null) { kcal += f.kcal * e.g / 100; kcalKnown = true; }
+    if (f.kcal != null) { kcal += f.kcal * e.g / 100; fat += (f.fat || 0) * e.g / 100; carb += (f.carb || 0) * e.g / 100; kcalKnown = true; }
     AA_META.forEach(m => totals[m[0]] += (f.aa[m[0]] || 0) * e.g / 100);
   });
   const balance = !(d.entries || []).every(e=>Nutrition.hasAminoAcids(foodByName(e.name))) ? null : prot > 0
     ? Math.min(...SCORE_ROWS.map(([id, , keys]) => keys.reduce((s, k) => s + totals[k], 0) / prot * 1000 / WHO[id]))
     : 0;
-  return { prot, kcal: kcalKnown ? kcal : null, balance };
+  return { prot, kcal: kcalKnown ? kcal : null, fat: kcalKnown ? fat : null, carb: kcalKnown ? carb : null, balance };
 }
+let _histMetric = "prot";
 function openHistorySheet() {
   lastFocus = document.activeElement;
   const log = loadLog();
@@ -3032,8 +3040,6 @@ function openHistorySheet() {
   const logged = days.filter(x => x.d.entries.length);
   const chrono = days.slice().sort((a, b) => (a.d.date < b.d.date ? -1 : a.d.date > b.d.date ? 1 : 0));
   const newestFirst = chrono.slice().reverse();
-  const maxP = Math.max(target, ...days.map(x => x.prot), 1);
-  const px = v => Math.round(v / maxP * 120);
   const avg = logged.length ? logged.reduce((s, x) => s + x.prot, 0) / logged.length : 0;
   const hit = logged.filter(x => x.prot >= target).length;
   const summary = logged.length
@@ -3045,16 +3051,12 @@ function openHistorySheet() {
       <div><h2 id="sheetTitle">Data over time</h2>
       <p class="sub">The last ${WEEK_DAYS} days you logged, synced to your account. Open any day to view or edit it.</p></div>
     </div>
-    <p class="hist-summary">${summary}</p>
-    ${logged.length ? `<div class="hist-chart">
-      <span class="hist-target" style="bottom:${22 + px(target)}px" title="Your ${target.toFixed(0)} g daily target"></span>
-      ${chrono.map(x => `<div class="hc-col">
-        <span class="hc-val">${x.prot > 0 ? x.prot.toFixed(0) : ""}</span>
-        <span class="hc-bar${x.prot >= target ? " good" : ""}" style="height:${Math.max(px(x.prot), 2)}px"></span>
-        <span class="hc-day">${fmtShort(x.d.date)}</span>
-      </div>`).join("")}
+    <p class="hist-summary">${summary}${logged.length ? ` <button type="button" class="csv-btn" id="histCsv" title="Every food, every day, with grams, macros and amino acids, for Excel or any spreadsheet">Download CSV</button>` : ""}</p>
+    ${logged.length ? `<div class="hist-metrics" role="group" aria-label="Chart metric">
+      ${[["prot", "Protein"], ["kcal", "Calories"], ["carb", "Carbs"], ["fat", "Fat"], ["macros", "Macros together"]].map(([k, l]) =>
+        `<button type="button" class="hm-chip" data-m="${k}" aria-pressed="${_histMetric === k}">${l}</button>`).join("")}
     </div>
-    <p class="hist-chart-note">Protein per day, g. Green bars reached your target; the dashed line is the target itself.</p>` : ""}
+    <div id="histChart"></div>` : ""}
     ${newestFirst.map(x => `<div class="hist-card">
       <div class="hist-h">
         <span class="hist-date">${fmt(x.d.date)}</span>
@@ -3073,6 +3075,75 @@ function openHistorySheet() {
     const entry = document.querySelector(".v2-entry");
     if (entry) entry.scrollIntoView({ behavior: "smooth", block: "start" });
   }));
+  /* one chart, five views: bars per metric, or the three macros as lines */
+  function chartHTML() {
+    const m = _histMetric;
+    if (m === "macros") {
+      const series = [["prot", "Protein", "var(--c-bcaa)"], ["carb", "Carbs", "var(--c-limit)"], ["fat", "Fat", "var(--ink-3)"]];
+      const n = chrono.length;
+      const maxV = Math.max(1, ...series.flatMap(([k]) => chrono.map(x => x[k] ?? 0)));
+      const W = 560, H = 190, padL = 38, padR = 12, padT = 14, padB = 26;
+      const X = i => n === 1 ? padL + (W - padL - padR) / 2 : padL + i * (W - padL - padR) / (n - 1);
+      const Y = v => padT + (H - padT - padB) * (1 - v / maxV);
+      const lines = series.map(([k, l, c]) =>
+        `<polyline points="${chrono.map((x, i) => `${X(i).toFixed(1)},${Y(x[k] ?? 0).toFixed(1)}`).join(" ")}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/>` +
+        chrono.map((x, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(x[k] ?? 0).toFixed(1)}" r="3.5" fill="${c}"><title>${l} ${(x[k] ?? 0).toFixed(0)} g · ${fmtShort(x.d.date)}</title></circle>`).join("")
+      ).join("");
+      return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Protein, carbs and fat per day as lines">
+        <text x="4" y="${padT + 8}" class="hl-y">${maxV.toFixed(0)} g</text>
+        <line x1="${padL}" x2="${W - padR}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="currentColor" stroke-opacity="0.25"/>
+        ${lines}
+        ${chrono.map((x, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="hl-x">${fmtShort(x.d.date)}</text>`).join("")}
+      </svg>
+      <p class="hist-legend">${series.map(([k, l, c]) => `<span><span class="dot" style="background:${c}"></span>${l}</span>`).join("")}</p>
+      <p class="hist-chart-note">Grams per day. A food with unknown macros counts as 0 toward carbs and fat.</p>`;
+    }
+    const label = { prot: "Protein per day, g", kcal: "Calories per day", carb: "Carbs per day, g", fat: "Fat per day, g" }[m];
+    const maxV = Math.max(m === "prot" ? target : 1, ...chrono.map(x => x[m] ?? 0), 1);
+    const px2 = v => Math.round(v / maxV * 120);
+    return `<div class="hist-chart">
+      ${m === "prot" ? `<span class="hist-target" style="bottom:${22 + px2(target)}px" title="Your ${target.toFixed(0)} g daily target"></span>` : ""}
+      ${chrono.map(x => { const v = x[m] ?? 0; return `<div class="hc-col">
+        <span class="hc-val">${v > 0 ? v.toFixed(0) : ""}</span>
+        <span class="hc-bar${m === "prot" && v >= target ? " good" : ""}${m !== "prot" ? " neutral" : ""}" style="height:${Math.max(px2(v), 2)}px"></span>
+        <span class="hc-day">${fmtShort(x.d.date)}</span></div>`; }).join("")}
+    </div>
+    <p class="hist-chart-note">${label}.${m === "prot" ? " Green bars reached your target; the dashed line is the target itself." : ""}</p>`;
+  }
+  const chartEl = sheet.querySelector("#histChart");
+  if (chartEl) {
+    chartEl.innerHTML = chartHTML();
+    sheet.querySelectorAll(".hm-chip").forEach(b => b.addEventListener("click", () => {
+      _histMetric = b.dataset.m;
+      sheet.querySelectorAll(".hm-chip").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+      chartEl.innerHTML = chartHTML();
+    }));
+  }
+  /* full export: every food of every logged day, plus a totals row per day */
+  const csvBtn = sheet.querySelector("#histCsv");
+  if (csvBtn) csvBtn.addEventListener("click", () => {
+    const aaKeys = AA_META.map(x => x[0]);
+    const escC = v => { v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const lines = [["date", "meal", "food", "grams", "protein_g", "kcal", "carb_g", "fat_g", ...aaKeys.map(k => k + "_g")].join(",")];
+    chrono.forEach(x => {
+      x.d.entries.forEach(e => {
+        const f = foodByName(e.name);
+        if (!f) return;
+        const g = e.g;
+        lines.push([x.d.date, MEAL_LABEL[e.meal] || e.meal, f.name, g,
+          (f.protein_g_per_100g * g / 100).toFixed(2),
+          f.kcal != null ? (f.kcal * g / 100).toFixed(1) : "",
+          f.carb != null ? (f.carb * g / 100).toFixed(2) : "",
+          f.fat != null ? (f.fat * g / 100).toFixed(2) : "",
+          ...aaKeys.map(k => Nutrition.hasAminoAcids(f) ? ((f.aa[k] || 0) * g / 100).toFixed(3) : "")
+        ].map(escC).join(","));
+      });
+      if (x.d.entries.length) lines.push([x.d.date, "", "DAY TOTAL", "", x.prot.toFixed(1),
+        x.kcal != null ? x.kcal.toFixed(0) : "", x.carb != null ? x.carb.toFixed(1) : "", x.fat != null ? x.fat.toFixed(1) : "",
+        ...aaKeys.map(() => "")].map(escC).join(","));
+    });
+    downloadCSV("aminodata-diary-" + todayISO() + ".csv", lines.join("\n"));
+  });
   overlay.hidden = false;
   document.body.style.overflow = "hidden";
   sheet.querySelector(".close").focus();
