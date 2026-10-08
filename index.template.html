@@ -309,6 +309,19 @@
   .meal-plus, .meal-toggle { border: 0; background: transparent; color: var(--ink); cursor: pointer; }
   .meal-plus { flex: 0 0 auto; min-height: 44px; padding: 8px 12px; background: var(--c-bcaa); color: #fff; font-size: 13px; font-weight: 600; border-radius: 8px; }
   .meal-plus:hover { filter: brightness(1.1); }
+  .meal-save { flex: 0 0 auto; min-height: 44px; padding: 8px 10px; background: transparent; border: 1px dashed var(--line-strong); color: var(--ink-2); font-size: 12.5px; font-weight: 600; border-radius: 8px; white-space: nowrap; }
+  .meal-save:hover { border-color: var(--c-bcaa); color: var(--c-bcaa); }
+  .save-meal-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; }
+  .save-meal-form input { flex: 1 1 200px; min-width: 0; background: var(--surface); color: var(--ink); border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; font-size: 15px; }
+  .save-meal-form .sm-note { flex-basis: 100%; font-size: 12px; }
+  .saved-meal-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+  .saved-meal-row[hidden] { display: none; }
+  .sm-lab { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); margin-right: 2px; }
+  .sm-chip { border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .sm-chip:hover { border-color: var(--c-bcaa); color: var(--c-bcaa); }
+  .sm-chip.managing { border-style: dashed; }
+  .sm-chip .sm-x { color: var(--c-limit); margin-left: 3px; }
+  .sm-manage { font-size: 12.5px; }
   .meal-header h3 { flex: 1; min-width: 0; margin: 0; }
   .meal-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; padding: 8px 12px 8px 0; text-align: left; font: 600 18px var(--font-sans); }
   .meal-chevron { width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); flex-shrink: 0; margin: -5px 3px 0 0; }
@@ -1286,6 +1299,7 @@
       <span class="v2-g"><input id="v2Grams" type="number" min="0.1" max="2000" step="any" placeholder="100" aria-label="Amount in grams" /> g</span>
       <button type="submit" class="v2-add">Add food</button>
     </form>
+    <div class="saved-meal-row" id="savedMealRow" hidden></div>
     <p class="v2-err" id="v2Err" hidden>Pick a food from the list first.</p>
     </div>
     <div class="v2-list" id="v2List"></div>
@@ -2641,19 +2655,36 @@ function sbReady() {
   if (!_sbClient) _sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   return _sbClient;
 }
+/* Favourite meals: a named list of foods and grams, added back in one tap.
+   Suggested by a user tired of re-entering the same dinner every day. */
+const MAX_SAVED_MEALS = 30;
+function loadSavedMeals() {
+  try {
+    const v = JSON.parse(store.getItem("aa_saved_meals") || "[]");
+    return Array.isArray(v) ? v.filter(m => m && m.name && Array.isArray(m.items)) : [];
+  } catch (e) { return []; }
+}
+function saveSavedMeals(list) { store.setItem("aa_saved_meals", JSON.stringify(list.slice(0, MAX_SAVED_MEALS))); schedulePush(); }
 function collectSettings() {
   return {
     weight: store.getItem("aa_weight") || null, thrive: store.getItem("aa_thrive_g") || "",
     intake: getIntakeProfile(), intakeCompleted: store.getItem("aa_intake_completed") === "1",
     unit: store.getItem("aa_wunit") || null, diet: store.getItem("aa_diet") || null,
     meal: store.getItem("aa_meal") || null,
-    atype: store.getItem("aa_acct_type") || null, role: store.getItem("aa_acct_role") || null
+    atype: store.getItem("aa_acct_type") || null, role: store.getItem("aa_acct_role") || null,
+    savedMeals: loadSavedMeals()
   };
 }
 function applySettings(st) {
   if (!st) return;
   if (st.intake) store.setItem("aa_intake", JSON.stringify(IntakeTargets.normalise(st.intake)));
   if (st.intakeCompleted != null) store.setItem("aa_intake_completed", st.intakeCompleted ? "1" : "");
+  if (Array.isArray(st.savedMeals)) {
+    /* union by name, the synced copy preferred, so neither device loses a meal */
+    const merged = st.savedMeals.filter(m => m && m.name && Array.isArray(m.items));
+    loadSavedMeals().forEach(m => { if (!merged.some(x => x.name === m.name)) merged.push(m); });
+    store.setItem("aa_saved_meals", JSON.stringify(merged.slice(0, MAX_SAVED_MEALS)));
+  }
   [["aa_weight", st.weight], ["aa_thrive_g", st.thrive], ["aa_wunit", st.unit], ["aa_diet", st.diet], ["aa_meal", st.meal],
    ["aa_acct_type", st.atype], ["aa_acct_role", st.role]]
     .forEach(([k, v]) => { if (v != null) store.setItem(k, v); });
@@ -3623,9 +3654,9 @@ window.addEventListener("popstate", () => {
   let last = null, sharedNotice = false, lastSugg = [];
   const editor = $("mealEditor");
   const expandedMeals = new Map();
-  let editingMeal = null;
+  let editingMeal = null, savingMeal = null, managingMeals = false;
   window.__v2ResetAccount = () => {
-    editingMeal = null; sharedNotice = false; last = null; lastSugg = [];
+    editingMeal = null; savingMeal = null; managingMeals = false; sharedNotice = false; last = null; lastSugg = [];
     expandedMeals.clear(); hideDD(); food.value = ""; grams.value = "100";
     $("diaryFoodSource").value = "all";
     $("dayMeta").hidden = true;
@@ -3644,6 +3675,25 @@ window.addEventListener("popstate", () => {
     const m = editingMeal; editingMeal = null; hideDD(); render();
     list.querySelector(`[data-add-meal="${m}"]`).focus();
   });
+  /* One tap re-adds a whole saved meal to the meal being edited. */
+  function renderSavedMealRow() {
+    const row = $("savedMealRow");
+    const meals = loadSavedMeals();
+    if (!meals.length) { row.hidden = true; row.innerHTML = ""; return; }
+    row.hidden = false;
+    row.innerHTML = `<span class="sm-lab">Saved meals</span>` +
+      meals.map((m, i) => `<button type="button" class="sm-chip${managingMeals ? " managing" : ""}" data-i="${i}" title="${html(m.items.map(x => (Math.round(x.g * 10) / 10) + " g " + x.name).join(" · "))}">${html(m.name)}${managingMeals ? ' <span class="sm-x" aria-hidden="true">✕</span>' : ""}</button>`).join("") +
+      `<button type="button" class="linkish sm-manage">${managingMeals ? "Done" : "Edit"}</button>`;
+    row.querySelectorAll(".sm-chip").forEach(b => b.addEventListener("click", () => {
+      const i = +b.dataset.i;
+      if (managingMeals) { const l = loadSavedMeals(); l.splice(i, 1); saveSavedMeals(l); renderSavedMealRow(); return; }
+      const m = loadSavedMeals()[i];
+      if (!m) return;
+      m.items.forEach(it => { if (foodByName(it.name)) addToDay(it.name, it.g, editingMeal); });
+      render();
+    }));
+    row.querySelector(".sm-manage").addEventListener("click", () => { managingMeals = !managingMeals; renderSavedMealRow(); });
+  }
 
   /* ----- share link: the day, weight and target live in the URL hash ----- */
   function dayLink() {
@@ -3908,14 +3958,43 @@ window.addEventListener("popstate", () => {
       return `<div class="meal-group meal-${mk}">
         <div class="meal-header">
           <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span>${ml}</span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
+          ${idxs.length ? `<button type="button" class="meal-save" data-save-meal="${mk}" title="Save ${ml} as a favourite meal">☆ Save meal</button>` : ""}
           <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="Add food to ${ml}">Add food</button>
         </div>
         <div class="meal-panel" id="meal-panel-${mk}" role="region" aria-labelledby="meal-toggle-${mk}" ${expanded ? "" : "hidden"}>
+          ${savingMeal === mk ? `<div class="save-meal-form">
+            <input id="smName" maxlength="40" placeholder="Name this meal" value="${html(idxs.length ? idxs[0][0].name.split(",")[0] + (idxs.length > 1 ? " + " + (idxs.length - 1) + " more" : "") : ml)}" aria-label="Name for this saved meal">
+            <button type="button" class="go-cmp" id="smSave">Save</button>
+            <button type="button" class="linkish" id="smCancel">Cancel</button>
+            <span class="auth-note sm-note">Saved meals appear when you add food, and sync to your other devices.</span>
+          </div>` : ""}
           ${idxs.length ? idxs.map(([e, i]) => rowHtml(e, i)).join("") : '<p class="meal-empty">No foods yet. Choose the meal name or Add food to start searching.</p>'}
         </div>
       </div>`;
     }).join("");
     list.querySelectorAll("[data-add-meal]").forEach(b => b.addEventListener("click", () => openMeal(b.dataset.addMeal)));
+    list.querySelectorAll("[data-save-meal]").forEach(b => b.addEventListener("click", () => {
+      if (!requireAccount("Save your favourite meals once and add them again in one tap, synced across your devices.")) return;
+      savingMeal = savingMeal === b.dataset.saveMeal ? null : b.dataset.saveMeal;
+      expandedMeals.set(mealKey(b.dataset.saveMeal), true);
+      render();
+      if (savingMeal) { const inp = $("smName"); if (inp) { inp.focus(); inp.select(); } }
+    }));
+    if (savingMeal) {
+      const doSave = () => {
+        const name = ($("smName").value.trim() || MEAL_LABEL[savingMeal]).slice(0, 40);
+        const items = loadDay().filter(e => e.meal === savingMeal).map(e => ({ name: e.name, g: e.g }));
+        if (items.length) {
+          const l = loadSavedMeals().filter(m => m.name !== name);
+          l.unshift({ name, items });
+          saveSavedMeals(l);
+        }
+        savingMeal = null; render();
+      };
+      $("smSave").addEventListener("click", doSave);
+      $("smName").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); doSave(); } });
+      $("smCancel").addEventListener("click", () => { savingMeal = null; render(); });
+    }
     list.querySelectorAll(".meal-toggle").forEach(b => b.addEventListener("click", () => {
       const m = b.dataset.meal;
       if (editingMeal !== m) { openMeal(m); return; }
@@ -3938,6 +4017,7 @@ window.addEventListener("popstate", () => {
       panel.appendChild(editor); editor.hidden = false;
       $("mealEditorLabel").textContent = "Add to " + MEAL_LABEL[editingMeal];
       const empty = panel.querySelector(".meal-empty"); if (empty) empty.hidden = true;
+      renderSavedMealRow();
     }
 
     if (!day.length) { result.hidden = true; result.innerHTML = ""; return; }
