@@ -314,6 +314,11 @@ fs.writeFileSync(path.join(root, "dist", "account.html"),
   pageCopy("Your account · Amino Atlas", "Manage your profile and daily targets.", "/account", "Your account · Amino Atlas")
     .replace('<meta name="viewport"', '<meta name="robots" content="noindex" />\n<meta name="viewport"'));
 
+// ---------- /history: the diary's data-over-time page (private, noindex) ----------
+fs.writeFileSync(path.join(root, "dist", "history.html"),
+  pageCopy("Data over time · Amino Atlas", "Your logged days charted: protein, calories, carbs and fat, with a CSV export.", "/history", "Data over time · Amino Atlas")
+    .replace('<meta name="viewport"', '<meta name="robots" content="noindex" />\n<meta name="viewport"'));
+
 // ---------- /food/<slug>: one static, crawlable page per food ----------
 const AA_LABELS = [
   ["leucine", "Leucine", "Essential (BCAA)"], ["isoleucine", "Isoleucine", "Essential (BCAA)"], ["valine", "Valine", "Essential (BCAA)"],

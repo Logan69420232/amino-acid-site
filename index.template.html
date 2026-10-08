@@ -1077,6 +1077,11 @@
   body[data-view="account"] main.wrap > :not(#accountPage),
   body[data-view="account"] header.site, body[data-view="account"] #method,
   body[data-view="account"] #tray { display: none !important; }
+  body[data-view="history"] main.wrap > :not(#historyPage),
+  body[data-view="history"] header.site, body[data-view="history"] #method,
+  body[data-view="history"] #tray { display: none !important; }
+  #historyPage h1 { font-family: var(--font-serif); font-weight: 700; font-size: clamp(28px, 4vw, 38px); margin: 26px 0 4px; letter-spacing: -0.02em; }
+  #historyPage .sub { color: var(--ink-3); font-size: 13.5px; margin: 0 0 6px; }
   .database-group > summary { display: flex; align-items: center; gap: 12px; padding: 13px 12px; border-radius: 8px; cursor: pointer; list-style: none; font-size: 14px; }
   .database-group > summary::-webkit-details-marker { display: none; }
   .database-group > summary .nav-icon { font-size: 19px; color: #c4a1e5; width: 20px; }
@@ -1278,6 +1283,7 @@
 <main class="wrap">
   <section id="compareFoodsPage" hidden aria-labelledby="compareFoodsTitle"></section>
   <section id="accountPage" hidden aria-labelledby="accountTitle"></section>
+  <section id="historyPage" hidden aria-labelledby="historyTitle"></section>
   <section class="product-demo" aria-labelledby="demoTitle">
     <div class="demo-intro"><h2 id="demoTitle">See your day in amino acids.</h2><p>From your first meal to the full picture.</p></div>
     <div class="demo-frame">
@@ -2581,7 +2587,7 @@ function navigateApp(act) {
   else if (act === "diary" || act === "addfoods") {
     if (!overlay.hidden) closeDetail(); showView("day");
     if (act === "addfoods" && window.__v2OpenMeal) window.__v2OpenMeal(currentMeal);
-  } else if (act === "history") { if (requireAccount("See your data over time with a free account.")) openHistorySheet(); }
+  } else if (act === "history") { if (requireAccount("See your data over time with a free account.")) showView("history"); }
   else if (act === "account") openAccountPage();
   else if (act === "signout") signOutAccount();
   else if (act === "signup") openAuthSheet(undefined, "signup");
@@ -3030,8 +3036,8 @@ function dayIntake(d) {
   return { prot, kcal: kcalKnown ? kcal : null, fat: kcalKnown ? fat : null, carb: kcalKnown ? carb : null, balance };
 }
 let _histMetric = "prot";
-function openHistorySheet() {
-  lastFocus = document.activeElement;
+function renderHistoryPage() {
+  const page = document.getElementById("historyPage");
   const log = loadLog();
   const target = getThriveG(getWeight());
   const fmt = iso => { const d = new Date(iso + "T12:00:00"); return isNaN(d) ? iso : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }); };
@@ -3045,12 +3051,9 @@ function openHistorySheet() {
   const summary = logged.length
     ? `${logged.length} day${logged.length === 1 ? "" : "s"} logged · average <b>${avg.toFixed(0)} g protein</b> a day · target of ${target.toFixed(0)} g reached on ${hit} of ${logged.length}`
     : "Nothing logged yet. Add foods to today and it appears here.";
-  sheet.innerHTML = `
-    <div class="close-dock"><button class="close" aria-label="Close data over time">✕</button></div>
-    <div class="sheet-top">
-      <div><h2 id="sheetTitle">Data over time</h2>
-      <p class="sub">The last ${WEEK_DAYS} days you logged, synced to your account. Open any day to view or edit it.</p></div>
-    </div>
+  page.innerHTML = `
+    <h1 id="historyTitle" tabindex="-1">Data over time</h1>
+    <p class="sub">The last ${WEEK_DAYS} days you logged, synced to your account. Open any day to view or edit it.</p>
     <p class="hist-summary">${summary}${logged.length ? ` <button type="button" class="csv-btn" id="histCsv" title="Every food, every day, with grams, macros and amino acids, for Excel or any spreadsheet">Download CSV</button>` : ""}</p>
     ${logged.length ? `<div class="hist-metrics" role="group" aria-label="Chart metric">
       ${[["prot", "Protein"], ["kcal", "Calories"], ["carb", "Carbs"], ["fat", "Fat"], ["macros", "Macros together"]].map(([k, l]) =>
@@ -3067,13 +3070,10 @@ function openHistorySheet() {
       <p class="hist-foods">${x.d.entries.slice(0, 4).map(e => `${e.g} g ${e.name.split(",")[0]}`).join(" · ")}${x.d.entries.length > 4 ? ` · +${x.d.entries.length - 4} more` : ""}</p>` : '<p class="hist-stats">Nothing logged this day.</p>'}
       ${x.d.note ? `<p class="hist-note">"${x.d.note}"</p>` : ""}
     </div>`).join("")}`;
-  sheet.querySelector(".close").addEventListener("click", closeDetail);
-  sheet.querySelectorAll(".hist-open").forEach(b => b.addEventListener("click", () => {
+  page.querySelectorAll(".hist-open").forEach(b => b.addEventListener("click", () => {
     const l = loadLog(); l.active = +b.dataset.i; saveLog(l);
-    closeDetail();
     if (window.__v2Render) window.__v2Render();
-    const entry = document.querySelector(".v2-entry");
-    if (entry) entry.scrollIntoView({ behavior: "smooth", block: "start" });
+    showView("day");
   }));
   /* one chart, five views: bars per metric, or the three macros as lines */
   function chartHTML() {
@@ -3110,17 +3110,17 @@ function openHistorySheet() {
     </div>
     <p class="hist-chart-note">${label}.${m === "prot" ? " Green bars reached your target; the dashed line is the target itself." : ""}</p>`;
   }
-  const chartEl = sheet.querySelector("#histChart");
+  const chartEl = page.querySelector("#histChart");
   if (chartEl) {
     chartEl.innerHTML = chartHTML();
-    sheet.querySelectorAll(".hm-chip").forEach(b => b.addEventListener("click", () => {
+    page.querySelectorAll(".hm-chip").forEach(b => b.addEventListener("click", () => {
       _histMetric = b.dataset.m;
-      sheet.querySelectorAll(".hm-chip").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+      page.querySelectorAll(".hm-chip").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
       chartEl.innerHTML = chartHTML();
     }));
   }
   /* full export: every food of every logged day, plus a totals row per day */
-  const csvBtn = sheet.querySelector("#histCsv");
+  const csvBtn = page.querySelector("#histCsv");
   if (csvBtn) csvBtn.addEventListener("click", () => {
     const aaKeys = AA_META.map(x => x[0]);
     const escC = v => { v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
@@ -3144,9 +3144,7 @@ function openHistorySheet() {
     });
     downloadCSV("aminodata-diary-" + todayISO() + ".csv", lines.join("\n"));
   });
-  overlay.hidden = false;
-  document.body.style.overflow = "hidden";
-  sheet.querySelector(".close").focus();
+  page.querySelector("#historyTitle").focus();
 }
 
 function openOnboardSheet() {
@@ -3713,21 +3711,24 @@ updateDayBtn();
 
 /* ================= home views ================= */
 function showView(v, push) {
-  if (v === "home") delete document.body.dataset.view; else document.body.dataset.view = ["atlas", "account", "compare"].includes(v) ? v : "day";
+  if (v === "home") delete document.body.dataset.view; else document.body.dataset.view = ["atlas", "account", "compare", "history"].includes(v) ? v : "day";
   document.getElementById("accountPage").hidden = v !== "account";
+  document.getElementById("historyPage").hidden = v !== "history";
   document.getElementById("compareFoodsPage").hidden = v !== "compare";
   if (v === "account") renderAccountPage();
-  const target = v === "compare" ? document.getElementById("compareFoodsPage") : v === "account" ? document.getElementById("accountPage") : v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
+  if (v === "history") renderHistoryPage();
+  const target = v === "compare" ? document.getElementById("compareFoodsPage") : v === "account" ? document.getElementById("accountPage") : v === "history" ? document.getElementById("historyPage") : v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
   if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   if (v === "atlas") renderGrid();
   if (window.__syncShell) window.__syncShell();
   /* keep the URL honest: /database is a real page, crawlable on its own */
   if (push !== false && history.pushState) {
-    try { history.pushState({ v }, "", v === "compare" ? "/compare" : v === "account" ? "/account" : v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
+    try { history.pushState({ v }, "", v === "compare" ? "/compare" : v === "account" ? "/account" : v === "history" ? "/history" : v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
   }
 }
 window.addEventListener("popstate", () => {
   if (/^\/account\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("account", false); return; }
+  if (/^\/history\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("history", false); return; }
   const m = location.pathname.match(/^\/database\/([a-z0-9-]+)/);
   if (m) {
     const f = ATLAS.foods.find(x => x.slug === m[1]);
@@ -4381,6 +4382,7 @@ window.addEventListener("popstate", () => {
 /* ================= URL boot: page view + food deep links ================= */
 (function bootURL() {
   if (/^\/account\/?$/.test(location.pathname)) { showView("account", false); return; }
+  if (/^\/history\/?$/.test(location.pathname)) { showView("history", false); return; }
   if (new URLSearchParams(location.search).get("view") === "diary") showView("day", false);
   if (/^\/database/.test(location.pathname) || document.title.indexOf("database") !== -1) {
     showView("atlas", false);
