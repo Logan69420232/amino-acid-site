@@ -1004,7 +1004,9 @@
   body.authed header.site { display: none; }
   body.authed .v2-entry { border-top: 0; padding-top: 12px; }
   .day-meta[hidden], .app-sidebar[hidden], .intake-grid label[hidden] { display: none; }
-  .day-nav { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--line-strong); padding: 8px 0 14px; margin: 20px 0 12px; }
+  .day-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line-strong); padding: 8px 0 14px; margin: 20px 0 12px; }
+  .day-roll-note { flex-basis: 100%; font-size: 12.5px; color: var(--ink-3); margin: 2px 0 0; }
+  .day-roll-note .linkish { font-size: inherit; font-weight: 600; }
   .day-center { display: flex; justify-content: center; align-items: center; flex: 1; min-width: 0; }
   .day-icon { width: 42px; min-width: 42px; height: 42px; border: 0; border-radius: 8px; background: transparent; color: var(--c-bcaa); font-size: 27px; }
   .day-icon:hover { background: var(--c-good-bg); }
@@ -3206,6 +3208,27 @@ function loadLog() {
   return { days: [{ date: todayISO(), note: "", entries: legacy }], active: 0 };
 }
 function saveLog(log) { store.setItem("aa_log", JSON.stringify(log)); schedulePush(); }
+/* Midnight rollover: the diary always opens on today. Yesterday's day stays in
+   the log (history), instead of yesterday's meals silently carrying over as if
+   they were eaten today, which is how it read to users before. */
+function rolloverToToday() {
+  const log = loadLog();
+  const today = todayISO();
+  const act = log.days[log.active];
+  if (!act || act.date >= today) return false; // already on today (or deliberately pre-logging a future day)
+  let idx = log.days.findIndex(d => d.date === today);
+  if (idx === -1) { log.days.push(blankLogDay(today)); idx = log.days.length - 1; }
+  log.active = idx;
+  saveLog(log);
+  return true;
+}
+let _rolloverDate = todayISO();
+document.addEventListener("visibilitychange", () => {
+  /* a tab left open overnight, or a phone tab resumed days later */
+  if (document.visibilityState !== "visible" || todayISO() === _rolloverDate) return;
+  _rolloverDate = todayISO();
+  if (rolloverToToday() && window.__v2Render) window.__v2Render();
+});
 function activeLogDay() { const log = loadLog(); return log.days[log.active]; }
 function loadDay() { return activeLogDay().entries; }
 function saveDay(entries) { const log = loadLog(); log.days[log.active].entries = entries; saveLog(log); updateDayBtn(); }
@@ -3855,6 +3878,14 @@ window.addEventListener("popstate", () => {
     $("dayNote").value = d.note;
     $("dayDelete").hidden = log.days.length < 2;
     $("dayFull").hidden = log.days.length < WEEK_DAYS;
+    /* signed out, the view shows one day; after a midnight rollover say where yesterday went */
+    if (soloDay && log.days.some((x, i) => i !== log.active && x.entries.length)) {
+      const n = document.createElement("p");
+      n.className = "day-roll-note";
+      n.innerHTML = 'A previous day is saved on this device. <button type="button" class="linkish" id="rollSignup">Create a free account</button> to see your diary history.';
+      tabs.appendChild(n);
+      n.querySelector("#rollSignup").addEventListener("click", () => openAuthSheet("Your saved days are waiting. Create a free account to see your diary history."));
+    }
   }
   function render() {
     renderDayChrome();
@@ -4121,6 +4152,7 @@ window.addEventListener("popstate", () => {
     sharedNotice = loadDayFromHash();
     if (sharedNotice) document.body.dataset.view = "day";
   };
+  rolloverToToday();
   if (initialSessionResolved) window.__v2LoadSharedDay();
   window.__v2Render = render;
   render();
