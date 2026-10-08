@@ -3260,6 +3260,34 @@ document.addEventListener("visibilitychange", () => {
   _rolloverDate = todayISO();
   if (rolloverToToday() && window.__v2Render) window.__v2Render();
 });
+/* The account-scoping update left diaries saved under the old unscoped keys
+   invisible. They are never imported silently (their owner is unknown); the
+   diary offers a one-tap restore instead, keeping each day's original date. */
+function normLegacyDay(d) {
+  return { date: d.date || todayISO(), note: d.note || "",
+    entries: (d.entries || []).filter(e => e && foodByName(e.name)).map(e => ({ name: e.name, g: +e.g || 100, meal: MEAL_LABEL[e.meal] ? e.meal : "other" })) };
+}
+function pendingLegacyDays() {
+  try {
+    if (browserStore.getItem("aa_legacy_handled")) return [];
+    const raw = JSON.parse(browserStore.getItem("aa_log") || "null");
+    if (!raw || !Array.isArray(raw.days)) return [];
+    const have = new Set(loadLog().days.map(dayKey));
+    return raw.days.map(normLegacyDay).filter(d => d.entries.length && !have.has(dayKey(d)));
+  } catch (e) { return []; }
+}
+function restoreLegacyDays() {
+  const missing = pendingLegacyDays();
+  browserStore.setItem("aa_legacy_handled", "1");
+  if (!missing.length) return;
+  const log = loadLog();
+  const activeKey = dayKey(log.days[log.active]);
+  const days = dedupeDays(missing.concat(log.days)); // older days first, so the week cap keeps the newest
+  let active = days.findIndex(d => dayKey(d) === activeKey);
+  if (active === -1) active = days.length - 1;
+  saveLog({ days, active });
+}
+function dismissLegacyDays() { browserStore.setItem("aa_legacy_handled", "1"); }
 function activeLogDay() { const log = loadLog(); return log.days[log.active]; }
 function loadDay() { return activeLogDay().entries; }
 function saveDay(entries) { const log = loadLog(); log.days[log.active].entries = entries; saveLog(log); updateDayBtn(); }
@@ -3928,6 +3956,15 @@ window.addEventListener("popstate", () => {
     $("dayNote").value = d.note;
     $("dayDelete").hidden = log.days.length < 2;
     $("dayFull").hidden = log.days.length < WEEK_DAYS;
+    const legacy = pendingLegacyDays();
+    if (legacy.length) {
+      const n = document.createElement("p");
+      n.className = "day-roll-note";
+      n.innerHTML = `Found ${legacy.length} diary day${legacy.length === 1 ? "" : "s"} saved on this device from before the last site update. <button type="button" class="linkish" id="legacyRestore">Restore ${legacy.length === 1 ? "it" : "them"}</button> · <button type="button" class="linkish" id="legacyDismiss">Dismiss</button>`;
+      tabs.appendChild(n);
+      n.querySelector("#legacyRestore").addEventListener("click", () => { restoreLegacyDays(); render(); });
+      n.querySelector("#legacyDismiss").addEventListener("click", () => { dismissLegacyDays(); render(); });
+    }
     /* signed out, the view shows one day; after a midnight rollover say where yesterday went */
     if (soloDay && log.days.some((x, i) => i !== log.active && x.entries.length)) {
       const n = document.createElement("p");
