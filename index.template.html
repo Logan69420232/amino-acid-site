@@ -372,6 +372,8 @@
   .v2-item .nm { display: block; min-width: 0; line-height: 1.35; overflow-wrap: anywhere; font-weight: 500; margin-bottom: 4px; }
   .v2-item .qty { display: flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--ink-2); }
   .v2-item input { width: 72px; min-height: 36px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 16px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .v2-item .unit-sel { min-height: 36px; max-width: 128px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 4px; font-size: 14px; background: var(--bg); color: var(--ink-2); }
+  .v2-item .unit-g { color: var(--ink-3); font-size: 12px; }
   .v2-item .cal { color: var(--ink-2); font-size: 16px; font-variant-numeric: tabular-nums; text-align: right; }
   .v2-item .cal small { display: block; font-size: 13px; margin-top: 3px; }
   @media (max-width: 560px) {
@@ -1886,6 +1888,36 @@ const PORTION_HINTS = [
   [/^Chicken breast/i, [["1 small breast", 120], ["1 large breast", 175]]],
   [/^Bacon\b/i, [["2 rashers", 30]]]
 ];
+/* Countable units for the diary: foods people think of per item, not per gram.
+   Entries are stored in grams regardless; the unit is only how the row reads. */
+const ITEM_UNITS = [
+  [/^egg white/i, [["egg whites", 33]]],
+  [/^egg yolk/i, [["yolks", 17]]],
+  [/^(whole )?egg\b/i, [["eggs", 50]]],
+  [/bread|bagel|toast/i, [["slices", 40]]],
+  [/whey|casein|collagen|protein (isolate|concentrate|powder)|pea protein|rice protein|hemp protein|soy protein|egg white protein/i, [["scoops", 30]]],
+  [/peanut butter|almond butter|tahini/i, [["tbsp", 16]]],
+  [/^milk\b|^milk,/i, [["glasses", 240]]],
+  [/yogurt|yoghurt|skyr|quark/i, [["pots", 150]]],
+  [/cheddar|mozzarella|^cheese,|cheese, (edam|gouda|swiss|brie)/i, [["slices", 20]]],
+  [/^bacon/i, [["rashers", 15]]],
+  [/sausage/i, [["sausages", 55]]],
+  [/^chicken breast/i, [["breasts", 150]]],
+  [/rice,.*\b(cooked|boiled|steamed)\b/i, [["cups", 160]]],
+  [/(pasta|spaghetti|macaroni|noodles),.*\b(cooked|boiled)\b/i, [["cups", 140]]],
+  [/(lentils|chickpeas|beans|peas, split),.*\b(cooked|boiled)\b/i, [["cups", 200]]],
+  [/^oats\b|oatmeal|porridge/i, [["half-cups", 40]]],
+  [/banana/i, [["bananas", 118]]],
+  [/\bapples?\b(?!.*(cider|vinegar|juice))/i, [["apples", 180]]],
+  [/tuna,.*canned|canned.*tuna/i, [["cans", 100]]],
+  [/^tofu\b/i, [["half blocks", 175]]],
+  [/^potato(es)?\b|^sweet potato/i, [["medium potatoes", 170]]]
+];
+function portionUnits(f) {
+  if (!f) return [];
+  for (const [re, list] of ITEM_UNITS) if (re.test(f.name)) return list;
+  return [];
+}
 function practicalPortions(f) {
   for (const [re, list] of PORTION_HINTS) if (re.test(f.name)) return list;
   return [];
@@ -3294,7 +3326,7 @@ function loadLog() {
     const raw = JSON.parse(store.getItem("aa_log") || "null");
     if (raw && Array.isArray(raw.days) && raw.days.length) {
       raw.days.forEach(d => {
-        d.entries = (d.entries || []).filter(e => foodByName(e.name)).map(e => ({ name: e.name, g: e.g, meal: MEAL_LABEL[e.meal] ? e.meal : "other" }));
+        d.entries = (d.entries || []).filter(e => foodByName(e.name)).map(e => ({ name: e.name, g: e.g, meal: MEAL_LABEL[e.meal] ? e.meal : "other", ...(typeof e.unit === "string" && e.unit ? { unit: e.unit } : {}) }));
         d.note = d.note || ""; d.date = d.date || todayISO();
       });
       raw.days = dedupeDays(raw.days);
@@ -3361,7 +3393,7 @@ function activeLogDay() { const log = loadLog(); return log.days[log.active]; }
 function loadDay() { return activeLogDay().entries; }
 function saveDay(entries) { const log = loadLog(); log.days[log.active].entries = entries; saveLog(log); updateDayBtn(); }
 let currentMeal = "breakfast";
-function addToDay(name, grams, meal) {
+function addToDay(name, grams, meal, unit) {
   const log = loadLog(); const d = log.days[log.active];
   const m = MEAL_LABEL[meal] ? meal : currentMeal;
   const hit = d.entries.find(e => e.name === name && e.meal === m);
@@ -3369,7 +3401,7 @@ function addToDay(name, grams, meal) {
     openAuthSheet(`You can try ${GATE_FREE_FOODS} foods without an account. Create a free one to log your whole day, across meals and days.`);
     return false;
   }
-  if (hit) hit.g += grams; else d.entries.push({ name, g: grams, meal: m });
+  if (hit) hit.g += grams; else d.entries.push({ name, g: grams, meal: m, ...(unit ? { unit } : {}) });
   saveLog(log); updateDayBtn();
   if (window.__v2RevealMeal) window.__v2RevealMeal(m);
   return true;
@@ -3917,9 +3949,14 @@ window.addEventListener("popstate", () => {
   function hideDD() { dd.hidden = true; dd.innerHTML = ""; ddItems = []; ddIdx = -1; }
   function pick(f) {
     /* Picking a suggestion adds it straight to the day: typed grams win,
-       otherwise the typical serving. The row's amount stays editable. */
+       otherwise one item for countable foods (an egg, a slice), else the
+       typical serving. The row's amount stays editable in items or grams. */
     hideDD();
-    if (!addToDay(f.name, clamp(grams.value, 0.1, 2000, f.serving_g || 100))) return;
+    const units = portionUnits(f);
+    const ok = !grams.value && units.length
+      ? addToDay(f.name, units[0][1], undefined, units[0][0])
+      : addToDay(f.name, clamp(grams.value, 0.1, 2000, f.serving_g || 100));
+    if (!ok) return;
     food.value = ""; grams.value = ""; err.hidden = true;
     hideDD(); render(); food.focus();
   }
@@ -4055,8 +4092,14 @@ window.addEventListener("popstate", () => {
     const rowHtml = (e, i) => {
       const f = foodByName(e.name);
       const name = html(e.name);
+      const units = portionUnits(f);
+      const u = units.find(x => x[0] === e.unit);
+      const qty = u ? +(e.g / u[1]).toFixed(2) : e.g;
+      const unitUI = units.length
+        ? `<select class="unit-sel" data-i="${i}" aria-label="Unit for ${name}"><option value="">g</option>${units.map(([n]) => `<option value="${n}"${e.unit === n ? " selected" : ""}>${n}</option>`).join("")}</select>${u ? `<small class="unit-g">≈ ${Math.round(e.g)} g</small>` : ""}`
+        : " g";
       return `<div class="v2-item"><div><span class="nm">${name}</span><span class="food-nutrition-source">${f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
-        <span class="qty"><input type="number" min="0.1" max="2000" step="any" value="${e.g}" data-i="${i}" aria-label="Grams of ${name}"> g</span></div>
+        <span class="qty"><input type="number" min="0.1" max="2000" step="any" value="${qty}" data-i="${i}" aria-label="Amount of ${name}">${unitUI}</span></div>
         <span class="cal">${f.kcal == null ? "—" : (f.kcal * e.g / 100).toFixed(1)}<small>${f.kcal == null ? "kcal unavailable" : "kcal"}</small></span>
         <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button></div>`;
     };
@@ -4114,8 +4157,17 @@ window.addEventListener("popstate", () => {
     }));
     list.querySelectorAll(".v2-item input").forEach(inp => inp.addEventListener("change", ev => {
       const i = +ev.target.dataset.i;
-      const d = loadDay(); d[i].g = clamp(ev.target.value, 0.1, 2000, 100); saveDay(d); render();
+      const d = loadDay();
+      const u = portionUnits(foodByName(d[i].name)).find(x => x[0] === d[i].unit);
+      const q = clamp(ev.target.value, 0.01, 2000, u ? 1 : 100);
+      d[i].g = u ? Math.min(2000, Math.round(q * u[1] * 10) / 10) : q;
+      saveDay(d); render();
       list.querySelector(`.v2-item input[data-i="${i}"]`).focus();
+    }));
+    list.querySelectorAll(".unit-sel").forEach(sel => sel.addEventListener("change", ev => {
+      const i = +ev.target.dataset.i;
+      const d = loadDay(); d[i].unit = ev.target.value || undefined; saveDay(d); render();
+      const again = list.querySelector(`.unit-sel[data-i="${i}"]`); if (again) again.focus();
     }));
     list.querySelectorAll(".rm").forEach(b => b.addEventListener("click", () => {
       const d = loadDay(), m = d[+b.dataset.i].meal; d.splice(+b.dataset.i, 1); saveDay(d); render();
