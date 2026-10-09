@@ -173,6 +173,26 @@
     padding: 14px 18px; font-size: 15.5px; font-weight: 700; cursor: pointer; margin-top: 4px;
   }
   .auth-primary:hover { filter: brightness(1.08); }
+  /* show/hide password: a drawn eye, struck through while hidden */
+  .pw-wrap { position: relative; display: block; width: 100%; }
+  .pw-wrap input { width: 100%; box-sizing: border-box; padding-right: 46px !important; }
+  .pw-eye {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 34px; height: 34px; border: 0; background: transparent; cursor: pointer; padding: 0;
+  }
+  .pw-eye::before {
+    content: ""; position: absolute; inset: 8px 6px; border: 1.6px solid var(--ink-3);
+    border-radius: 75% 15%; transform: rotate(45deg);
+  }
+  .pw-eye::after {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
+    border-radius: 50%; background: var(--ink-3);
+  }
+  .pw-eye:not(.on) { opacity: 0.75; }
+  .pw-eye:not(.on)::after { box-shadow: -9px 9px 0 -2.5px var(--ink-3), 9px -9px 0 -2.5px transparent; }
+  .pw-eye.on::before, .pw-eye.on::after { border-color: var(--c-bcaa); background-color: var(--c-bcaa); }
+  .pw-eye.on::before { background: transparent; }
+  .pw-eye:hover::before { border-color: var(--ink); }
   .auth-swap-line { font-size: 14px; color: var(--ink-2); margin-top: 14px; }
   .auth-swap-line .linkish, .auth-col .auth-note .linkish { font-size: inherit; font-weight: 600; }
   /* menu: signed-out gets the Cronometer-style pair, one big pill and a plain link */
@@ -2864,7 +2884,7 @@ function openAuthSheet(gateMsg, mode, initialEmail = "") {
       ${typeof gateMsg === "string" && gateMsg ? `<p class="auth-gate">${gateMsg}</p>` : ""}
       <form class="auth-col-form" id="authForm">
         <input type="email" required placeholder="Email address" id="authEmail" aria-label="Email address" autocomplete="email">
-        <input type="password" required minlength="6" placeholder="Password (6+ characters)" id="authPw" aria-label="Password" autocomplete="${signup ? "new-password" : "current-password"}">
+        <span class="pw-wrap"><input type="password" required minlength="6" placeholder="Password (6+ characters)" id="authPw" aria-label="Password" autocomplete="${signup ? "new-password" : "current-password"}"><button type="button" class="pw-eye" data-eye="authPw" aria-label="Show password" aria-pressed="false"></button></span>
         <button class="auth-primary" type="submit">${signup ? "Sign up for free" : "Log in"}</button>
       </form>
       <p class="pick-hint" id="authHint" role="status" aria-live="polite"></p>
@@ -2947,6 +2967,19 @@ function openAccountPage() {
   if (!overlay.hidden) closeDetail();
   showView("account");
 }
+/* one delegated handler covers every password field, present and future */
+document.addEventListener("click", e => {
+  const b = e.target.closest(".pw-eye");
+  if (!b) return;
+  const inp = document.getElementById(b.dataset.eye);
+  if (!inp) return;
+  const show = inp.type === "password";
+  inp.type = show ? "text" : "password";
+  b.classList.toggle("on", show);
+  b.setAttribute("aria-pressed", String(show));
+  b.setAttribute("aria-label", show ? "Hide password" : "Show password");
+  inp.focus();
+});
 function renderAccountPage() {
   const account = document.getElementById("accountPage");
   if (!authedUser) {
@@ -2993,8 +3026,8 @@ function renderAccountPage() {
     <div class="pick-block">
       <h3>Change password</h3>
       <div class="account-form-row">
-        <label class="account-field"><span>New password</span><input type="password" minlength="6" placeholder="At least 6 characters" id="acctPw1" autocomplete="new-password"></label>
-        <label class="account-field"><span>Repeat password</span><input type="password" minlength="6" placeholder="Enter it again" id="acctPw2" autocomplete="new-password"></label>
+        <label class="account-field"><span>New password</span><span class="pw-wrap"><input type="password" minlength="6" placeholder="At least 6 characters" id="acctPw1" autocomplete="new-password"><button type="button" class="pw-eye" data-eye="acctPw1" aria-label="Show password" aria-pressed="false"></button></span></label>
+        <label class="account-field"><span>Repeat password</span><span class="pw-wrap"><input type="password" minlength="6" placeholder="Enter it again" id="acctPw2" autocomplete="new-password"><button type="button" class="pw-eye" data-eye="acctPw2" aria-label="Show password" aria-pressed="false"></button></span></label>
         <button type="button" class="go-cmp" id="acctPwGo">Update password</button>
       </div>
       <p class="pick-hint" id="acctPwMsg"></p>
@@ -3108,7 +3141,8 @@ function renderHistoryPage() {
   const chrono = days.slice().sort((a, b) => (a.d.date < b.d.date ? -1 : a.d.date > b.d.date ? 1 : 0));
   const newestFirst = chrono.slice().reverse();
   const avg = logged.length ? logged.reduce((s, x) => s + x.prot, 0) / logged.length : 0;
-  const hit = logged.filter(x => x.prot >= target).length;
+  const dayTarget = x => x.d.t || target; // each day scores against the target it was logged with
+  const hit = logged.filter(x => x.prot >= dayTarget(x)).length;
   const summary = logged.length
     ? `${logged.length} day${logged.length === 1 ? "" : "s"} logged · average <b>${avg.toFixed(0)} g protein</b> a day · target of ${target.toFixed(0)} g reached on ${hit} of ${logged.length}`
     : "Nothing logged yet. Add foods to today and it appears here.";
@@ -3127,11 +3161,12 @@ function renderHistoryPage() {
         ${x.i === log.active ? '<span class="hist-now">editing now</span>' : ""}
         <button type="button" class="v2-share-sec hist-open" data-i="${x.i}">Open this day</button>
       </div>
-      ${x.d.entries.length ? `<p class="hist-stats"><b>${x.prot.toFixed(0)} g protein</b> · ${Math.round(x.prot / target * 100)}% of target${x.kcal != null ? ` · ${Math.round(x.kcal)} kcal` : ""} · ${x.balance===null ? "amino acid balance unavailable" : "balance "+Math.round(x.balance * 100)+"%"} · ${x.d.entries.length} source${x.d.entries.length === 1 ? "" : "s"}</p>
+      ${x.d.entries.length ? `<p class="hist-stats"><b>${x.prot.toFixed(0)} g protein</b> · ${Math.round(x.prot / dayTarget(x) * 100)}% of target${x.kcal != null ? ` · ${Math.round(x.kcal)} kcal` : ""} · ${x.balance===null ? "amino acid balance unavailable" : "balance "+Math.round(x.balance * 100)+"%"} · ${x.d.entries.length} source${x.d.entries.length === 1 ? "" : "s"}</p>
       <p class="hist-foods">${x.d.entries.slice(0, 4).map(e => `${e.g} g ${e.name.split(",")[0]}`).join(" · ")}${x.d.entries.length > 4 ? ` · +${x.d.entries.length - 4} more` : ""}</p>` : '<p class="hist-stats">Nothing logged this day.</p>'}
       ${x.d.note ? `<p class="hist-note">"${x.d.note}"</p>` : ""}
     </div>`).join("")}`;
   page.querySelectorAll(".hist-open").forEach(b => b.addEventListener("click", () => {
+    if (!overlay.hidden) closeDetail(false); // a sheet opened by a background auth event must not swallow the navigation
     const l = loadLog(); l.active = +b.dataset.i; saveLog(l);
     if (window.__v2Render) window.__v2Render();
     showView("day");
@@ -3173,7 +3208,7 @@ function renderHistoryPage() {
       ${m === "prot" ? `<span class="hist-target" style="bottom:${22 + px2(target)}px" title="Your ${target.toFixed(0)} g daily target"></span>` : ""}
       ${chrono.map(x => { const v = x[m] ?? 0; return `<div class="hc-col">
         <span class="hc-val">${v > 0 ? v.toFixed(0) : ""}</span>
-        <span class="hc-bar${m === "prot" && v >= target ? " good" : ""}${m !== "prot" ? " neutral" : ""}" style="height:${Math.max(px2(v), 2)}px"></span>
+        <span class="hc-bar${m === "prot" && v >= dayTarget(x) ? " good" : ""}${m !== "prot" ? " neutral" : ""}" style="height:${Math.max(px2(v), 2)}px"></span>
         <span class="hc-day">${fmtShort(x.d.date)}</span></div>`; }).join("")}
     </div>
     <p class="hist-chart-note">${label}.${m === "prot" ? " Green bars reached your target; the dashed line is the target itself." : ""}</p>`;
@@ -3377,6 +3412,13 @@ function loadLog() {
   return { days: [{ date: todayISO(), note: "", entries: legacy }], active: 0 };
 }
 function saveLog(log) { store.setItem("aa_log", JSON.stringify(log)); schedulePush(); }
+/* Each day remembers the weight and target it was logged against. Changing
+   your weight today must not rewrite how last Tuesday scored: past days keep
+   their stamp, today re-stamps whenever its entries change. */
+function stampDay(d) {
+  if (!d) return;
+  if (d.date === todayISO() || !d.w) { d.w = getWeight(); d.t = getThriveG(d.w); }
+}
 /* Midnight rollover: the diary always opens on today. Yesterday's day stays in
    the log (history), instead of yesterday's meals silently carrying over as if
    they were eaten today, which is how it read to users before. */
@@ -3428,7 +3470,7 @@ function restoreLegacyDays() {
 function dismissLegacyDays() { browserStore.setItem("aa_legacy_handled", "1"); }
 function activeLogDay() { const log = loadLog(); return log.days[log.active]; }
 function loadDay() { return activeLogDay().entries; }
-function saveDay(entries) { const log = loadLog(); log.days[log.active].entries = entries; saveLog(log); updateDayBtn(); }
+function saveDay(entries) { const log = loadLog(); log.days[log.active].entries = entries; stampDay(log.days[log.active]); saveLog(log); updateDayBtn(); }
 let currentMeal = "breakfast";
 function addToDay(name, grams, meal, unit) {
   const log = loadLog(); const d = log.days[log.active];
@@ -3439,6 +3481,7 @@ function addToDay(name, grams, meal, unit) {
     return false;
   }
   if (hit) hit.g += grams; else d.entries.push({ name, g: grams, meal: m, ...(unit ? { unit } : {}) });
+  stampDay(d);
   saveLog(log); updateDayBtn();
   if (window.__v2RevealMeal) window.__v2RevealMeal(m);
   return true;
@@ -4229,11 +4272,15 @@ window.addEventListener("popstate", () => {
 
     if (!day.length) { result.hidden = true; result.innerHTML = ""; return; }
 
-    const weight = getWeight();
+    /* a past day scores against the weight and target it was logged with,
+       not whatever the profile says today; today always tracks the profile */
+    const dayStamp = activeLogDay();
+    const stamped = dayStamp.date !== todayISO() && dayStamp.w;
+    const weight = stamped ? dayStamp.w : getWeight();
     const wUnit = store.getItem("aa_wunit") || "kg";
     const displayWeight = wUnit === "lb" ? Math.round(weight * LB_PER_KG) : weight;
     const protFloor = weight * ATLAS.protein_rda_g_per_kg;
-    const protThrive = getThriveG(weight);
+    const protThrive = stamped && dayStamp.t ? dayStamp.t : getThriveG(weight);
     const aaScale = protThrive / protFloor;
 
     const totals = {}; AA_META.forEach(m => totals[m[0]] = 0);
