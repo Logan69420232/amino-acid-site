@@ -639,6 +639,8 @@
   .hist-summary { font-size: 14.5px; color: var(--ink-2); margin: 14px 0 4px; }
   .hist-summary b { color: var(--c-bcaa); }
   .hist-chart { position: relative; display: flex; gap: 10px; align-items: flex-end; height: 168px; padding-bottom: 22px; margin: 10px 0 2px; }
+  .hist-chart.dense { gap: 3px; }
+  .hist-chart.dense .hc-bar { border-radius: 2px 2px 0 0; }
   .hc-col { flex: 1; max-width: 72px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; position: relative; }
   .hc-val { font-size: 11px; color: var(--ink-3); margin-bottom: 3px; font-variant-numeric: tabular-nums; }
   .hc-bar { width: 100%; max-width: 44px; border-radius: 4px 4px 0 0; background: var(--c-limit); opacity: 0.8; }
@@ -1378,7 +1380,7 @@
     <div class="v2-list" id="v2List"></div>
     <p class="v2-hint" id="v2Hint">Choose a <b>meal name</b> or <b>Add food</b> to search <b id="v2Count"></b> foods, then set your portion. Or explore the <a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</p>
     <div class="day-meta" id="dayMeta" hidden>
-      <p id="dayFull" class="intake-help" hidden>Your week has seven saved days. Remove a day to make room for another.</p>
+      <p id="dayFull" class="intake-help" hidden>Your diary holds 31 days. Remove a day to make room for another; the oldest drops off automatically as you keep logging.</p>
       <label class="dm-date">Date <input type="date" id="dayDate" aria-label="Date of this day"></label>
       <button type="button" class="dm-del" id="dayDelete" hidden>Remove this day</button>
       <textarea class="dm-note" id="dayNote" rows="2" placeholder="Notes for this day (training, appetite, how it felt...)"></textarea>
@@ -3231,14 +3233,16 @@ function renderHistoryPage() {
         grid += `<line x1="${padL}" x2="${W - padR}" y1="${Y(g).toFixed(1)}" y2="${Y(g).toFixed(1)}" stroke="currentColor" stroke-opacity="${g === 0 ? 0.3 : 0.12}"/>
           <text x="${padL - 7}" y="${(Y(g) + 3.5).toFixed(1)}" text-anchor="end" class="hl-y">${g}${g === maxV ? " g" : ""}</text>`;
       }
+      const labelEvery = Math.max(1, Math.ceil(n / 8));
+      const xLabel = (x, i) => (i % labelEvery === 0 || i === n - 1) ? (n > 12 ? fmt(x.d.date).replace(/^\w+,?\s*/, "") : fmtShort(x.d.date)) : "";
       const lines = series.map(([k, l, c]) =>
         `<polyline points="${chrono.map((x, i) => `${X(i).toFixed(1)},${Y(x[k] ?? 0).toFixed(1)}`).join(" ")}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/>` +
-        chrono.map((x, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(x[k] ?? 0).toFixed(1)}" r="3.5" fill="${c}"><title>${l} ${(x[k] ?? 0).toFixed(0)} g · ${fmtShort(x.d.date)}</title></circle>`).join("")
+        chrono.map((x, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(x[k] ?? 0).toFixed(1)}" r="${n > 12 ? 2.5 : 3.5}" fill="${c}"><title>${l} ${(x[k] ?? 0).toFixed(0)} g · ${fmt(x.d.date)}</title></circle>`).join("")
       ).join("");
       return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Protein, carbs and fat per day as lines, grams on the vertical axis">
         ${grid}
         ${lines}
-        ${chrono.map((x, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="hl-x">${fmtShort(x.d.date)}</text>`).join("")}
+        ${chrono.map((x, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="hl-x">${xLabel(x, i)}</text>`).join("")}
       </svg>
       <p class="hist-legend">${series.map(([k, l, c]) => `<span><span class="dot" style="background:${c}"></span>${l}</span>`).join("")}</p>
       <p class="hist-chart-note">Grams per day. A food with unknown macros counts as 0 toward carbs and fat.</p>`;
@@ -3246,12 +3250,14 @@ function renderHistoryPage() {
     const label = { prot: "Protein per day, g", kcal: "Calories per day", carb: "Carbs per day, g", fat: "Fat per day, g" }[m];
     const maxV = Math.max(m === "prot" ? target : 1, ...chrono.map(x => x[m] ?? 0), 1);
     const px2 = v => Math.round(v / maxV * 120);
-    return `<div class="hist-chart">
+    const dense = chrono.length > 12; /* a month of bars: drop the per-bar numbers, label every few days */
+    const every = Math.max(1, Math.ceil(chrono.length / 8));
+    return `<div class="hist-chart${dense ? " dense" : ""}">
       ${m === "prot" ? `<span class="hist-target" style="bottom:${22 + px2(target)}px" title="Your ${target.toFixed(0)} g daily target"></span>` : ""}
-      ${chrono.map(x => { const v = x[m] ?? 0; return `<div class="hc-col">
-        <span class="hc-val">${v > 0 ? v.toFixed(0) : ""}</span>
+      ${chrono.map((x, i) => { const v = x[m] ?? 0; return `<div class="hc-col" title="${v.toFixed(0)} · ${fmt(x.d.date)}">
+        <span class="hc-val">${!dense && v > 0 ? v.toFixed(0) : ""}</span>
         <span class="hc-bar${m === "prot" && v >= dayTarget(x) ? " good" : ""}${m !== "prot" ? " neutral" : ""}" style="height:${Math.max(px2(v), 2)}px"></span>
-        <span class="hc-day">${fmtShort(x.d.date)}</span></div>`; }).join("")}
+        <span class="hc-day">${dense ? (i % every === 0 || i === chrono.length - 1 ? +x.d.date.slice(8) : "") : fmtShort(x.d.date)}</span></div>`; }).join("")}
     </div>
     <p class="hist-chart-note">${label}.${m === "prot" ? " Green bars reached your target; the dashed line is the target itself." : ""}</p>`;
   }
@@ -3560,7 +3566,9 @@ function foodByName(n) { return FOOD_BY_NAME.get(n); }
 function updateDayBtn() {}
 function todayISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
 function blankLogDay(date) { return { date: date || todayISO(), note: "", entries: [] }; }
-const WEEK_DAYS = 7;
+/* The diary's rolling window. Was 7 ("one week's worth"); users kept hitting
+   the wall and asking for monthly charts, so it now holds a month. */
+const WEEK_DAYS = 31;
 function dayKey(d) {
   return (d.date || "") + "|" + (d.note || "") + "|" +
     (d.entries || []).map(e => e.name + "~" + e.g + "~" + (e.meal || "")).sort().join(",");
@@ -4291,7 +4299,7 @@ window.addEventListener("popstate", () => {
       <div class="day-center"><button type="button" class="day-icon" id="dayPrev" aria-label="Previous saved day"${soloDay || position === 0 ? " disabled" : ""}>‹</button>
       <select id="daySelect" aria-label="Choose diary day">${shown.map(({d,i}) => `<option value="${i}"${i === log.active ? " selected" : ""}>${label(d,i)}</option>`).join("")}</select>
       <button type="button" class="day-icon" id="dayNext" aria-label="Next saved day"${soloDay || position === ordered.length-1 ? " disabled" : ""}>›</button></div>
-      <button type="button" class="day-icon day-add" id="dayAdd" aria-label="Add day" title="${log.days.length >= WEEK_DAYS ? 'Week full: open day options to remove a day first' : 'Add day'}"${!soloDay && log.days.length >= WEEK_DAYS ? ' disabled' : ''}>Add day</button>
+      <button type="button" class="day-icon day-add" id="dayAdd" aria-label="Add day" title="${log.days.length >= WEEK_DAYS ? 'Diary full (31 days): open day options to remove a day first' : 'Add day'}"${!soloDay && log.days.length >= WEEK_DAYS ? ' disabled' : ''}>Add day</button>
       <button type="button" class="day-icon" id="dayMore" aria-label="Edit day date and notes" title="Edit date and notes">⋯</button>`;
     function selectDay(index) {
       const l = loadLog(); l.active = index; saveLog(l); editingMeal = null; hideDD(); render();
