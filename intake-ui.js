@@ -78,6 +78,7 @@ function wireIntakeFields(prefix, root = sheet) {
     if (p.calorieMode === 'manual' && !el('Calories').value) { el('Calories').focus(); el('IntakePreview').textContent = 'Enter your calorie target, or switch to Use estimate.'; return false; }
     store.setItem('aa_intake', JSON.stringify(IntakeTargets.normalise(p)));
     store.setItem('aa_intake_completed', '1');
+    store.setItem('aa_settings_at', Date.now()); // freshness stamp: a stale synced copy must not undo this
     return true;
   };
 }

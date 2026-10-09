@@ -2240,6 +2240,7 @@ function renderDetail(id) {
   sheet.querySelector("#thriveG").addEventListener("change", e => {
     const v = +e.target.value;
     store.setItem("aa_thrive_g", v > 0 ? Math.max(30, Math.min(500, v)) : "");
+    bumpSettings(); schedulePush();
     renderDetail(id);
   });
   sheet.querySelector("#calcPortion").addEventListener("change", e => {
@@ -2710,6 +2711,10 @@ function loadSavedMeals() {
   } catch (e) { return []; }
 }
 function saveSavedMeals(list) { store.setItem("aa_saved_meals", JSON.stringify(list.slice(0, MAX_SAVED_MEALS))); schedulePush(); }
+/* Settings carry a freshness stamp. A background sync pulling the server copy
+   must never overwrite a save the user just made on this device: the stale
+   copy loses, this device pushes, and the server catches up. */
+function bumpSettings() { store.setItem("aa_settings_at", Date.now()); }
 function collectSettings() {
   return {
     weight: store.getItem("aa_weight") || null, thrive: store.getItem("aa_thrive_g") || "",
@@ -2717,22 +2722,27 @@ function collectSettings() {
     unit: store.getItem("aa_wunit") || null, diet: store.getItem("aa_diet") || null,
     meal: store.getItem("aa_meal") || null,
     atype: store.getItem("aa_acct_type") || null, role: store.getItem("aa_acct_role") || null,
-    savedMeals: loadSavedMeals()
+    savedMeals: loadSavedMeals(),
+    at: +store.getItem("aa_settings_at") || 0
   };
 }
 function applySettings(st) {
   if (!st) return;
-  if (st.intake) store.setItem("aa_intake", JSON.stringify(IntakeTargets.normalise(st.intake)));
-  if (st.intakeCompleted != null) store.setItem("aa_intake_completed", st.intakeCompleted ? "1" : "");
   if (Array.isArray(st.savedMeals)) {
-    /* union by name, the synced copy preferred, so neither device loses a meal */
+    /* union by name, the synced copy preferred, so neither device loses a meal;
+       safe regardless of freshness, so it runs before the staleness check */
     const merged = st.savedMeals.filter(m => m && m.name && Array.isArray(m.items));
     loadSavedMeals().forEach(m => { if (!merged.some(x => x.name === m.name)) merged.push(m); });
     store.setItem("aa_saved_meals", JSON.stringify(merged.slice(0, MAX_SAVED_MEALS)));
   }
+  const localAt = +store.getItem("aa_settings_at") || 0;
+  if (localAt && (+st.at || 0) < localAt) return; // this device is newer: keep its settings
+  if (st.intake) store.setItem("aa_intake", JSON.stringify(IntakeTargets.normalise(st.intake)));
+  if (st.intakeCompleted != null) store.setItem("aa_intake_completed", st.intakeCompleted ? "1" : "");
   [["aa_weight", st.weight], ["aa_thrive_g", st.thrive], ["aa_wunit", st.unit], ["aa_diet", st.diet], ["aa_meal", st.meal],
    ["aa_acct_type", st.atype], ["aa_acct_role", st.role]]
     .forEach(([k, v]) => { if (v != null) store.setItem(k, v); });
+  if (+st.at) store.setItem("aa_settings_at", +st.at);
 }
 const PRO_ROLES = [
   ["pt", "Personal trainer"], ["coach", "Coach"], ["nutritionist", "Dietitian or nutritionist"],
@@ -2742,6 +2752,7 @@ const PRO_ROLES = [
 const roleOptionsHTML = sel => PRO_ROLES.map(([v, l]) => `<option value="${v}"${v === sel ? " selected" : ""}>${l}</option>`).join("");
 function saveAccountType(atype, role) {
   store.setItem("aa_acct_type", atype === "pro" ? "pro" : "");
+  bumpSettings();
   store.setItem("aa_acct_role", atype === "pro" ? role : "");
   const c = sbReady();
   if (c && authedUser) c.auth.updateUser({
@@ -2753,12 +2764,14 @@ let _pushTimer = null, _lastPushed = "", _accountEpoch = 0, _syncReadyOwner = nu
 function isCurrentAccount(userId, epoch) {
   return !!userId && authedUser?.id === userId && store.owner === userId && _accountEpoch === epoch;
 }
+let _pushJob = null;
 function schedulePush() {
   const c = sbReady();
-  clearTimeout(_pushTimer);
+  clearTimeout(_pushTimer); _pushTimer = null; _pushJob = null;
   const userId = store.owner, epoch = _accountEpoch;
   if (!c || !isCurrentAccount(userId, epoch) || _syncReadyOwner !== userId) return;
-  _pushTimer = setTimeout(async () => {
+  /* identity captured now: a job left over from a previous account aborts inside */
+  _pushJob = async () => {
     try {
       if (!isCurrentAccount(userId, epoch)) return;
       const payload = Object.assign({}, loadLog(), { settings: collectSettings() });
@@ -2769,8 +2782,20 @@ function schedulePush() {
       const { error } = await c.from("logs").upsert({ user_id: userId, data: payload, updated_at: new Date().toISOString() });
       if (!error && isCurrentAccount(userId, epoch)) _lastPushed = j;
     } catch (e) {}
-  }, 1500);
+  };
+  _pushTimer = setTimeout(() => { _pushTimer = null; const job = _pushJob; _pushJob = null; return job ? job() : undefined; }, 1500);
 }
+/* Fire the pending debounced push immediately: after a profile save, and when
+   the page stops being visible, where the 1.5 s debounce would otherwise lose
+   the write (one user's weight change vanished exactly this way). */
+function pushNow() {
+  if (!_pushJob) schedulePush();
+  clearTimeout(_pushTimer); _pushTimer = null;
+  const job = _pushJob; _pushJob = null;
+  if (job) job();
+}
+if (typeof addEventListener === "function") addEventListener("pagehide", () => { if (_pushJob) pushNow(); });
+if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && _pushJob) pushNow(); });
 function mergeLogs(remote, local) {
   if (!remote || !Array.isArray(remote.days) || !remote.days.length) return local;
   const localHas = local.days.some(d => d.entries.length || d.note);
@@ -3004,7 +3029,8 @@ function renderAccountPage() {
     const t = +account.querySelector("#acctT").value;
     store.setItem("aa_thrive_g", t > 0 ? Math.max(30, Math.min(500, t)) : "");
     store.setItem("aa_diet", account.querySelector("#acctDiet").value === "vegan" ? "vegan" : "");
-    schedulePush();
+    bumpSettings();
+    pushNow(); // a profile save goes to the server immediately, not on the debounce
     if (window.__v2Render) window.__v2Render();
     account.querySelector("#acctMsg").innerHTML = '<span class="auth-msg">Saved.</span>';
   });
@@ -3237,7 +3263,8 @@ function openOnboardSheet() {
     const t = +sheet.querySelector("#obT").value;
     store.setItem("aa_thrive_g", t > 0 ? Math.max(30, Math.min(500, t)) : "");
     store.setItem("aa_diet", sheet.querySelector("#obDiet").value === "vegan" ? "vegan" : "");
-    schedulePush();
+    bumpSettings();
+    pushNow();
     if (window.__v2Render) window.__v2Render();
     closeDetail();
   });
@@ -3587,13 +3614,13 @@ function renderDay() {
     const unit = store.getItem("aa_wunit") || "kg";
     const kg = unit === "lb" ? (+e.target.value || 165) / LB_PER_KG : (+e.target.value || 75);
     store.setItem("aa_weight", Math.round(Math.max(30, Math.min(200, kg)) * 10) / 10);
-    renderDay();
+    bumpSettings(); schedulePush(); renderDay();
   });
-  sheet.querySelector("#dayWUnit").addEventListener("change", e => { store.setItem("aa_wunit", e.target.value); renderDay(); });
+  sheet.querySelector("#dayWUnit").addEventListener("change", e => { store.setItem("aa_wunit", e.target.value); bumpSettings(); schedulePush(); renderDay(); });
   sheet.querySelector("#dayThrive").addEventListener("change", e => {
     const v = +e.target.value;
     store.setItem("aa_thrive_g", v > 0 ? Math.max(30, Math.min(500, v)) : "");
-    renderDay();
+    bumpSettings(); schedulePush(); renderDay();
   });
   sheet.querySelectorAll(".day-g").forEach(inp => inp.addEventListener("change", e => {
     const d = loadDay();
@@ -3848,8 +3875,8 @@ window.addEventListener("popstate", () => {
     if (!cur.entries.length && !cur.note) log.days[log.active] = shared;
     else { log.days.push(shared); log.active = log.days.length - 1; }
     saveLog(log);
-    if (+params.get("w") > 0) store.setItem("aa_weight", clamp(params.get("w"), 30, 200, 75));
-    if (+params.get("t") > 0) store.setItem("aa_thrive_g", clamp(params.get("t"), 30, 500, 120));
+    if (+params.get("w") > 0) { store.setItem("aa_weight", clamp(params.get("w"), 30, 200, 75)); bumpSettings(); }
+    if (+params.get("t") > 0) { store.setItem("aa_thrive_g", clamp(params.get("t"), 30, 500, 120)); bumpSettings(); }
     history.replaceState(null, "", location.pathname);
     return true;
   }
