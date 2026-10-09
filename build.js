@@ -267,6 +267,43 @@ for (const f of foods) {
   }
 }
 
+// ---------- FAQ: written once, rendered as the /faq page and as FAQPage schema ----------
+const N_DIARY = (foods.length + nutritionFoods.length).toLocaleString();
+const FAQS = [
+  ["What is aminodata.org?",
+    "A free food diary that goes one level deeper than protein: it maps everything you eat to its full amino acid profile and compares your day with your personal targets. It is built by Logan King and Dr Paul T Morgan, Senior Lecturer in Human Nutrition and Metabolism at Manchester Metropolitan University."],
+  ["Is it really free?",
+    "Yes. Browsing the database and trying the diary costs nothing, and a free account unlocks everything else: a month of dated days, saved meals, charts over time, CSV export and syncing across your devices. There is no paid tier."],
+  ["How do I log what I eat?",
+    "Open the Food diary, pick a meal (breakfast, lunch, dinner or snacks) and tap Add food. Search covers " + N_DIARY + " foods and forgives typos, so chickn still finds chicken. Enter grams, or count in items where that is more natural: eggs, slices, scoops, cups or tablespoons."],
+  ["What are saved meals?",
+    "If you eat the same thing often, open that meal in the diary and tap Save meal. From then on it is one tap to add the whole meal again, and the Saved meals page lets you rename, edit and build meals from scratch. Saved meals sync to your account."],
+  ["Where does the nutrition data come from?",
+    "Amino acid profiles and nutrients come from published analytical sources: USDA FoodData Central (SR Legacy), the UK CoFID 2021 tables, and peer reviewed analyses such as Gorissen et al. 2018 for protein powders. Every food cites its source, and the citation links to the exact record."],
+  ["How are my daily amino acid targets set?",
+    "The baseline is the WHO/FAO/UNU 2007 requirement at your body weight. Because no official figures exist for higher protein intakes, we scale that baseline in proportion to your protein target and say so openly wherever the numbers appear. The default protein target is 1.6 g per kg of body weight, in line with intakes meta-analyses associate with supporting muscle; you can set your own in Account & targets."],
+  ["What does the amino acid balance score mean?",
+    "Balance measures the proportions in your protein against the WHO/FAO 2007 pattern, not how much you have eaten. 100% or more means every essential amino acid is present in good proportion; below that, the score names the limiting amino acid holding your day back. Daily progress, the big number above your results, is the quantity side."],
+  ["Why do the bars show a grey band at the tip?",
+    "Food composition data is not exact: lab analyses of the same food vary with breed, feed, season and processing. The band is an indicative allowance of about plus or minus 10%, not a measured confidence interval. To be sure a target is truly met, aim to get the whole band past the line."],
+  ["What happens to my diary at midnight?",
+    "The diary rolls to a fresh day automatically. Yesterday keeps its date, foods and note, and moves into your history; the diary holds a rolling 31 days, with the oldest dropping off as you keep logging. Each day also remembers the body weight and target it was logged against, so changing your weight today never rewrites last week."],
+  ["Can I see trends or export my data?",
+    "Yes. Data over time charts protein, calories, carbs and fat per day, with a combined macros line chart, and Download CSV exports every food of every logged day, including all twenty amino acids in grams, ready for Excel or any spreadsheet."],
+  ["Is my data private?",
+    "Your diary is stored against your account and nowhere else, protected by row level security, and never sold or shared. Signing out leaves the copy on your device untouched, and Account & targets has a delete option that removes your synced data permanently."],
+  ["Is this medical advice?",
+    "No. Amino Atlas is an educational reference built from public analytical data. It is not a substitute for advice from a doctor or registered dietitian, especially if you have a medical condition. Corrections are welcome through Send feedback."]
+];
+const escHtml = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const faqHTML = `<h1 id="faqTitle" tabindex="-1">Frequently asked questions</h1>
+<p class="sub">How the tool works, where the numbers come from, and what happens to your data.</p>
+${FAQS.map(([q, a]) => `<details class="faq-item"><summary>${escHtml(q)}</summary><p>${escHtml(a)}</p></details>`).join("\n")}`;
+const FAQ_LD = JSON.stringify({
+  "@context": "https://schema.org", "@type": "FAQPage",
+  mainEntity: FAQS.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } }))
+});
+
 const template = fs.readFileSync(path.join(root, "index.template.html"), "utf8");
 const intakeTargets = fs.readFileSync(path.join(root, "lib", "intake-targets.js"), "utf8");
 const out = template.replace("__INJECT_DATA__", () => JSON.stringify(atlas))
@@ -274,7 +311,8 @@ const out = template.replace("__INJECT_DATA__", () => JSON.stringify(atlas))
   .replace("__INJECT_NUTRITION_UI__", () => fs.readFileSync(path.join(root, "nutrition-ui.js"), "utf8"))
   .replace("__INJECT_ACCOUNT_STORAGE__", () => fs.readFileSync(path.join(root, "lib", "account-storage.js"), "utf8"))
   .replace("__INJECT_INTAKE_TARGETS__", () => intakeTargets)
-  .replace("__INJECT_INTAKE_UI__", () => fs.readFileSync(path.join(root, "intake-ui.js"), "utf8"));
+  .replace("__INJECT_INTAKE_UI__", () => fs.readFileSync(path.join(root, "intake-ui.js"), "utf8"))
+  .replace("__INJECT_FAQ__", () => faqHTML);
 fs.mkdirSync(path.join(root, "dist"), { recursive: true });
 fs.writeFileSync(path.join(root, "dist", "amino-atlas.html"), out);
 fs.writeFileSync(path.join(root, "dist", "index.html"), out);
@@ -323,6 +361,11 @@ fs.writeFileSync(path.join(root, "dist", "history.html"),
 fs.writeFileSync(path.join(root, "dist", "meals.html"),
   pageCopy("Saved meals · Amino Atlas", "View, edit and reuse the meals you saved.", "/meals", "Saved meals · Amino Atlas")
     .replace('<meta name="viewport"', '<meta name="robots" content="noindex" />\n<meta name="viewport"'));
+
+// ---------- /faq: indexable, with FAQPage structured data ----------
+fs.writeFileSync(path.join(root, "dist", "faq.html"),
+  pageCopy("FAQ: how Amino Atlas works · aminodata.org", "How the amino acid diary works, where the nutrition data comes from, how targets are set, and what happens to your data.", "/faq", "FAQ · Amino Atlas")
+    .replace('<link rel="canonical"', '<script type="application/ld+json">' + FAQ_LD + '</script>\n<link rel="canonical"'));
 
 // ---------- /food/<slug>: one static, crawlable page per food ----------
 const AA_LABELS = [
@@ -424,7 +467,7 @@ ${f.kcal != null ? `<div><span>Energy /100 g</span><b>${f.kcal} kcal</b></div><d
 }
 
 // ---------- sitemap + robots ----------
-const urls = [BASE + "/", BASE + "/database", BASE + "/compare", BASE + "/compare-amino-acids", ...foods.map(f => BASE + "/food/" + f.slug)];
+const urls = [BASE + "/", BASE + "/database", BASE + "/compare", BASE + "/compare-amino-acids", BASE + "/faq", ...foods.map(f => BASE + "/food/" + f.slug)];
 fs.writeFileSync(path.join(root, "dist", "sitemap.xml"),
   '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
   urls.map(u => "<url><loc>" + u + "</loc></url>").join("\n") + "\n</urlset>\n");
