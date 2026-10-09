@@ -331,12 +331,7 @@
   .meal-plus:hover { filter: brightness(1.1); }
   .meal-save { flex: 0 0 auto; min-height: 44px; padding: 8px 10px; background: transparent; border: 1px dashed var(--line-strong); color: var(--ink-2); font-size: 12.5px; font-weight: 600; border-radius: 8px; white-space: nowrap; }
   .meal-save:hover { border-color: var(--c-bcaa); color: var(--c-bcaa); }
-  .meal-saved-pick {
-    flex: 0 1 auto; min-height: 44px; max-width: 120px; min-width: 0;
-    border: 1px dashed var(--line-strong); border-radius: 8px; background: transparent;
-    color: var(--ink-2); font-size: 12.5px; font-weight: 600; padding: 6px 4px;
-  }
-  @media (max-width: 560px) { .ms-txt { display: none; } .meal-saved-pick { max-width: 96px; } }
+  @media (max-width: 560px) { .ms-txt { display: none; } }
   .save-meal-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; }
   .save-meal-form input { flex: 1 1 200px; min-width: 0; background: var(--surface); color: var(--ink); border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; font-size: 15px; }
   .save-meal-form .sm-note { flex-basis: 100%; font-size: 12px; }
@@ -3575,7 +3570,21 @@ function dayKey(d) {
 }
 function dedupeDays(days) {
   const seen = new Set();
-  const out = days.filter(d => { const k = dayKey(d); if (seen.has(k)) return false; seen.add(k); return true; });
+  let out = days.filter(d => { const k = dayKey(d); if (seen.has(k)) return false; seen.add(k); return true; });
+  /* one day per date: two logs for the same date merge, entries combined by
+     food and meal, so the day selector never reads "log 1, log 2, log 3" */
+  const byDate = new Map();
+  for (const d of out) {
+    const prev = byDate.get(d.date);
+    if (!prev) { byDate.set(d.date, d); continue; }
+    (d.entries || []).forEach(e => {
+      const hit = prev.entries.find(p => p.name === e.name && p.meal === e.meal);
+      if (hit) hit.g += e.g; else prev.entries.push(e);
+    });
+    if (d.note && d.note !== prev.note) prev.note = prev.note ? prev.note + " · " + d.note : d.note;
+    if (!prev.w && d.w) { prev.w = d.w; prev.t = d.t; }
+  }
+  out = [...byDate.values()];
   return out.length > WEEK_DAYS ? out.slice(-WEEK_DAYS) : out;
 }
 function loadLog() {
@@ -3586,8 +3595,11 @@ function loadLog() {
         d.entries = (d.entries || []).filter(e => foodByName(e.name)).map(e => ({ name: e.name, g: e.g, meal: MEAL_LABEL[e.meal] ? e.meal : "other", ...(typeof e.unit === "string" && e.unit ? { unit: e.unit } : {}) }));
         d.note = d.note || ""; d.date = d.date || todayISO();
       });
+      /* merging can shrink the array, so re-find the active day by its date */
+      const activeDate = (raw.days[Math.min(Math.max(0, raw.active | 0), raw.days.length - 1)] || {}).date;
       raw.days = dedupeDays(raw.days);
-      raw.active = Math.min(Math.max(0, raw.active | 0), raw.days.length - 1);
+      const idx = raw.days.findIndex(d => d.date === activeDate);
+      raw.active = idx === -1 ? raw.days.length - 1 : idx;
       return raw;
     }
   } catch (e) {}
@@ -3646,9 +3658,9 @@ function restoreLegacyDays() {
   browserStore.setItem("aa_legacy_handled", "1");
   if (!missing.length) return;
   const log = loadLog();
-  const activeKey = dayKey(log.days[log.active]);
-  const days = dedupeDays(missing.concat(log.days)); // older days first, so the week cap keeps the newest
-  let active = days.findIndex(d => dayKey(d) === activeKey);
+  const activeDate = (log.days[log.active] || {}).date;
+  const days = dedupeDays(missing.concat(log.days)); // older days first, so the window cap keeps the newest
+  let active = days.findIndex(d => d.date === activeDate);
   if (active === -1) active = days.length - 1;
   saveLog({ days, active });
 }
@@ -4391,7 +4403,6 @@ window.addEventListener("popstate", () => {
       return `<div class="meal-group meal-${mk}">
         <div class="meal-header">
           <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span>${ml}</span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
-          ${loadSavedMeals().length ? `<select class="meal-saved-pick" data-meal="${mk}" aria-label="Add a saved meal to ${ml}"><option value="">☆ Saved…</option>${loadSavedMeals().map((sm, si) => `<option value="${si}">${html(sm.name)}</option>`).join("")}</select>` : ""}
           ${idxs.length ? `<button type="button" class="meal-save" data-save-meal="${mk}" title="Save ${ml} as a favourite meal">☆<span class="ms-txt"> Save meal</span></button>` : ""}
           <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="Add food to ${ml}">Add food</button>
         </div>
@@ -4408,12 +4419,6 @@ window.addEventListener("popstate", () => {
       </div>`;
     }).join("");
     list.querySelectorAll("[data-add-meal]").forEach(b => b.addEventListener("click", () => openMeal(b.dataset.addMeal)));
-    list.querySelectorAll(".meal-saved-pick").forEach(sel => sel.addEventListener("change", () => {
-      const m = loadSavedMeals()[+sel.value];
-      if (!m) { sel.value = ""; return; }
-      m.items.forEach(it => { if (foodByName(it.name)) addToDay(it.name, it.g, sel.dataset.meal); });
-      render();
-    }));
     list.querySelectorAll("[data-save-meal]").forEach(b => b.addEventListener("click", () => {
       if (!requireAccount("Save your favourite meals once and add them again in one tap, synced across your devices.")) return;
       savingMeal = savingMeal === b.dataset.saveMeal ? null : b.dataset.saveMeal;
