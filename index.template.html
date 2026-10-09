@@ -331,6 +331,12 @@
   .meal-plus:hover { filter: brightness(1.1); }
   .meal-save { flex: 0 0 auto; min-height: 44px; padding: 8px 10px; background: transparent; border: 1px dashed var(--line-strong); color: var(--ink-2); font-size: 12.5px; font-weight: 600; border-radius: 8px; white-space: nowrap; }
   .meal-save:hover { border-color: var(--c-bcaa); color: var(--c-bcaa); }
+  .meal-saved-pick {
+    flex: 0 1 auto; min-height: 44px; max-width: 120px; min-width: 0;
+    border: 1px dashed var(--line-strong); border-radius: 8px; background: transparent;
+    color: var(--ink-2); font-size: 12.5px; font-weight: 600; padding: 6px 4px;
+  }
+  @media (max-width: 560px) { .ms-txt { display: none; } .meal-saved-pick { max-width: 96px; } }
   .save-meal-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; }
   .save-meal-form input { flex: 1 1 200px; min-width: 0; background: var(--surface); color: var(--ink); border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; font-size: 15px; }
   .save-meal-form .sm-note { flex-basis: 100%; font-size: 12px; }
@@ -1106,6 +1112,20 @@
   body[data-view="history"] main.wrap > :not(#historyPage),
   body[data-view="history"] header.site, body[data-view="history"] #method,
   body[data-view="history"] #tray { display: none !important; }
+  body[data-view="meals"] main.wrap > :not(#mealsPage),
+  body[data-view="meals"] header.site, body[data-view="meals"] #method,
+  body[data-view="meals"] #tray { display: none !important; }
+  #mealsPage h1 { font-family: var(--font-serif); font-weight: 700; font-size: clamp(28px, 4vw, 38px); margin: 26px 0 4px; letter-spacing: -0.02em; }
+  #mealsPage .sub { color: var(--ink-3); font-size: 13.5px; margin: 0 0 6px; }
+  .sm-name { font-family: var(--font-serif); font-weight: 700; font-size: 18px; background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 4px 8px; color: var(--ink); min-width: 0; flex: 1 1 160px; }
+  .sm-name:hover, .sm-name:focus { border-color: var(--line-strong); background: var(--surface); outline: none; }
+  .sm-slot { min-height: 36px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 6px; font-size: 13.5px; background: var(--bg); color: var(--ink-2); }
+  .sm-items { margin-top: 8px; }
+  .sm-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--rule-hair, var(--line)); font-size: 14.5px; }
+  .sm-item .nm { flex: 1; min-width: 0; }
+  .sm-item input { width: 76px; min-height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font-size: 15px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .sm-item .sm-rm { border: 0; background: transparent; color: var(--ink-3); font-size: 15px; cursor: pointer; padding: 6px; }
+  .sm-item .sm-rm:hover { color: var(--c-limit); }
   #historyPage h1 { font-family: var(--font-serif); font-weight: 700; font-size: clamp(28px, 4vw, 38px); margin: 26px 0 4px; letter-spacing: -0.02em; }
   #historyPage .sub { color: var(--ink-3); font-size: 13.5px; margin: 0 0 6px; }
   .database-group > summary { display: flex; align-items: center; gap: 12px; padding: 13px 12px; border-radius: 8px; cursor: pointer; list-style: none; font-size: 14px; }
@@ -1181,6 +1201,7 @@
   <nav>
     <button type="button" data-act="diary" aria-label="Food diary" title="Food diary"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-text">Food diary</span></button>
     <button type="button" data-act="history" aria-label="Data over time" title="Data over time"><span class="nav-icon" aria-hidden="true">◷</span><span class="nav-text">Data over time</span></button>
+    <button type="button" data-act="meals" aria-label="Saved meals" title="Saved meals"><span class="nav-icon" aria-hidden="true">☆</span><span class="nav-text">Saved meals</span></button>
     <details class="database-group" id="sidebarDatabase" open>
       <summary aria-label="Database" title="Database"><span class="nav-icon" aria-hidden="true">▦</span><span class="nav-text">Database</span><span class="nav-chevron" aria-hidden="true">⌄</span></summary>
       <div class="database-links">
@@ -1213,6 +1234,7 @@
 <div id="mobileMore" class="mobile-more" hidden role="group" aria-label="More navigation">
   <button type="button" data-act="feedback">Send feedback</button>
   <button type="button" data-act="history">Data over time</button>
+  <button type="button" data-act="meals">Saved meals</button>
   <button type="button" data-act="method">How the numbers work</button>
   <button type="button" data-act="signout">Sign out</button>
   <p id="mobileSignoutError" class="intake-help" role="status" hidden></p>
@@ -1227,6 +1249,7 @@
       <div class="menu-pop" hidden>
         <button data-act="addfoods">Add foods<span class="mi-sub">Log today, meal by meal</span></button>
         <button data-act="history" data-account-only hidden>Data over time<span class="mi-sub">Analyse your diet over time</span></button>
+        <button data-act="meals" data-account-only hidden>Saved meals<span class="mi-sub">View, edit and reuse your meals</span></button>
         <hr class="mi-rule">
         <details class="database-group" open>
           <summary>Database<span class="nav-chevron" aria-hidden="true">⌄</span></summary>
@@ -1310,6 +1333,7 @@
   <section id="compareFoodsPage" hidden aria-labelledby="compareFoodsTitle"></section>
   <section id="accountPage" hidden aria-labelledby="accountTitle"></section>
   <section id="historyPage" hidden aria-labelledby="historyTitle"></section>
+  <section id="mealsPage" hidden aria-labelledby="mealsTitle"></section>
   <section class="product-demo" aria-labelledby="demoTitle">
     <div class="demo-intro"><h2 id="demoTitle">See your day in amino acids.</h2><p>From your first meal to the full picture.</p></div>
     <div class="demo-frame">
@@ -2645,6 +2669,7 @@ function navigateApp(act) {
     if (!overlay.hidden) closeDetail(); showView("day");
     if (act === "addfoods" && window.__v2OpenMeal) window.__v2OpenMeal(currentMeal);
   } else if (act === "history") { if (requireAccount("See your data over time with a free account.")) showView("history"); }
+  else if (act === "meals") { if (requireAccount("Save and reuse your favourite meals with a free account.")) showView("meals"); }
   else if (act === "account") openAccountPage();
   else if (act === "signout") signOutAccount();
   else if (act === "signup") openAuthSheet(undefined, "signup");
@@ -2680,7 +2705,7 @@ function navigateApp(act) {
     if (desktopApp) { pop.hidden = true; btn.setAttribute("aria-expanded", String(!collapsed)); }
     btn.setAttribute("aria-controls", desktopApp ? "appSidebar" : "mobileMenu");
     btn.setAttribute("aria-label", desktopApp ? "Expand navigation" : "Menu");
-    const active = document.body.dataset.view === "compare" ? "comparefoods" : document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : "diary";
+    const active = document.body.dataset.view === "compare" ? "comparefoods" : document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : document.body.dataset.view === "history" ? "history" : document.body.dataset.view === "meals" ? "meals" : "diary";
     for (const nav of [sidebar, mobileNav]) nav.querySelectorAll("[data-act], [data-section]").forEach(b => { if((b.dataset.act || b.dataset.section) === (nav === mobileNav && active === "comparefoods" ? "atlas" : active)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   }
   pop.id = "mobileMenu";
@@ -3256,6 +3281,82 @@ function renderHistoryPage() {
   page.querySelector("#historyTitle").focus();
 }
 
+/* ================= saved meals: the library page ================= */
+function mealItemsIntake(items) {
+  return (items || []).reduce((a, it) => {
+    const f = foodByName(it.name);
+    if (!f) return a;
+    a.prot += f.protein_g_per_100g * it.g / 100;
+    if (f.kcal != null) { a.kcal += f.kcal * it.g / 100; a.carb += (f.carb || 0) * it.g / 100; a.fat += (f.fat || 0) * it.g / 100; } else a.miss++;
+    return a;
+  }, { prot: 0, kcal: 0, carb: 0, fat: 0, miss: 0 });
+}
+function renderMealsPage() {
+  const page = document.getElementById("mealsPage");
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const meals = loadSavedMeals();
+  page.innerHTML = `
+    <h1 id="mealsTitle" tabindex="-1">Saved meals</h1>
+    <p class="sub">Name a meal once, add it to any day in one tap. Everything here syncs to your account.</p>
+    ${meals.length ? "" : '<p class="hist-summary">No saved meals yet. In the diary, add foods to a meal and tap ☆ Save meal; it will appear here.</p>'}
+    ${meals.map((m, i) => {
+      const t = mealItemsIntake(m.items);
+      return `<div class="hist-card">
+        <div class="hist-h">
+          <input class="sm-name" data-i="${i}" value="${esc(m.name)}" maxlength="40" aria-label="Meal name">
+          <select class="sm-slot" data-i="${i}" aria-label="Which meal to add it to">${MEALS.slice(0, 4).map(([k, l]) => `<option value="${k}"${k === currentMeal ? " selected" : ""}>${l}</option>`).join("")}</select>
+          <button type="button" class="v2-share-sec sm-add" data-i="${i}">Add to diary</button>
+          <button type="button" class="dm-del sm-del" data-i="${i}">Delete</button>
+        </div>
+        <p class="hist-stats"><b>${t.prot.toFixed(0)} g protein</b> · ${Math.round(t.kcal)} kcal · ${t.carb.toFixed(0)} g carbs · ${t.fat.toFixed(0)} g fat${t.miss ? ' <span class="sm-hint">(some macros unknown)</span>' : ""}</p>
+        <div class="sm-items">${m.items.map((it, j) => `<div class="sm-item">
+          <span class="nm">${esc(it.name)}</span>
+          <input type="number" min="0.1" max="2000" step="any" value="${it.g}" data-i="${i}" data-j="${j}" aria-label="Grams of ${esc(it.name)}"> g
+          <button type="button" class="sm-rm" data-i="${i}" data-j="${j}" aria-label="Remove ${esc(it.name)}">✕</button>
+        </div>`).join("")}</div>
+      </div>`;
+    }).join("")}`;
+  page.querySelectorAll(".sm-name").forEach(inp => inp.addEventListener("change", () => {
+    const l = loadSavedMeals();
+    const name = inp.value.trim().slice(0, 40);
+    if (!name) { inp.value = l[+inp.dataset.i].name; return; }
+    l[+inp.dataset.i].name = name;
+    saveSavedMeals(l);
+  }));
+  page.querySelectorAll(".sm-item input").forEach(inp => inp.addEventListener("change", () => {
+    const l = loadSavedMeals();
+    const v = +inp.value;
+    l[+inp.dataset.i].items[+inp.dataset.j].g = v > 0 ? Math.min(2000, v) : 100;
+    saveSavedMeals(l);
+    renderMealsPage();
+  }));
+  page.querySelectorAll(".sm-rm").forEach(b => b.addEventListener("click", () => {
+    const l = loadSavedMeals();
+    l[+b.dataset.i].items.splice(+b.dataset.j, 1);
+    if (!l[+b.dataset.i].items.length) l.splice(+b.dataset.i, 1); // an empty meal has nothing left to save
+    saveSavedMeals(l);
+    renderMealsPage();
+    if (window.__v2Render) window.__v2Render(); // the diary's saved-meal pickers must not go stale
+  }));
+  page.querySelectorAll(".sm-del").forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Really delete?"; return; }
+    const l = loadSavedMeals();
+    l.splice(+b.dataset.i, 1);
+    saveSavedMeals(l);
+    renderMealsPage();
+    if (window.__v2Render) window.__v2Render();
+  }));
+  page.querySelectorAll(".sm-add").forEach(b => b.addEventListener("click", () => {
+    const m = loadSavedMeals()[+b.dataset.i];
+    if (!m) return;
+    const slot = page.querySelector(`.sm-slot[data-i="${b.dataset.i}"]`).value;
+    m.items.forEach(it => { if (foodByName(it.name)) addToDay(it.name, it.g, slot); });
+    if (window.__v2Render) window.__v2Render();
+    b.textContent = "Added ✓";
+    setTimeout(() => { b.textContent = "Add to diary"; }, 1600);
+  }));
+}
+
 function openOnboardSheet() {
   lastFocus = document.activeElement;
   const wUnit = store.getItem("aa_wunit") || "kg";
@@ -3829,24 +3930,27 @@ updateDayBtn();
 
 /* ================= home views ================= */
 function showView(v, push) {
-  if (v === "home") delete document.body.dataset.view; else document.body.dataset.view = ["atlas", "account", "compare", "history"].includes(v) ? v : "day";
+  if (v === "home") delete document.body.dataset.view; else document.body.dataset.view = ["atlas", "account", "compare", "history", "meals"].includes(v) ? v : "day";
   document.getElementById("accountPage").hidden = v !== "account";
   document.getElementById("historyPage").hidden = v !== "history";
+  document.getElementById("mealsPage").hidden = v !== "meals";
   document.getElementById("compareFoodsPage").hidden = v !== "compare";
   if (v === "account") renderAccountPage();
   if (v === "history") renderHistoryPage();
-  const target = v === "compare" ? document.getElementById("compareFoodsPage") : v === "account" ? document.getElementById("accountPage") : v === "history" ? document.getElementById("historyPage") : v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
+  if (v === "meals") renderMealsPage();
+  const target = v === "compare" ? document.getElementById("compareFoodsPage") : v === "account" ? document.getElementById("accountPage") : v === "history" ? document.getElementById("historyPage") : v === "meals" ? document.getElementById("mealsPage") : v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
   if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   if (v === "atlas") renderGrid();
   if (window.__syncShell) window.__syncShell();
   /* keep the URL honest: /database is a real page, crawlable on its own */
   if (push !== false && history.pushState) {
-    try { history.pushState({ v }, "", v === "compare" ? "/compare" : v === "account" ? "/account" : v === "history" ? "/history" : v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
+    try { history.pushState({ v }, "", v === "compare" ? "/compare" : v === "account" ? "/account" : v === "history" ? "/history" : v === "meals" ? "/meals" : v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
   }
 }
 window.addEventListener("popstate", () => {
   if (/^\/account\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("account", false); return; }
   if (/^\/history\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("history", false); return; }
+  if (/^\/meals\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("meals", false); return; }
   const m = location.pathname.match(/^\/database\/([a-z0-9-]+)/);
   if (m) {
     const f = ATLAS.foods.find(x => x.slug === m[1]);
@@ -4209,7 +4313,8 @@ window.addEventListener("popstate", () => {
       return `<div class="meal-group meal-${mk}">
         <div class="meal-header">
           <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span>${ml}</span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
-          ${idxs.length ? `<button type="button" class="meal-save" data-save-meal="${mk}" title="Save ${ml} as a favourite meal">☆ Save meal</button>` : ""}
+          ${loadSavedMeals().length ? `<select class="meal-saved-pick" data-meal="${mk}" aria-label="Add a saved meal to ${ml}"><option value="">☆ Saved…</option>${loadSavedMeals().map((sm, si) => `<option value="${si}">${html(sm.name)}</option>`).join("")}</select>` : ""}
+          ${idxs.length ? `<button type="button" class="meal-save" data-save-meal="${mk}" title="Save ${ml} as a favourite meal">☆<span class="ms-txt"> Save meal</span></button>` : ""}
           <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="Add food to ${ml}">Add food</button>
         </div>
         <div class="meal-panel" id="meal-panel-${mk}" role="region" aria-labelledby="meal-toggle-${mk}" ${expanded ? "" : "hidden"}>
@@ -4225,6 +4330,12 @@ window.addEventListener("popstate", () => {
       </div>`;
     }).join("");
     list.querySelectorAll("[data-add-meal]").forEach(b => b.addEventListener("click", () => openMeal(b.dataset.addMeal)));
+    list.querySelectorAll(".meal-saved-pick").forEach(sel => sel.addEventListener("change", () => {
+      const m = loadSavedMeals()[+sel.value];
+      if (!m) { sel.value = ""; return; }
+      m.items.forEach(it => { if (foodByName(it.name)) addToDay(it.name, it.g, sel.dataset.meal); });
+      render();
+    }));
     list.querySelectorAll("[data-save-meal]").forEach(b => b.addEventListener("click", () => {
       if (!requireAccount("Save your favourite meals once and add them again in one tap, synced across your devices.")) return;
       savingMeal = savingMeal === b.dataset.saveMeal ? null : b.dataset.saveMeal;
@@ -4539,6 +4650,7 @@ window.addEventListener("popstate", () => {
 (function bootURL() {
   if (/^\/account\/?$/.test(location.pathname)) { showView("account", false); return; }
   if (/^\/history\/?$/.test(location.pathname)) { showView("history", false); return; }
+  if (/^\/meals\/?$/.test(location.pathname)) { showView("meals", false); return; }
   if (new URLSearchParams(location.search).get("view") === "diary") showView("day", false);
   if (/^\/database/.test(location.pathname) || document.title.indexOf("database") !== -1) {
     showView("atlas", false);
