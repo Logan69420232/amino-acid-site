@@ -344,6 +344,28 @@
   .sm-chip .sm-x { color: var(--c-limit); margin-left: 3px; }
   .sm-manage { font-size: 12.5px; }
   .sm-hint { font-size: 12.5px; color: var(--ink-3); }
+  .sm-picker { position: relative; }
+  .sm-pick-btn {
+    border: 1px dashed var(--line-strong); background: transparent; color: var(--ink-2);
+    border-radius: 10px; padding: 10px 14px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .sm-pick-btn:hover, .sm-pick-btn[aria-expanded="true"] { border-color: var(--c-bcaa); color: var(--c-bcaa); }
+  .sm-chev { font-size: 11px; }
+  .sm-pick-pop {
+    position: absolute; left: 0; top: calc(100% + 6px); z-index: 40;
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px;
+    box-shadow: var(--shadow); width: min(400px, 86vw); padding: 8px;
+  }
+  .sm-pick-pop[hidden] { display: none; }
+  .sm-pick-search { width: 100%; box-sizing: border-box; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; font-size: 16px; background: var(--bg); color: var(--ink); margin-bottom: 6px; }
+  .sm-pick-search:focus { border-color: var(--c-bcaa); outline: none; }
+  .sm-pick-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+  .sm-pick-list button { text-align: left; border: 0; background: transparent; color: var(--ink); font-size: 14px; font-weight: 600; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+  .sm-pick-list button:hover, .sm-pick-list button:focus { background: var(--surface-2); }
+  .sm-pick-list button small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-3); }
+  .sm-pick-none { display: block; padding: 8px 10px; }
+  .sm-pick-manage { margin-top: 6px; font-size: 12.5px; }
   .meal-header h3 { flex: 1; min-width: 0; margin: 0; }
   .meal-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; padding: 8px 12px 8px 0; text-align: left; font: 600 18px var(--font-sans); }
   .meal-chevron { width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); flex-shrink: 0; margin: -5px 3px 0 0; }
@@ -4066,9 +4088,9 @@ window.addEventListener("popstate", () => {
   let last = null, sharedNotice = false, lastSugg = [];
   const editor = $("mealEditor");
   const expandedMeals = new Map();
-  let editingMeal = null, savingMeal = null, managingMeals = false;
+  let editingMeal = null, savingMeal = null;
   window.__v2ResetAccount = () => {
-    editingMeal = null; savingMeal = null; managingMeals = false; sharedNotice = false; last = null; lastSugg = [];
+    editingMeal = null; savingMeal = null; sharedNotice = false; last = null; lastSugg = [];
     expandedMeals.clear(); hideDD(); food.value = ""; grams.value = "100";
     $("diaryFoodSource").value = "all";
     $("dayMeta").hidden = true;
@@ -4087,29 +4109,55 @@ window.addEventListener("popstate", () => {
     const m = editingMeal; editingMeal = null; hideDD(); render();
     list.querySelector(`[data-add-meal="${m}"]`).focus();
   });
-  /* One tap re-adds a whole saved meal to the meal being edited. */
+  /* A searchable picker re-adds a whole saved meal to the meal being edited;
+     it stays usable at thirty meals where a row of chips would not. */
   function renderSavedMealRow() {
     const row = $("savedMealRow");
     const meals = loadSavedMeals();
+    row.hidden = false;
     if (!meals.length) {
       /* an empty list still explains itself, so the feature stays findable */
-      row.hidden = false;
-      row.innerHTML = '<span class="sm-lab">Saved meals</span><span class="sm-hint">None yet. Add foods to a meal, then tap ☆ Save meal; it appears here for one-tap reuse.</span>';
+      row.innerHTML = '<span class="sm-hint">No saved meals yet. Add foods to a meal, then tap ☆ Save meal; it appears here for one-tap reuse.</span>';
       return;
     }
-    row.hidden = false;
-    row.innerHTML = `<span class="sm-lab">Saved meals</span>` +
-      meals.map((m, i) => `<button type="button" class="sm-chip${managingMeals ? " managing" : ""}" data-i="${i}" title="${html(m.items.map(x => (Math.round(x.g * 10) / 10) + " g " + x.name).join(" · "))}">${html(m.name)}${managingMeals ? ' <span class="sm-x" aria-hidden="true">✕</span>' : ""}</button>`).join("") +
-      `<button type="button" class="linkish sm-manage">${managingMeals ? "Done" : "Edit"}</button>`;
-    row.querySelectorAll(".sm-chip").forEach(b => b.addEventListener("click", () => {
-      const i = +b.dataset.i;
-      if (managingMeals) { const l = loadSavedMeals(); l.splice(i, 1); saveSavedMeals(l); renderSavedMealRow(); return; }
-      const m = loadSavedMeals()[i];
-      if (!m) return;
-      m.items.forEach(it => { if (foodByName(it.name)) addToDay(it.name, it.g, editingMeal); });
-      render();
-    }));
-    row.querySelector(".sm-manage").addEventListener("click", () => { managingMeals = !managingMeals; renderSavedMealRow(); });
+    row.innerHTML = `<div class="sm-picker">
+      <button type="button" class="sm-pick-btn" aria-expanded="false" aria-haspopup="listbox">☆ Add a saved meal<span class="sm-chev" aria-hidden="true">⌄</span></button>
+      <div class="sm-pick-pop" hidden>
+        <input type="text" class="sm-pick-search" placeholder="Search your ${meals.length} saved meal${meals.length === 1 ? "" : "s"}…" aria-label="Search saved meals">
+        <div class="sm-pick-list" role="listbox" aria-label="Saved meals"></div>
+        <button type="button" class="linkish sm-pick-manage">View and edit all saved meals</button>
+      </div>
+    </div>`;
+    const btn = row.querySelector(".sm-pick-btn"), pop = row.querySelector(".sm-pick-pop");
+    const listEl = row.querySelector(".sm-pick-list"), searchEl = row.querySelector(".sm-pick-search");
+    const closePop = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); document.removeEventListener("click", outside); };
+    const outside = e => { if (!e.target.closest(".sm-picker")) closePop(); };
+    const fill = q => {
+      const ql = (q || "").trim().toLowerCase();
+      const hits = meals.map((m, i) => ({ m, i }))
+        .filter(({ m }) => !ql || m.name.toLowerCase().includes(ql) || m.items.some(it => it.name.toLowerCase().includes(ql)));
+      listEl.innerHTML = hits.length ? hits.map(({ m, i }) => {
+        const t = mealItemsIntake(m.items);
+        return `<button type="button" role="option" data-i="${i}">${html(m.name)}<small>${t.prot.toFixed(0)} g protein · ${Math.round(t.kcal)} kcal · ${m.items.length} food${m.items.length === 1 ? "" : "s"}</small></button>`;
+      }).join("") : '<span class="sm-hint sm-pick-none">No saved meal matches.</span>';
+      listEl.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+        const m = loadSavedMeals()[+b.dataset.i];
+        if (!m) return;
+        closePop();
+        m.items.forEach(it => { if (foodByName(it.name)) addToDay(it.name, it.g, editingMeal); });
+        render();
+      }));
+    };
+    btn.addEventListener("click", () => {
+      const open = pop.hidden;
+      if (!open) { closePop(); return; }
+      pop.hidden = false; btn.setAttribute("aria-expanded", "true");
+      searchEl.value = ""; fill("");
+      setTimeout(() => document.addEventListener("click", outside));
+      searchEl.focus();
+    });
+    searchEl.addEventListener("input", () => fill(searchEl.value));
+    row.querySelector(".sm-pick-manage").addEventListener("click", () => { closePop(); hideDD(); showView("meals"); });
   }
 
   /* ----- share link: the day, weight and target live in the URL hash ----- */
