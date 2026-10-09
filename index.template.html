@@ -327,6 +327,9 @@
   .meal-chevron { width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); flex-shrink: 0; margin: -5px 3px 0 0; }
   .meal-toggle[aria-expanded="true"] .meal-chevron { transform: rotate(225deg); margin-top: 5px; }
   .meal-panel[hidden], .meal-editor[hidden] { display: none; }
+  .meal-totals { font-size: 13px; color: var(--ink-2); border-top: 1px dashed var(--line); padding: 9px 0 2px; margin: 8px 0 0; font-variant-numeric: tabular-nums; }
+  .meal-totals b { color: var(--c-bcaa); }
+  .meal-totals span { color: var(--ink-3); font-size: 11.5px; }
   .meal-panel { border-top: 1px solid var(--line-strong); }
   .meal-empty { padding: 16px 20px; margin: 0; color: var(--ink-3); font-size: 14px; }
   .meal-editor { padding: 16px; background: var(--surface); border-radius: 0 0 14px 14px; }
@@ -3139,17 +3142,24 @@ function renderHistoryPage() {
     if (m === "macros") {
       const series = [["prot", "Protein", "var(--c-bcaa)"], ["carb", "Carbs", "var(--c-limit)"], ["fat", "Fat", "var(--ink-3)"]];
       const n = chrono.length;
-      const maxV = Math.max(1, ...series.flatMap(([k]) => chrono.map(x => x[k] ?? 0)));
-      const W = 560, H = 190, padL = 38, padR = 12, padT = 14, padB = 26;
+      const rawMax = Math.max(1, ...series.flatMap(([k]) => chrono.map(x => x[k] ?? 0)));
+      /* axis runs to a round number just above the data, so the gridline labels read cleanly */
+      const step = niceStep(rawMax, 4);
+      const maxV = Math.ceil(rawMax / step) * step;
+      const W = 560, H = 200, padL = 46, padR = 12, padT = 12, padB = 26;
       const X = i => n === 1 ? padL + (W - padL - padR) / 2 : padL + i * (W - padL - padR) / (n - 1);
       const Y = v => padT + (H - padT - padB) * (1 - v / maxV);
+      let grid = "";
+      for (let g = 0; g <= maxV + step * 0.01; g += step) {
+        grid += `<line x1="${padL}" x2="${W - padR}" y1="${Y(g).toFixed(1)}" y2="${Y(g).toFixed(1)}" stroke="currentColor" stroke-opacity="${g === 0 ? 0.3 : 0.12}"/>
+          <text x="${padL - 7}" y="${(Y(g) + 3.5).toFixed(1)}" text-anchor="end" class="hl-y">${g}${g === maxV ? " g" : ""}</text>`;
+      }
       const lines = series.map(([k, l, c]) =>
         `<polyline points="${chrono.map((x, i) => `${X(i).toFixed(1)},${Y(x[k] ?? 0).toFixed(1)}`).join(" ")}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/>` +
         chrono.map((x, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(x[k] ?? 0).toFixed(1)}" r="3.5" fill="${c}"><title>${l} ${(x[k] ?? 0).toFixed(0)} g · ${fmtShort(x.d.date)}</title></circle>`).join("")
       ).join("");
-      return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Protein, carbs and fat per day as lines">
-        <text x="4" y="${padT + 8}" class="hl-y">${maxV.toFixed(0)} g</text>
-        <line x1="${padL}" x2="${W - padR}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="currentColor" stroke-opacity="0.25"/>
+      return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Protein, carbs and fat per day as lines, grams on the vertical axis">
+        ${grid}
         ${lines}
         ${chrono.map((x, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="hl-x">${fmtShort(x.d.date)}</text>`).join("")}
       </svg>
@@ -4134,6 +4144,14 @@ window.addEventListener("popstate", () => {
       const idxs = day.map((e, i) => [e, i]).filter(([e]) => e.meal === mk);
       const key = mealKey(mk);
       const expanded = expandedMeals.has(key) ? expandedMeals.get(key) : idxs.length > 0;
+      /* the meal's own macro line, always visible: athletes tune meal by meal */
+      const mt = idxs.reduce((a, [e]) => {
+        const f = foodByName(e.name);
+        a.prot += f.protein_g_per_100g * e.g / 100;
+        if (f.kcal != null) { a.kcal += f.kcal * e.g / 100; a.carb += (f.carb || 0) * e.g / 100; a.fat += (f.fat || 0) * e.g / 100; } else a.miss++;
+        return a;
+      }, { prot: 0, kcal: 0, carb: 0, fat: 0, miss: 0 });
+      const mealTotals = idxs.length ? `<p class="meal-totals">${ml} total · <b>${mt.prot.toFixed(0)} g protein</b> · ${Math.round(mt.kcal)} kcal · ${mt.carb.toFixed(0)} g carbs · ${mt.fat.toFixed(0)} g fat${mt.miss ? ` <span>(macros unknown for ${mt.miss} item${mt.miss === 1 ? "" : "s"})</span>` : ""}</p>` : "";
       return `<div class="meal-group meal-${mk}">
         <div class="meal-header">
           <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span>${ml}</span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
@@ -4148,6 +4166,7 @@ window.addEventListener("popstate", () => {
             <span class="auth-note sm-note">Saved meals appear when you add food, and sync to your other devices.</span>
           </div>` : ""}
           ${idxs.length ? idxs.map(([e, i]) => rowHtml(e, i)).join("") : '<p class="meal-empty">No foods yet. Choose the meal name or Add food to start searching.</p>'}
+          ${mealTotals}
         </div>
       </div>`;
     }).join("");
