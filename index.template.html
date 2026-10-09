@@ -1126,6 +1126,16 @@
   .sm-item input { width: 76px; min-height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font-size: 15px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
   .sm-item .sm-rm { border: 0; background: transparent; color: var(--ink-3); font-size: 15px; cursor: pointer; padding: 6px; }
   .sm-item .sm-rm:hover { color: var(--c-limit); }
+  .sm-addfood { display: inline-block; margin-top: 10px; font-size: 13.5px; font-weight: 600; }
+  .sm-addrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 10px; padding: 10px 12px; }
+  .sm-search { flex: 1 1 220px; min-width: 0; border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; font-size: 16px; background: var(--bg); color: var(--ink); }
+  .sm-search:focus { border-color: var(--c-bcaa); outline: none; }
+  .sm-grams { width: 130px; border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-size: 16px; background: var(--bg); color: var(--ink); }
+  .sm-dd { flex-basis: 100%; display: flex; flex-direction: column; gap: 2px; }
+  .sm-dd[hidden] { display: none; }
+  .sm-dd button { text-align: left; border: 0; background: transparent; color: var(--ink); font-size: 14px; font-weight: 600; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+  .sm-dd button:hover, .sm-dd button:focus { background: var(--surface-2); }
+  .sm-dd button small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-3); }
   #historyPage h1 { font-family: var(--font-serif); font-weight: 700; font-size: clamp(28px, 4vw, 38px); margin: 26px 0 4px; letter-spacing: -0.02em; }
   #historyPage .sub { color: var(--ink-3); font-size: 13.5px; margin: 0 0 6px; }
   .database-group > summary { display: flex; align-items: center; gap: 12px; padding: 13px 12px; border-radius: 8px; cursor: pointer; list-style: none; font-size: 14px; }
@@ -3161,6 +3171,7 @@ function dayIntake(d) {
   return { prot, kcal: kcalKnown ? kcal : null, fat: kcalKnown ? fat : null, carb: kcalKnown ? carb : null, balance };
 }
 let _histMetric = "prot";
+let _mealsAddOpen = null;
 function renderHistoryPage() {
   const page = document.getElementById("historyPage");
   const log = loadLog();
@@ -3298,7 +3309,7 @@ function renderMealsPage() {
   page.innerHTML = `
     <h1 id="mealsTitle" tabindex="-1">Saved meals</h1>
     <p class="sub">Name a meal once, add it to any day in one tap. Everything here syncs to your account.</p>
-    ${meals.length ? "" : '<p class="hist-summary">No saved meals yet. In the diary, add foods to a meal and tap ☆ Save meal; it will appear here.</p>'}
+    <p class="hist-summary">${meals.length ? "" : "No saved meals yet. Build one here, or add foods to a meal in the diary and tap ☆ Save meal. "}<button type="button" class="v2-share-sec" id="smNew">＋ New meal</button></p>
     ${meals.map((m, i) => {
       const t = mealItemsIntake(m.items);
       return `<div class="hist-card">
@@ -3308,12 +3319,18 @@ function renderMealsPage() {
           <button type="button" class="v2-share-sec sm-add" data-i="${i}">Add to diary</button>
           <button type="button" class="dm-del sm-del" data-i="${i}">Delete</button>
         </div>
-        <p class="hist-stats"><b>${t.prot.toFixed(0)} g protein</b> · ${Math.round(t.kcal)} kcal · ${t.carb.toFixed(0)} g carbs · ${t.fat.toFixed(0)} g fat${t.miss ? ' <span class="sm-hint">(some macros unknown)</span>' : ""}</p>
+        ${m.items.length ? `<p class="hist-stats"><b>${t.prot.toFixed(0)} g protein</b> · ${Math.round(t.kcal)} kcal · ${t.carb.toFixed(0)} g carbs · ${t.fat.toFixed(0)} g fat${t.miss ? ' <span class="sm-hint">(some macros unknown)</span>' : ""}</p>` : '<p class="hist-stats sm-hint">Empty meal. Search below to add foods.</p>'}
         <div class="sm-items">${m.items.map((it, j) => `<div class="sm-item">
           <span class="nm">${esc(it.name)}</span>
           <input type="number" min="0.1" max="2000" step="any" value="${it.g}" data-i="${i}" data-j="${j}" aria-label="Grams of ${esc(it.name)}"> g
           <button type="button" class="sm-rm" data-i="${i}" data-j="${j}" aria-label="Remove ${esc(it.name)}">✕</button>
         </div>`).join("")}</div>
+        ${_mealsAddOpen === i ? `<div class="sm-addrow">
+          <input class="sm-search" data-i="${i}" placeholder="Search a food to add (chicken, lentils, eggs...)" aria-label="Search a food to add">
+          <input class="sm-grams" data-i="${i}" type="number" min="0.1" max="2000" step="any" placeholder="g (typical if blank)" aria-label="Grams to add">
+          <button type="button" class="linkish sm-addclose" data-i="${i}">Done</button>
+          <div class="sm-dd" data-i="${i}" hidden></div>
+        </div>` : `<button type="button" class="linkish sm-addfood" data-i="${i}">＋ Add food to this meal</button>`}
       </div>`;
     }).join("")}`;
   page.querySelectorAll(".sm-name").forEach(inp => inp.addEventListener("change", () => {
@@ -3355,6 +3372,59 @@ function renderMealsPage() {
     b.textContent = "Added ✓";
     setTimeout(() => { b.textContent = "Add to diary"; }, 1600);
   }));
+  const smNew = page.querySelector("#smNew");
+  if (smNew) smNew.addEventListener("click", () => {
+    const l = loadSavedMeals();
+    l.unshift({ name: "New meal", items: [] });
+    saveSavedMeals(l);
+    _mealsAddOpen = 0;
+    renderMealsPage();
+    const nm = page.querySelector('.sm-name[data-i="0"]');
+    if (nm) { nm.focus(); nm.select(); }
+  });
+  page.querySelectorAll(".sm-addfood").forEach(b => b.addEventListener("click", () => {
+    _mealsAddOpen = +b.dataset.i;
+    renderMealsPage();
+    const s = page.querySelector(".sm-search");
+    if (s) s.focus();
+  }));
+  page.querySelectorAll(".sm-addclose").forEach(b => b.addEventListener("click", () => {
+    _mealsAddOpen = null;
+    renderMealsPage();
+  }));
+  const search = page.querySelector(".sm-search");
+  if (search) {
+    const dd = page.querySelector(".sm-dd");
+    let t = null;
+    search.addEventListener("input", () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        const q = search.value.trim();
+        if (q.length < 2) { dd.hidden = true; dd.innerHTML = ""; return; }
+        const hits = rankFoods(q, 8, DIARY_FOODS);
+        if (!hits.length) { dd.hidden = false; dd.innerHTML = '<span class="sm-hint">No matches.</span>'; return; }
+        dd.hidden = false;
+        dd.innerHTML = hits.map(f => `<button type="button" data-name="${esc(f.name)}">${esc(f.name)}<small>${f.protein_g_per_100g.toFixed(0)} g protein /100 g${practicalPortions(f).length ? ` · ${practicalPortions(f)[0][0]} ≈ ${practicalPortions(f)[0][1]} g` : ""}</small></button>`).join("");
+        dd.querySelectorAll("button").forEach(x => x.addEventListener("click", () => {
+          const f = foodByName(x.dataset.name);
+          if (!f) return;
+          const typed = +page.querySelector(".sm-grams").value;
+          const units = portionUnits(f);
+          const g = typed > 0 ? Math.min(2000, typed) : (units.length ? units[0][1] : f.serving_g || 100);
+          const l = loadSavedMeals();
+          const meal = l[_mealsAddOpen];
+          if (!meal) return;
+          const hit = meal.items.find(it => it.name === f.name);
+          if (hit) hit.g += g; else meal.items.push({ name: f.name, g });
+          saveSavedMeals(l);
+          renderMealsPage();
+          if (window.__v2Render) window.__v2Render();
+          const s2 = page.querySelector(".sm-search");
+          if (s2) s2.focus();
+        }));
+      }, 80);
+    });
+  }
 }
 
 function openOnboardSheet() {
