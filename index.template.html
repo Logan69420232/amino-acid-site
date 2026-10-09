@@ -342,6 +342,7 @@
   .sm-chip.managing { border-style: dashed; }
   .sm-chip .sm-x { color: var(--c-limit); margin-left: 3px; }
   .sm-manage { font-size: 12.5px; }
+  .sm-hint { font-size: 12.5px; color: var(--ink-3); }
   .meal-header h3 { flex: 1; min-width: 0; margin: 0; }
   .meal-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 64px; padding: 8px 12px 8px 0; text-align: left; font: 600 18px var(--font-sans); }
   .meal-chevron { width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); flex-shrink: 0; margin: -5px 3px 0 0; }
@@ -2838,6 +2839,11 @@ async function syncOnLogin(userId, epoch) {
     if (error || !isCurrentAccount(userId, epoch)) return undefined;
     const remote = data && data.data;
     if (remote && revision === store.revision) applySettings(remote.settings);
+    /* Even when the full apply is skipped because this device wrote during the
+       read, the saved-meals union must still run: it only ever adds, and
+       skipping it would let the next push overwrite the server's meals with
+       an emptier local list. */
+    else if (remote && remote.settings && Array.isArray(remote.settings.savedMeals)) applySettings({ savedMeals: remote.settings.savedMeals });
     const merged = mergeLogs(remote, loadLog());
     merged.days.forEach(d => { d.entries = (d.entries || []).filter(e => foodByName(e.name)); });
     _syncReadyOwner = userId;
@@ -3891,7 +3897,12 @@ window.addEventListener("popstate", () => {
   function renderSavedMealRow() {
     const row = $("savedMealRow");
     const meals = loadSavedMeals();
-    if (!meals.length) { row.hidden = true; row.innerHTML = ""; return; }
+    if (!meals.length) {
+      /* an empty list still explains itself, so the feature stays findable */
+      row.hidden = false;
+      row.innerHTML = '<span class="sm-lab">Saved meals</span><span class="sm-hint">None yet. Add foods to a meal, then tap ☆ Save meal; it appears here for one-tap reuse.</span>';
+      return;
+    }
     row.hidden = false;
     row.innerHTML = `<span class="sm-lab">Saved meals</span>` +
       meals.map((m, i) => `<button type="button" class="sm-chip${managingMeals ? " managing" : ""}" data-i="${i}" title="${html(m.items.map(x => (Math.round(x.g * 10) / 10) + " g " + x.name).join(" · "))}">${html(m.name)}${managingMeals ? ' <span class="sm-x" aria-hidden="true">✕</span>' : ""}</button>`).join("") +
