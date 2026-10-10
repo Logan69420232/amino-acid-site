@@ -306,7 +306,12 @@ const FAQ_LD = JSON.stringify({
 
 const template = fs.readFileSync(path.join(root, "index.template.html"), "utf8");
 const intakeTargets = fs.readFileSync(path.join(root, "lib", "intake-targets.js"), "utf8");
-const out = template.replace("__INJECT_DATA__", () => JSON.stringify(atlas))
+// Build stamp: long-lived phone tabs compare it against /version.json to know a newer deploy exists.
+const BUILD_ID = Date.now().toString(36);
+fs.mkdirSync(path.join(root, "dist"), { recursive: true });
+fs.writeFileSync(path.join(root, "dist", "version.json"), JSON.stringify({ v: BUILD_ID }));
+const out = template.replace("__BUILD_ID__", BUILD_ID)
+  .replace("__INJECT_DATA__", () => JSON.stringify(atlas))
   .replace("__INJECT_NUTRITION__", () => fs.readFileSync(path.join(root, "lib", "nutrition.js"), "utf8"))
   .replace("__INJECT_NUTRITION_UI__", () => fs.readFileSync(path.join(root, "nutrition-ui.js"), "utf8"))
   .replace("__INJECT_ACCOUNT_STORAGE__", () => fs.readFileSync(path.join(root, "lib", "account-storage.js"), "utf8"))

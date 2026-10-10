@@ -1077,6 +1077,13 @@
   .day-meta[hidden], .app-sidebar[hidden], .intake-grid label[hidden] { display: none; }
   .day-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line-strong); padding: 8px 0 14px; margin: 20px 0 12px; }
   .day-roll-note { flex-basis: 100%; font-size: 12.5px; color: var(--ink-3); margin: 2px 0 0; }
+  #updateBar {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 90;
+    background: var(--ink); color: var(--bg); border-radius: 999px; padding: 10px 18px;
+    font-size: 13.5px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px;
+    max-width: calc(100vw - 32px);
+  }
+  #updateBar button { border: 0; background: var(--c-bcaa); color: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
   .day-roll-note .linkish { font-size: inherit; font-weight: 600; }
   .day-center { display: flex; justify-content: center; align-items: center; flex: 1; min-width: 0; }
   .day-icon { width: 42px; min-width: 42px; height: 42px; border: 0; border-radius: 8px; background: transparent; color: var(--c-bcaa); font-size: 27px; }
@@ -3682,6 +3689,33 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible" || todayISO() === _rolloverDate) return;
   _rolloverDate = todayISO();
   if (rolloverToToday() && window.__v2Render) window.__v2Render();
+});
+/* Phone browsers resume a tab for days without reloading it, and signing out
+   and in happens inside the app, so such a tab can keep running week-old code
+   while the site moves on. A user hit exactly that. When the tab becomes
+   visible again, compare the build stamp with the server's: asleep a long
+   time, reload outright (all state lives in storage); mid-session, offer a
+   refresh instead of yanking the page away. */
+const BUILD_ID = "__BUILD_ID__";
+let _hiddenAt = null, _verCheckedAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") { _hiddenAt = Date.now(); return; }
+  const hiddenFor = _hiddenAt ? Date.now() - _hiddenAt : 0;
+  if (Date.now() - _verCheckedAt < 10 * 60 * 1000) return;
+  _verCheckedAt = Date.now();
+  fetch("/version.json?t=" + Date.now(), { cache: "no-store" })
+    .then(r => r.ok ? r.json() : null)
+    .then(j => {
+      if (!j || !j.v || j.v === BUILD_ID) return;
+      if (hiddenFor > 30 * 60 * 1000 && overlay.hidden) { location.reload(); return; }
+      if (document.getElementById("updateBar")) return;
+      const b = document.createElement("div");
+      b.id = "updateBar";
+      b.innerHTML = 'This page is running an older version of the site. <button type="button" id="updateGo">Refresh</button>';
+      document.body.appendChild(b);
+      document.getElementById("updateGo").addEventListener("click", () => location.reload());
+    })
+    .catch(() => {});
 });
 /* The account-scoping update left diaries saved under the old unscoped keys
    invisible. They are never imported silently (their owner is unknown); the
