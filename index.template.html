@@ -3676,7 +3676,9 @@ function rolloverToToday() {
   const log = loadLog();
   const today = todayISO();
   const act = log.days[log.active];
-  if (!act || act.date >= today) return false; // already on today (or deliberately pre-logging a future day)
+  /* The diary always opens on today, whether it was left on a past day or on
+     a pre-planned future one; those days stay in the list, just not in front. */
+  if (!act || act.date === today) return false;
   let idx = log.days.findIndex(d => d.date === today);
   if (idx === -1) { log.days.push(blankLogDay(today)); idx = log.days.length - 1; }
   log.active = idx;
