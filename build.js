@@ -482,5 +482,6 @@ fs.cpSync(path.join(root, "assets"), path.join(root, "dist", "assets"), { recurs
 for (const icon of ["favicon.svg", "favicon.ico", "apple-touch-icon.png"]) {
   fs.copyFileSync(path.join(root, "assets", icon), path.join(root, "dist", icon));
 }
+fs.copyFileSync(path.join(root, "assets", "pwa", "manifest.webmanifest"), path.join(root, "dist", "manifest.webmanifest"));
 const noMacros = foods.filter(f => f.kcal == null).length;
 console.log(`Built dist: index, database, ${foods.length} food pages, sitemap (${urls.length} URLs), ${warnings} warnings, ${noMacros} foods without macros`);
