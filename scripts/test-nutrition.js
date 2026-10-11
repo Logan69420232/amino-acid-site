@@ -278,10 +278,48 @@ test('EPA + DHA target preserves zero, missing components, trace and empty logs'
   assert.ok(Math.abs(p.valueMg-300)<1e-9);assert.equal(p.partial,true);
 });
 
-test('EPA + DHA card labels its combined adult target and does not imply missing data is zero', () => {
+function renderLipidTest(nutrients) {
   const vm=require('node:vm'),fs=require('node:fs');
-  const render=nutrients=>{const context=vm.createContext({Nutrition,foodByName:()=>({key:'f',name:'Food',nutrients})});vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../nutrition-ui.js'),'utf8'),context);return context.nutritionDashboard([{name:'f',g:100}]).match(/<section class="omega-target"[\s\S]*?<\/section>/)[0];};
-  const html=render({epa:0.1,dha:0.4});assert.match(html,/500 mg/);assert.match(html,/200% of daily target/);assert.match(html,/width:100.00%/);assert.match(html,/<b>EPA<\/b> 100 mg/);assert.match(html,/<b>DHA<\/b> 400 mg/);assert.match(html,/EFSA adequate intake for adults/);
-  const partial=render({epa:0.1});assert.match(partial,/40% of daily target · partial data/);assert.match(partial,/is-partial/);assert.match(partial,/<b>DHA<\/b> Unknown/);
-  const unknown=render({});assert.match(unknown,/Amount unavailable/);assert.doesNotMatch(unknown,/nutrition-meter|0% of daily target/);
+  const context=vm.createContext({Nutrition,foodByName:()=>({key:'f',name:'Food',nutrients})});
+  vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../nutrition-ui.js'),'utf8'),context);
+  return context.nutritionDashboard([{name:'f',g:100}]);
+}
+const lipidSection=(html,key)=>html.match(new RegExp('data-nutrient="'+key+'"[\\s\\S]*?</details>'))[0];
+
+test('existing EPA/DHA rows share one combined target without a duplicate card', () => {
+  const html=renderLipidTest({epa:0.1,dha:0.4});
+  assert.doesNotMatch(html,/omega-target|omegaTargetTitle/);
+  for(const key of ['epa','dha'])assert.equal((html.match(new RegExp('data-nutrient="'+key+'"','g'))||[]).length,1);
+  assert.match(lipidSection(html,'epa'),/100 mg/);assert.match(lipidSection(html,'dha'),/400 mg/);
+  assert.match(lipidSection(html,'epa'),/200% of combined target/);assert.match(lipidSection(html,'epa'),/width:100.00%/);
+  assert.doesNotMatch(lipidSection(html,'dha'),/nutrition-meter/);
+  const partial=renderLipidTest({epa:0.1});assert.match(lipidSection(partial,'epa'),/40% of combined target · partial data/);
+  assert.match(lipidSection(partial,'dha'),/Unknown/);
+  assert.doesNotMatch(lipidSection(renderLipidTest({}),'epa'),/nutrition-meter|0% of combined target/);
+});
+
+test('lipid targets and limits use correct energy units, retain unknowns and never invent subtype targets',()=>{
+  const t=value=>({value,missing:0,trace:0});
+  assert.equal(Nutrition.lipidGuidance('ala',t(2000*0.005/9)).percent,100);
+  assert.equal(Nutrition.lipidGuidance('la',t(2000*0.04/9)).percent,100);
+  assert.equal(Nutrition.lipidGuidance('saturated_fat',t(2000*0.1/9)).over,false);
+  assert.equal(Nutrition.lipidGuidance('saturated_fat',t(30)).over,true);
+  assert.equal(Nutrition.lipidGuidance('trans_fat',t(2000*0.01/9)).over,true);
+  assert.equal(Nutrition.lipidGuidance('cholesterol',t(600)).progress,'200% of label reference');
+  for(const key of ['mono_fat','poly_fat','omega_3','omega_6','dpa','aa_fat','phytosterols','dha'])assert.equal(Nutrition.lipidGuidance(key,t(1)).percent,null);
+  for(const value of [null,undefined,NaN,-1,Infinity])assert.equal(Nutrition.lipidGuidance('ala',t(value)).percent,null);
+  assert.equal(Nutrition.lipidGuidance('trans_fat',t(0)).progress,'0% of limit');
+  assert.equal(Nutrition.lipidGuidance('la',{value:1,missing:1}).partial,true);
+});
+
+test('every lipid has guidance with target, range and limit semantics distinct from FDA DVs',()=>{
+  const html=renderLipidTest({saturated_fat:40,trans_fat:3,ala:0.5,la:4,cholesterol:500});
+  for(const d of Nutrition.definitions.filter(d=>d.group==='Lipids')){
+    assert.ok(Nutrition.lipidGuidance(d.key,{value:null}));
+    assert.doesNotMatch(lipidSection(html,d.key),/No DV set/);
+  }
+  assert.match(html,/2,000 kcal reference diet/);assert.match(lipidSection(html,'fat'),/Range: 44–78 g/);
+  assert.match(lipidSection(html,'saturated_fat'),/is-limit is-over/);assert.match(lipidSection(html,'trans_fat'),/Limit: &lt;2.2 g/);
+  assert.match(lipidSection(html,'ala'),/Target: 1.1 g/);assert.match(lipidSection(html,'la'),/Target: 8.9 g/);
+  assert.doesNotMatch(lipidSection(html,'mono_fat'),/nutrition-meter/);
 });
