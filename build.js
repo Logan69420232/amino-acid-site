@@ -293,7 +293,7 @@ const FAQS = [
   ["Is my data private?",
     "Your diary is stored against your account and nowhere else, protected by row level security, and never sold or shared. Signing out leaves the copy on your device untouched, and Account & targets has a delete option that removes your synced data permanently."],
   ["Is this medical advice?",
-    "No. Amino Atlas is an educational reference built from public analytical data. It is not a substitute for advice from a doctor or registered dietitian, especially if you have a medical condition. Corrections are welcome through Send feedback."]
+    "No. Aminodata is an educational reference built from public analytical data. It is not a substitute for advice from a doctor or registered dietitian, especially if you have a medical condition. Corrections are welcome through Send feedback."]
 ];
 const escHtml = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const faqHTML = `<h1 id="faqTitle" tabindex="-1">Frequently asked questions</h1>
@@ -318,6 +318,7 @@ const out = template.replace("__BUILD_ID__", BUILD_ID)
   .replace("__INJECT_DIARY_SYNC__", () => fs.readFileSync(path.join(root, "lib", "diary-sync.js"), "utf8"))
   .replace("__INJECT_ACCOUNT_STORAGE__", () => fs.readFileSync(path.join(root, "lib", "account-storage.js"), "utf8"))
   .replace("__INJECT_INTAKE_TARGETS__", () => intakeTargets)
+  .replace("__INJECT_USABILITY_UI__", () => fs.readFileSync(path.join(root, "usability-ui.js"), "utf8"))
   .replace("__INJECT_INTAKE_UI__", () => fs.readFileSync(path.join(root, "intake-ui.js"), "utf8"))
   .replace("__INJECT_FAQ__", () => faqHTML);
 fs.mkdirSync(path.join(root, "dist"), { recursive: true });
@@ -327,51 +328,51 @@ fs.writeFileSync(path.join(root, "dist", "index.html"), out);
 // ---------- /database: the same app, addressed as its own page ----------
 const BASE = "https://aminodata.org";
 const dbOut = out
-  .replace("<title>Amino Atlas: amino acid profiles of every protein source</title>",
-    "<title>Amino acid database: full profiles of " + foods.length.toLocaleString() + " foods · Amino Atlas</title>")
+  .replace("<title>Aminodata: amino acid profiles of every protein source</title>",
+    "<title>Amino acid database: full profiles of " + foods.length.toLocaleString() + " foods · Aminodata</title>")
   .replace('<meta name="description" content="Enter what you eat in a day and see its full amino acid profile. 4,000+ foods from USDA analytical data, scored against WHO/FAO 2007 requirements." />',
     '<meta name="description" content="Browse the full amino acid composition of ' + foods.length.toLocaleString() + ' foods: all 18 amino acids per 100 g, WHO/FAO 2007 scores, and limiting amino acids, from USDA analytical data." />')
   .replace('<link rel="canonical" href="https://aminodata.org/" />',
     '<link rel="canonical" href="' + BASE + '/database" />')
-  .replace('<meta property="og:title" content="Amino Atlas" />',
-    '<meta property="og:title" content="Amino acid database · Amino Atlas" />');
+  .replace('<meta property="og:title" content="Aminodata" />',
+    '<meta property="og:title" content="Amino acid database · Aminodata" />');
 fs.writeFileSync(path.join(root, "dist", "database.html"), dbOut);
 
 // ---------- /compare and /compare-amino-acids: addressed pages of the app ----------
 function pageCopy(title, desc, canonicalPath, ogTitle) {
   return out
-    .replace("<title>Amino Atlas: amino acid profiles of every protein source</title>", "<title>" + title + "</title>")
+    .replace("<title>Aminodata: amino acid profiles of every protein source</title>", "<title>" + title + "</title>")
     .replace(/<meta name="description" content="[^"]*" \/>/, '<meta name="description" content="' + desc + '" />')
     .replace('<link rel="canonical" href="https://aminodata.org/" />', '<link rel="canonical" href="' + BASE + canonicalPath + '" />')
-    .replace('<meta property="og:title" content="Amino Atlas" />', '<meta property="og:title" content="' + ogTitle + '" />');
+    .replace('<meta property="og:title" content="Aminodata" />', '<meta property="og:title" content="' + ogTitle + '" />');
 }
 fs.writeFileSync(path.join(root, "dist", "compare.html"),
-  pageCopy("Compare foods side by side: amino acid profiles · Amino Atlas",
+  pageCopy("Compare foods side by side: amino acid profiles · Aminodata",
     "Put any two or three foods side by side: essential amino acids in grams per 100 g of protein, against the WHO/FAO 2007 requirement.",
-    "/compare", "Compare foods · Amino Atlas"));
+    "/compare", "Compare foods · Aminodata"));
 fs.writeFileSync(path.join(root, "dist", "compare-amino-acids.html"),
-  pageCopy("Compare amino acids: roles, daily needs, richest sources · Amino Atlas",
+  pageCopy("Compare amino acids: roles, daily needs, richest sources · Aminodata",
     "Pick any two amino acids and compare what each does, how much you need a day, and which foods carry the most of it.",
-    "/compare-amino-acids", "Compare amino acids · Amino Atlas"));
+    "/compare-amino-acids", "Compare amino acids · Aminodata"));
 
 // ---------- /account: private settings in the app's normal page layout ----------
 fs.writeFileSync(path.join(root, "dist", "account.html"),
-  pageCopy("Your account · Amino Atlas", "Manage your profile and daily targets.", "/account", "Your account · Amino Atlas")
+  pageCopy("Your account · Aminodata", "Manage your profile and daily targets.", "/account", "Your account · Aminodata")
     .replace('<meta name="viewport"', '<meta name="robots" content="noindex" />\n<meta name="viewport"'));
 
 // ---------- /history: the diary's data-over-time page (private, noindex) ----------
 fs.writeFileSync(path.join(root, "dist", "history.html"),
-  pageCopy("Data over time · Amino Atlas", "Your logged days charted: protein, calories, carbs and fat, with a CSV export.", "/history", "Data over time · Amino Atlas")
+  pageCopy("Data over time · Aminodata", "Your logged days charted: protein, calories, carbs and fat, with a CSV export.", "/history", "Data over time · Aminodata")
     .replace('<meta name="viewport"', '<meta name="robots" content="noindex" />\n<meta name="viewport"'));
 
 // ---------- /meals: the saved-meals library (private, noindex) ----------
 fs.writeFileSync(path.join(root, "dist", "meals.html"),
-  pageCopy("Saved meals · Amino Atlas", "View, edit and reuse the meals you saved.", "/meals", "Saved meals · Amino Atlas")
+  pageCopy("Saved meals · Aminodata", "View, edit and reuse the meals you saved.", "/meals", "Saved meals · Aminodata")
     .replace('<meta name="viewport"', '<meta name="robots" content="noindex" />\n<meta name="viewport"'));
 
 // ---------- /faq: indexable, with FAQPage structured data ----------
 fs.writeFileSync(path.join(root, "dist", "faq.html"),
-  pageCopy("FAQ: how Amino Atlas works · aminodata.org", "How the amino acid diary works, where the nutrition data comes from, how targets are set, and what happens to your data.", "/faq", "FAQ · Amino Atlas")
+  pageCopy("FAQ: how Aminodata works · aminodata.org", "How the amino acid diary works, where the nutrition data comes from, how targets are set, and what happens to your data.", "/faq", "FAQ · Aminodata")
     .replace('<link rel="canonical"', '<script type="application/ld+json">' + FAQ_LD + '</script>\n<link rel="canonical"'));
 
 // ---------- /food/<slug>: one static, crawlable page per food ----------
@@ -420,7 +421,7 @@ for (const f of foods) {
 <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
-<title>${esc(f.name)}: amino acid profile · Amino Atlas</title>
+<title>${esc(f.name)}: amino acid profile · Aminodata</title>
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${BASE}/food/${f.slug}">
 <meta name="author" content="Logan King and Dr Paul T Morgan">
@@ -446,13 +447,13 @@ for (const f of foods) {
   headline: f.name + ": amino acid profile",
   description: desc,
   mainEntityOfPage: BASE + "/food/" + f.slug,
-  publisher: { "@type": "Organization", name: "Amino Atlas", url: BASE + "/" },
+  publisher: { "@type": "Organization", name: "Aminodata", url: BASE + "/" },
   author: AUTHORS_LD
 })}</script>
 <style>${FOOD_CSS}</style>
 </head>
 <body><div class="wrap">
-<nav><a href="/">Amino Atlas</a> · <a href="/database">Amino acid database</a></nav>
+<nav><a href="/">Aminodata</a> · <a href="/database">Amino acid database</a></nav>
 <h1>${esc(f.name)}</h1>
 <p class="sub">${esc(f.state)} · ${esc(f.source || "")}</p>
 <div class="facts">

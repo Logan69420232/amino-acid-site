@@ -39,13 +39,13 @@ function nutritionDashboard(day) {
   }
   const sources=day.map(e=>foodByName(e.name)).filter((f,i,a)=>a.findIndex(x=>x.key===f.key)===i);
   return `<section class="nutrition-dashboard" aria-labelledby="nutritionTitle">
-    <h2 class="v2-sec" id="nutritionTitle">Your nutrition · day total</h2>
+    <h2 class="v2-sec" id="nutritionTitle">Vitamins, minerals &amp; fats</h2><details class="nutrition-reading"><summary>About targets and missing data</summary>
     <p class="v2-note">Amounts from the foods and portions you logged. <b>Partial</b> means some foods have no value recorded; <b>Unknown</b> is not zero. These totals are not personalised targets or a deficiency assessment.</p>
     <p class="v2-note nutrition-dv-note"><b>%DV · US FDA Daily Values</b> (adults and ages 4+). A general label reference, not your personal requirement or the UK NRV. 100% is not a safety ceiling, and higher is not always better. Partial percentages use only available amounts. <a href="${Nutrition.dailyValueSource}" target="_blank" rel="noopener">Reference values</a> · Lipids use the separately labelled adult guidance below. Tap a nutrient for details.</p>
-    <div class="nutrition-macros">${macros.map(([key,label,unit])=>{
+    </details><div class="nutrition-macros">${macros.map(([key,label,unit])=>{
       const t=total(key),dv=Nutrition.dailyValue(key,t);return `<div class="v2-stat"><div class="k">${label}</div><div class="v" data-macro="${key}">${display(t,unit)}</div>${dv.reference?`<span class="nutrition-dv">${esc(dv.label)}${dv.percent!==null&&dv.partial?' · partial':''}</span>${meter(dv)}`:''}${t.missing?`<small>${t.known||t.trace?'Partial · ':''}${t.missing} entr${t.missing===1?'y':'ies'} missing data</small>`:''}</div>`;
     }).join('')}</div>
-    <div class="nutrition-panels">${['Vitamins','Minerals','Lipids','More nutrition'].map(group=>`<details class="nutrition-panel${group==='Lipids'?' nutrition-lipids':''}" data-diary-section="${group.toLowerCase().replaceAll(' ','-')}" ${group!=='More nutrition'?'open':''}>
+    <div class="nutrition-panels">${['Vitamins','Minerals','Lipids','More nutrition'].map(group=>`<details class="nutrition-panel${group==='Lipids'?' nutrition-lipids':''}" data-diary-section="${group.toLowerCase().replaceAll(' ','-')}" >
       <summary>${group==='More nutrition'?'Carbohydrates, sugars & fibre':group}</summary>
       ${group==='Lipids'?'<p class="nutrition-panel-note">Adult guidance · fat, ALA, LA and saturated/trans-fat figures use a 2,000 kcal reference diet. Targets, ranges and limits are labelled separately. EPA and DHA share one target. Indented fats are included in the totals above; do not add them again. Tap a row for sources and data coverage.</p>':''}
       ${Nutrition.definitions.filter(d=>d.group===group&&(!d.basis||datasets.has(d.basis))).map(row).join('')}

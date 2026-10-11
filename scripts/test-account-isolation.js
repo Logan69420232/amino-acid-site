@@ -36,10 +36,11 @@ function harness() {
     collectSettings: () => ({weight: store.getItem('aa_weight')}),
     applySettings: s => {if(s?.weight != null) store.setItem('aa_weight', s.weight);},
     foodByName: name => ({name}), dayKey: d => JSON.stringify(d), dedupeDays: days => days,
-    window: {}, document: {body: {dataset: {}}, createElement: () => ({addEventListener:()=>{}}), getElementById: () => ({innerHTML: '',append:()=>{}})},
+    window: {}, document: {querySelectorAll:()=>[],body: {dataset: {}}, createElement: () => ({addEventListener:()=>{}}), getElementById: () => ({innerHTML: '',append:()=>{}})},
     overlay: {hidden: true}, sheet: {querySelector: () => null}, closeDetail: () => {},
     renderAuthSlot: () => {}, renderAccountPage: () => {}, openOnboardSheet: () => {}
   });
+  vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../usability-ui.js'),'utf8'),ctx);
   vm.runInContext(syncCode + '\nfunction saveLog(log) {store.setItem("aa_log", JSON.stringify(log)); schedulePush();}\n' + sessionCode, ctx);
   h.run = code => vm.runInContext(code, ctx);
   h.login = id => { currentUser = id ? {id, user_metadata: {}} : null; ctx.session = currentUser ? {user: currentUser} : null; h.run('applyAccountSession(session)'); };
@@ -125,4 +126,12 @@ test('failure to preserve a conflicting copy blocks synchronization instead of d
   const h=harness();h.remote.set('A',log('remote'));h.login('A');h.save('local conflict');
   const original=h.store.setItem;h.store.setItem=(key,value)=>{if(key==='aa_sync_backups')throw new Error('quota');return original(key,value);};
   await h.flush(0);await h.flush(1500);assert.equal(h.names(),'local conflict');assert.equal(h.writes.length,0);assert.equal(h.remote.get('A').days[0].entries[0].name,'remote');
+});
+
+
+test('saving status follows pending, failed and successful writes', async () => {
+ const h=harness();h.login('A');await h.flush(0);h.save('A food');
+ assert.equal(h.run('uiSaveState.kind'),'saving');
+ h.writeError={message:'offline'};await h.flush(1500);assert.equal(h.run('uiSaveState.kind'),'error');
+ h.writeError=null;h.run('schedulePush()');await h.flush(1500);assert.equal(h.run('uiSaveState.kind'),'saved');
 });
