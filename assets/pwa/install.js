@@ -81,11 +81,12 @@
   try{lastShown=Number(localStorage.getItem('aa_install_last_shown'))||sessionLastShown;completed=localStorage.getItem('aa_install_completed')==='1';}catch{}
   return shouldPromptInstall({signedIn:document.body.classList.contains('authed'),diary:document.body.dataset.view==='day',installed:completed||matchMedia('(display-mode: standalone)').matches||!!navigator.standalone,lastShown,now:Date.now()});
  }
- let promptTimer;
+ let promptTimer,hasLoggedFood=false;
+ window.addEventListener("aminodata:food-logged",()=>{hasLoggedFood=true;schedulePrompt();});
  function schedulePrompt(){
   clearTimeout(promptTimer);
   if(!document.body.classList.contains('authed') && dialog.open && returnFocus===document.body)dialog.close();
-  if(!eligible())return;
+  if(!eligible()||!hasLoggedFood)return;
   promptTimer=setTimeout(()=>{
    const editing=document.activeElement?.matches('input,textarea,select,[contenteditable="true"]');
    if(!eligible()||editing||document.querySelector('dialog[open],.overlay:not([hidden])'))return;
