@@ -17,3 +17,12 @@
 .install-later{display:block;width:100%;min-height:42px;margin-top:14px;border:1px solid #e5ddec;border-radius:9px;background:#fff;color:#766780;font:500 13px var(--font-sans);cursor:pointer}
 .install-later:hover{background:#f6f2fa}
 .install-card[hidden],.install-menu-button[hidden]{display:none}
+
+.install-browser-help{padding:14px;background:#f6f2fa;border:1px solid #e5ddec;border-radius:12px;margin:0 0 22px}
+.install-browser-help p{font-size:12px;line-height:1.5;color:#6d617c;margin:0}
+.install-browser-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.install-browser-actions a,.install-browser-actions button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border-radius:9px;font:600 13px var(--font-sans);text-decoration:none;cursor:pointer}
+.install-browser-actions .install-safari{background:#4f2d7f;color:#fff;border:1px solid #4f2d7f}
+.install-browser-actions .install-copy{background:#fff;color:#4f2d7f;border:1px solid #d8cce4}
+.install-browser-actions a:focus-visible{outline:3px solid #ad91cf;outline-offset:3px}
+.install-browser-help .install-copy-status:not(:empty){margin-top:10px;font-weight:600;color:#4f2d7f}
