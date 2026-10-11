@@ -2390,6 +2390,7 @@ overlay.addEventListener("click", e => { if (e.target === overlay) closeDetail()
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !overlay.hidden) closeDetail(); });
 
 __INJECT_ACCOUNT_STORAGE__
+__INJECT_DIARY_SYNC__
 const browserStore = (() => {
   try { localStorage.setItem("aa_test", "1"); localStorage.removeItem("aa_test"); return localStorage; }
   catch (e) { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; }
@@ -3045,24 +3046,58 @@ let _pushTimer = null, _lastPushed = "", _accountEpoch = 0, _syncReadyOwner = nu
 function isCurrentAccount(userId, epoch) {
   return !!userId && authedUser?.id === userId && store.owner === userId && _accountEpoch === epoch;
 }
-let _pushJob = null;
+let _pushJob = null, _pushQueue = Promise.resolve();
 function schedulePush() {
   const c = sbReady();
   clearTimeout(_pushTimer); _pushTimer = null; _pushJob = null;
   const userId = store.owner, epoch = _accountEpoch;
   if (!c || !isCurrentAccount(userId, epoch) || _syncReadyOwner !== userId) return;
-  /* identity captured now: a job left over from a previous account aborts inside */
-  _pushJob = async () => {
-    try {
-      if (!isCurrentAccount(userId, epoch)) return;
-      const payload = Object.assign({}, loadLog(), { settings: collectSettings() });
-      const { data: { user } } = await c.auth.getUser();
-      if (user?.id !== userId || !isCurrentAccount(userId, epoch)) return;
-      const j = JSON.stringify(payload);
-      if (j === _lastPushed) return;
-      const { error } = await c.from("logs").upsert({ user_id: userId, data: payload, updated_at: new Date().toISOString() });
-      if (!error && isCurrentAccount(userId, epoch)) _lastPushed = j;
-    } catch (e) {}
+  _pushJob = () => {
+    const run = async () => {
+      try {
+        const {data:{user}} = await c.auth.getUser();
+        if (user?.id !== userId || !isCurrentAccount(userId, epoch)) return;
+        for (let attempt=0; attempt<3; attempt++) {
+          const {data:row,error:readError} = await c.from("logs").select("data,updated_at").eq("user_id",userId).maybeSingle();
+          if (readError) throw readError;
+          if (!isCurrentAccount(userId, epoch)) return;
+          const local = loadLog();
+          const merged = mergeLogs(row?.data || {days:[],active:0}, local);
+          const localSettings = collectSettings(), baseSettings = syncBase()?.settings;
+          if (row?.data?.settings && baseSettings && JSON.stringify(localSettings) === JSON.stringify(baseSettings)) applySettings(row.data.settings);
+          const payload = {...merged,settings:collectSettings()};
+          // Read-modify-write with a database compare-and-swap. A stale device
+          // cannot overwrite a newer snapshot between this read and the write.
+          if (JSON.stringify(payload) !== JSON.stringify(row?.data)) {
+            const updatedAt = new Date(Math.max(Date.now(), (Date.parse(row?.updated_at)||0)+1)).toISOString();
+            const record = {user_id:userId,data:payload,updated_at:updatedAt};
+            const result = row
+              ? await c.from("logs").update(record).eq("user_id",userId).eq("updated_at",row.updated_at).select("updated_at")
+              : await c.from("logs").insert(record).select("updated_at");
+            if (!isCurrentAccount(userId, epoch)) return;
+            if (result.error?.code === '23505') continue;
+            if (result.error) throw result.error;
+            if (!result.data?.length) continue;
+          }
+          if (!isCurrentAccount(userId, epoch)) return;
+          // Preserve an edit made while the network request was in flight.
+          const before = loadLog();
+          const current = mergeLogs(payload, before, local);
+          store.setItem("aa_sync_base", JSON.stringify(payload));
+          store.setItem("aa_log", JSON.stringify(current));
+          _lastPushed = JSON.stringify(payload);
+          if (JSON.stringify(current) !== JSON.stringify(before) && window.__v2Render) window.__v2Render();
+          syncMessage("");
+          if (JSON.stringify(current) !== JSON.stringify(merged)) schedulePush();
+          return;
+        }
+        throw new Error("Another device is still updating this diary");
+      } catch (e) {
+        if (isCurrentAccount(userId, epoch)) syncMessage("Your edits are saved on this device. Sync could not finish; keep this tab open and retry.");
+      }
+    };
+    _pushQueue = _pushQueue.then(run,run);
+    return _pushQueue;
   };
   _pushTimer = setTimeout(() => { _pushTimer = null; const job = _pushJob; _pushJob = null; return job ? job() : undefined; }, 1500);
 }
@@ -3077,15 +3112,35 @@ function pushNow() {
 }
 if (typeof addEventListener === "function") addEventListener("pagehide", () => { if (_pushJob) pushNow(); });
 if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && _pushJob) pushNow(); });
-function mergeLogs(remote, local) {
-  if (!remote || !Array.isArray(remote.days) || !remote.days.length) return local;
-  const localHas = local.days.some(d => d.entries.length || d.note);
-  if (!localHas) return remote;
-  const seen = new Set(remote.days.map(dayKey));
-  const extra = local.days.filter(d => (d.entries.length || d.note) && !seen.has(dayKey(d)));
-  const merged = { days: dedupeDays(remote.days.concat(extra)), active: 0 };
-  merged.active = merged.days.length - 1;
-  return merged;
+function syncBase() {
+  try { return JSON.parse(store.getItem("aa_sync_base") || "null"); } catch { return null; }
+}
+function preserveSyncCopy(log, reason) {
+  const copies = JSON.parse(store.getItem("aa_sync_backups") || "[]");
+  const encoded = JSON.stringify(log);
+  if (!copies.some(c => JSON.stringify(c.log) === encoded)) {
+    copies.push({savedAt:new Date().toISOString(), reason, log});
+    // If storage is full, throw and stop the sync rather than discard a conflict.
+    try { store.setItem("aa_sync_backups", JSON.stringify(copies)); }
+    catch (error) { error.syncPreservationFailed = true; throw error; }
+  }
+}
+function mergeLogs(remote, local, base = syncBase()) {
+  if (remote?.days && DiarySync.uniqueDays(remote.days).length !== remote.days.length) preserveSyncCopy(remote, "Server copy before resolving duplicate dates");
+  const result = DiarySync.merge(remote, local, base);
+  if (result.conflicts.length) preserveSyncCopy(local, "Different copies of " + result.conflicts.map(c=>c.date).join(", "));
+  if (!result.log.days.length) result.log = {days:[blankLogDay()],active:0};
+  return result.log;
+}
+function syncMessage(message) {
+  const el = document.getElementById("diarySyncStatus");
+  if (el) {
+    el.textContent = message; el.hidden = !message;
+    if (message) {
+      const retry = document.createElement("button"); retry.type = "button"; retry.className = "linkish"; retry.textContent = "Retry sync";
+      retry.addEventListener("click", () => { schedulePush(); pushNow(); }); el.append(" ",retry);
+    }
+  }
 }
 async function syncOnLogin(userId, epoch) {
   const c = sbReady();
@@ -3102,9 +3157,9 @@ async function syncOnLogin(userId, epoch) {
        an emptier local list. */
     else if (remote && remote.settings && Array.isArray(remote.settings.savedMeals)) applySettings({ savedMeals: remote.settings.savedMeals });
     const merged = mergeLogs(remote, loadLog());
-    merged.days.forEach(d => { d.entries = (d.entries || []).filter(e => foodByName(e.name)); });
     _syncReadyOwner = userId;
-    saveLog({ days: merged.days, active: Math.min(merged.active | 0, merged.days.length - 1) });
+    store.setItem("aa_sync_base", JSON.stringify(remote || {days:[],active:0}));
+    saveLog(merged);
     if (window.__v2Render) window.__v2Render();
     schedulePush();
     return remote || null;
@@ -3812,23 +3867,11 @@ function dayKey(d) {
     (d.entries || []).map(e => e.name + "~" + e.g + "~" + (e.meal || "")).sort().join(",");
 }
 function dedupeDays(days) {
-  const seen = new Set();
-  let out = days.filter(d => { const k = dayKey(d); if (seen.has(k)) return false; seen.add(k); return true; });
-  /* one day per date: two logs for the same date merge, entries combined by
-     food and meal, so the day selector never reads "log 1, log 2, log 3" */
-  const byDate = new Map();
-  for (const d of out) {
-    const prev = byDate.get(d.date);
-    if (!prev) { byDate.set(d.date, d); continue; }
-    (d.entries || []).forEach(e => {
-      const hit = prev.entries.find(p => p.name === e.name && p.meal === e.meal);
-      if (hit) hit.g += e.g; else prev.entries.push(e);
-    });
-    if (d.note && d.note !== prev.note) prev.note = prev.note ? prev.note + " · " + d.note : d.note;
-    if (!prev.w && d.w) { prev.w = d.w; prev.t = d.t; }
+  const unique = DiarySync.uniqueDays(days);
+  if (unique.length !== days.length && days.some((d,i)=>days.slice(0,i).some(p=>p.date===d.date && DiarySync.key(p)!==DiarySync.key(d)))) {
+    preserveSyncCopy({days,active:0}, "Different snapshots for the same date");
   }
-  out = [...byDate.values()];
-  return out.length > WEEK_DAYS ? out.slice(-WEEK_DAYS) : out;
+  return unique.length > WEEK_DAYS ? unique.slice(-WEEK_DAYS) : unique;
 }
 function loadLog() {
   try {
@@ -3845,10 +3888,10 @@ function loadLog() {
       raw.active = idx === -1 ? raw.days.length - 1 : idx;
       return raw;
     }
-  } catch (e) {}
+  } catch (e) { if (e.syncPreservationFailed) throw e; }
   /* first run under the new model: carry the old single-day list across */
   let legacy = [];
-  try { legacy = (JSON.parse(store.getItem("aa_day") || "[]") || []).filter(e => foodByName(e.name)).map(e => ({ name: e.name, g: e.g, meal: "other" })); } catch (e) {}
+  try { legacy = (JSON.parse(store.getItem("aa_day") || "[]") || []).filter(e => foodByName(e.name)).map(e => ({ name: e.name, g: e.g, meal: "other" })); } catch (e) { if (e.syncPreservationFailed) throw e; }
   return { days: [{ date: todayISO(), note: "", entries: legacy }], active: 0 };
 }
 function saveLog(log) { store.setItem("aa_log", JSON.stringify(log)); schedulePush(); }
@@ -3931,6 +3974,7 @@ function restoreLegacyDays() {
   if (!missing.length) return;
   const log = loadLog();
   const activeDate = (log.days[log.active] || {}).date;
+  preserveSyncCopy({days:missing.concat(log.days),active:0}, "Before restoring older diary copies");
   const days = dedupeDays(missing.concat(log.days)); // older days first, so the window cap keeps the newest
   let active = days.findIndex(d => d.date === activeDate);
   if (active === -1) active = days.length - 1;
@@ -4679,6 +4723,19 @@ window.addEventListener("popstate", () => {
     $("dayNote").value = d.note;
     $("dayDelete").hidden = log.days.length < 2;
     $("dayFull").hidden = log.days.length < WEEK_DAYS;
+    const syncStatus = document.createElement("p");
+    syncStatus.id = "diarySyncStatus"; syncStatus.className = "day-roll-note"; syncStatus.hidden = true;
+    syncStatus.setAttribute("role","status"); tabs.appendChild(syncStatus);
+    if (store.getItem("aa_sync_backups")) {
+      const notice = document.createElement("p"); notice.className = "day-roll-note";
+      notice.textContent = "Different saved copies were found. Portions were not added together. A backup is saved on this device. ";
+      const download = document.createElement("button"); download.type = "button"; download.className = "linkish"; download.textContent = "Download backup";
+      download.addEventListener("click", () => {
+        const url = URL.createObjectURL(new Blob([store.getItem("aa_sync_backups")], {type:"application/json"}));
+        const link = document.createElement("a"); link.href = url; link.download = "aminodata-diary-backup.json"; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+      });
+      notice.appendChild(download); tabs.appendChild(notice);
+    }
     const legacy = pendingLegacyDays();
     if (legacy.length) {
       const n = document.createElement("p");
