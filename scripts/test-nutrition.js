@@ -170,3 +170,91 @@ test('breakdown lists each food\'s contribution, largest first, without inventin
   const sum = rows.reduce((s,r)=>s+(r.value||0),0);
   assert.equal(sum, Nutrition.total([{name:'a',g:100},{name:'b',g:50},{name:'c',g:100},{name:'d',g:100}], n=>foods[n], 'iron').value);
 });
+
+// Exercise the actual history exporter, including the existing macro/AA columns.
+function historyExport(foods, days) {
+  const fs = require('node:fs'), vm = require('node:vm'), path = require('node:path');
+  const source = fs.readFileSync(path.join(__dirname, '../index.template.html'), 'utf8');
+  const code = source.slice(source.indexOf('function historyCSV('), source.indexOf('function renderHistoryPage('));
+  const context = vm.createContext({Nutrition, foodByName: name => foods[name],
+    AA_META: [['leucine']], MEAL_LABEL: {breakfast: 'Breakfast', lunch: 'Lunch'}});
+  vm.runInContext(code, context);
+  const csv = context.historyCSV(days.map(d => ({d, prot: 10, kcal: 100, carb: 15, fat: 2})));
+  // Parse quoted fields, doubled quotes and embedded CR/LF just as a spreadsheet does.
+  const rows = [[]]; let field = '', quoted = false;
+  for (let i = 0; i < csv.length; i++) {
+    const c = csv[i];
+    if (c === '"') {
+      if (quoted && csv[i + 1] === '"') { field += '"'; i++; }
+      else quoted = !quoted;
+    } else if (!quoted && (c === ',' || c === '\n')) {
+      rows.at(-1).push(field); field = '';
+      if (c === '\n') rows.push([]);
+    } else field += c;
+  }
+  rows.at(-1).push(field);
+  const headers = rows.shift();
+  assert.equal(new Set(headers).size, headers.length);
+  for (const row of rows) assert.equal(row.length, headers.length);
+  return {headers, rows: rows.map(row => Object.fromEntries(headers.map((key, i) => [key, row[i]])))};
+}
+
+test('history CSV appends all vitamin/mineral units and scales food and daily amounts', () => {
+  const food = {name: 'Lentils, cooked', protein_g_per_100g: 9, kcal: 116, carb: 20, fat: 0.4,
+    aa: Object.fromEntries(Array.from({length:18}, (_, i) => [i ? 'aa' + i : 'leucine', 1])),
+    nutrients: usda.records['172421'].nutrients};
+  const days = [{date:'2026-10-09', entries:[{name:'lentils',g:120,meal:'breakfast'}, {name:'lentils',g:80,meal:'lunch'}]},
+    {date:'2026-10-10', entries:[{name:'lentils',g:50,meal:'breakfast'}]}, {date:'2026-10-11',entries:[]}];
+  const {headers, rows} = historyExport({lentils:food}, days);
+  assert.deepEqual(headers.slice(0,9), ['date','meal','food','grams','protein_g','kcal','carb_g','fat_g','leucine_g']);
+  assert.equal(rows.length,5);
+  assert.equal(rows[0].meal,'Breakfast'); assert.equal(rows[0].food,'Lentils, cooked');
+  assert.equal(rows[0].protein_g,'10.80'); assert.equal(rows[0].leucine_g,'1.200');
+  assert.equal(rows[0].vitamin_c_mg,'1.8'); assert.equal(rows[2].vitamin_c_mg,'3');
+  assert.equal(rows[4].vitamin_c_mg,'0.75'); assert.equal(rows[2].food,'DAY TOTAL');
+  for (const d of Nutrition.definitions.filter(d => ['Vitamins','Minerals'].includes(d.group))) {
+    const key = d.key + '_' + (d.unit === 'µg' ? 'ug' : d.unit);
+    assert.ok(headers.includes(key)); assert.ok(headers.includes(d.key + '_status'));
+    const expected = Nutrition.total(days[0].entries, () => food, d.key).value;
+    if (expected === null) assert.equal(rows[2][key],'');
+    else assert.ok(Math.abs(Number(rows[2][key]) - expected) < 1e-8);
+  }
+});
+
+test('history CSV distinguishes zero, tiny values, unknown, trace and partial daily totals', () => {
+  const foods = {
+    a:{name:'A',protein_g_per_100g:0,nutrients:{vitamin_c:0,vitamin_b12:0.00001,iron:2,iodine:'trace',selenium:'trace'}},
+    b:{name:'B',protein_g_per_100g:0,nutrients:{iron:3,iodine:'trace',selenium:1}},
+    legacy:{name:'Legacy',protein_g_per_100g:10}
+  };
+  const {rows} = historyExport(foods,[{date:'2026-10-11',entries:Object.keys(foods).map(name=>({name,g:50}))}]);
+  assert.equal(rows[0].vitamin_c_mg,'0'); assert.equal(rows[0].vitamin_c_status,'reported');
+  assert.equal(rows[0].vitamin_b12_ug,'0.000005');
+  assert.equal(rows[0].iodine_ug,''); assert.equal(rows[0].iodine_status,'trace');
+  assert.equal(rows[2].vitamin_c_mg,''); assert.equal(rows[2].vitamin_c_status,'unknown');
+  const total = rows.at(-1);
+  assert.equal(total.vitamin_c_mg,'0'); assert.equal(total.vitamin_c_status,'partial');
+  assert.equal(total.iron_mg,'2.5'); assert.equal(total.iron_status,'partial');
+  assert.equal(total.iodine_ug,''); assert.equal(total.iodine_status,'trace + unknown');
+  assert.equal(total.selenium_ug,'0.5'); assert.equal(total.selenium_status,'partial + trace');
+  assert.equal(total.biotin_ug,''); assert.equal(total.biotin_status,'unknown');
+});
+
+test('history CSV keeps analytical vitamin forms separate and flags unresolved foods', () => {
+  const foods = {us:{name:'US',protein_g_per_100g:0,nutrients:{vitamin_a_rae:10,vitamin_d:2,vitamin_e:1}},
+    uk:{name:'UK',protein_g_per_100g:0,nutrients:{vitamin_a_re:15,vitamin_d_uk:3,vitamin_e_uk:4}}};
+  const {rows} = historyExport(foods,[{date:'2026-10-11',entries:['us','uk','unresolved'].map(name=>({name,g:100}))}]);
+  const total = rows.at(-1);
+  for (const [key, value] of Object.entries({vitamin_a_rae_ug:10,vitamin_a_re_ug:15,vitamin_d_ug:2,vitamin_d_uk_ug:3,vitamin_e_mg:1,vitamin_e_uk_mg:4})) assert.equal(Number(total[key]),value);
+  assert.equal(total.vitamin_a_rae_status,'partial');
+  assert.equal(rows[0].vitamin_a_re_ug,''); assert.equal(rows[1].vitamin_a_rae_ug,'');
+});
+
+test('history CSV preserves quoted food names and does not change the diary', () => {
+  const name = 'Food, "quoted"\r\nsecond line';
+  const days = [{date:'2026-10-11',entries:[{name:'food',g:100,meal:'breakfast'}]}];
+  const before = JSON.stringify(days);
+  const {rows} = historyExport({food:{name,protein_g_per_100g:0,nutrients:{calcium:20}}}, days);
+  assert.equal(rows[0].food,name); assert.equal(rows[0].calcium_mg,'20');
+  assert.equal(JSON.stringify(days),before);
+});
