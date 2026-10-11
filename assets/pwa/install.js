@@ -7,7 +7,16 @@
   if (/iPhone|iPod/i.test(ua)) return 'iphone';
   return 'desktop';
  }
+ // Browser identification is advisory: embedded browsers can disguise their user agent.
+ function detectAppleInstallBrowser(nav) {
+  const ua=nav.userAgent||'';
+  if (/FBAN|FBAV|Instagram|Line\/|MicroMessenger|TikTok/i.test(ua)) return 'embedded';
+  if (/CriOS\//i.test(ua)) return 'chrome';
+  if (/FxiOS|EdgiOS|OPiOS|DuckDuckGo|GSA\//i.test(ua)) return 'other';
+  return /Version\/.*Safari\//i.test(ua)?'safari':'embedded';
+ }
  const actualDevice=detectInstallDevice(navigator);
+ const appleBrowser=detectAppleInstallBrowser(navigator);
  const icon='/assets/favicon.svg';
  const card=(id,dismiss=false)=>`<aside class="install-card" id="${id}" aria-label="Install Aminodata"><img src="${icon}" alt=""/><div class="install-card-copy"><strong>Your diary. One tap away.</strong><p>Add Aminodata to your home screen.</p></div><button type="button" data-open-install>Install Aminodata</button>${dismiss?'<button type="button" class="install-dismiss" aria-label="Dismiss installation suggestion">×</button>':''}</aside>`;
  document.querySelector('.land-benefits').insertAdjacentHTML('afterend',card('homeInstallCard'));
@@ -18,8 +27,8 @@
  const dialog=document.getElementById('installDialog'),native=document.getElementById('nativeInstall'),status=document.getElementById('installStatus');
  let deferredPrompt=null,currentDevice=actualDevice,returnFocus=null;
  const instructions={
-  iphone:[['Open Aminodata in Safari','On your iPhone, visit aminodata.org in Safari.'],['Tap Share '+share,'Open the browser’s Share menu.'],['Choose “Add to Home Screen”','If shown, leave “Open as Web App” switched on. Tap Add to finish.']],
-  ipad:[['Open Aminodata in Safari','On your iPad, visit aminodata.org in Safari.'],['Tap Share '+share,'Open the browser’s Share menu.'],['Choose “Add to Home Screen”','If shown, leave “Open as Web App” switched on. Tap Add to finish.']],
+  iphone:[['Tap Share '+share,'Open the browser’s Share menu.'],['Choose “Add to Home Screen”','Scroll through the Share menu to find it.'],['Tap Add','If shown, leave “Open as Web App” switched on.']],
+  ipad:[['Tap Share '+share,'Open the browser’s Share menu.'],['Choose “Add to Home Screen”','Scroll through the Share menu to find it.'],['Tap Add','If shown, leave “Open as Web App” switched on.']],
   android:[['Open Aminodata in Chrome','On your Android phone, visit aminodata.org.'],['Choose “Install app”','Find it in Chrome’s ⋮ menu, or use the install prompt when offered.'],['Confirm Install','The Aminodata icon will appear on your home screen or in your app list.']],
   desktop:[['Open Aminodata in Chrome or Edge','Visit aminodata.org in your usual browser.'],['Choose the install option','Look for Install in the address bar or browser menu.'],['Confirm and open Aminodata','It opens in its own window. On a Mac using Safari, choose File → Add to Dock.']]
  };
@@ -29,8 +38,22 @@
   document.getElementById('installDeviceLabel').textContent='Install on your '+names[key];
   document.getElementById('installIntro').innerHTML=key==='desktop'?'Keep your food diary close at hand.<br>Open Aminodata in its own window.':'Add Aminodata to your home screen.<br>Your food diary is always a tap away.';
   const panel=document.getElementById('installInstructions');
-  panel.innerHTML='<ol class="install-steps">'+instructions[key].map(([title,desc],i)=>`<li><span class="install-step-number">${i+1}</span><div><strong>${title}</strong><p>${desc}</p></div></li>`).join('')+'</ol>';
-   native.hidden=!deferredPrompt||['iphone','ipad'].includes(key)||key!==actualDevice;
+  const apple=['iphone','ipad'].includes(key);
+  const needsSafari=apple && !['safari','chrome'].includes(appleBrowser);
+  const safariHelp=apple && appleBrowser!=='safari'?`<div class="install-browser-help"><p>${needsSafari?'Open Aminodata in Safari, then follow these steps.':'You can install directly from Chrome’s Share menu, or open Safari instead.'}</p><div class="install-browser-actions"><a class="install-safari" href="x-safari-https://www.aminodata.org/" aria-describedby="installSafariHelp">Open in Safari</a><button type="button" class="install-copy">Copy link</button></div><p id="installSafariHelp">If Safari doesn’t open, copy the link and paste it into Safari. You may need to sign in again.</p><p class="install-copy-status" role="status"></p></div>`:'';
+  panel.innerHTML=safariHelp+'<ol class="install-steps">'+instructions[key].map(([title,desc],i)=>`<li><span class="install-step-number">${i+1}</span><div><strong>${title}</strong><p>${desc}</p></div></li>`).join('')+'</ol>';
+  panel.querySelector('.install-copy')?.addEventListener('click',async()=>{
+   const copyStatus=panel.querySelector('.install-copy-status');
+   try {
+    await navigator.clipboard.writeText('https://www.aminodata.org/');
+    copyStatus.textContent='Link copied. Open Safari and paste it into the address bar.';
+   } catch {
+    copyStatus.textContent='Open Safari and type aminodata.org into the address bar.';
+   }
+  });
+  // Safari’s custom scheme is a best-effort handoff, not a standard web API.
+  // Keep the visible copy fallback; no timer can reliably detect a successful app switch.
+  native.hidden=!deferredPrompt||['iphone','ipad'].includes(key)||key!==actualDevice;
   status.textContent='';
  }
  function open(){

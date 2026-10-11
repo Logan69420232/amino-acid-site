@@ -56,3 +56,18 @@ test('the install manifest opens the real diary and supplies correctly sized PNG
     assert.equal(data.readUInt32BE(20), size);
   }
 });
+
+
+test('Apple installation recognises Safari and Chrome without mistaking embedded browsers for Safari', () => {
+  const safari = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1';
+  assert.equal(context.detectAppleInstallBrowser({ userAgent: safari }), 'safari');
+  assert.equal(context.detectAppleInstallBrowser({ userAgent: safari.replace('Version/18.0', 'CriOS/130.0') }), 'chrome');
+  for (const marker of ['FxiOS/130.0', 'EdgiOS/130.0', 'OPiOS/1.0', 'GSA/1.0']) {
+    assert.equal(context.detectAppleInstallBrowser({ userAgent: safari + ' ' + marker }), 'other');
+  }
+  for (const marker of ['Instagram', '[FBAN/FBIOS;FBAV/1.0]', 'Line/14.0', 'TikTok']) {
+    assert.equal(context.detectAppleInstallBrowser({ userAgent: safari + ' ' + marker }), 'embedded');
+  }
+  assert.equal(context.detectAppleInstallBrowser({ userAgent: safari.replace('Version/18.0', '') }), 'embedded');
+  assert.equal(context.detectAppleInstallBrowser({}), 'embedded');
+});
