@@ -313,6 +313,7 @@ fs.writeFileSync(path.join(root, "dist", "version.json"), JSON.stringify({ v: BU
 const out = template.replace("__BUILD_ID__", BUILD_ID)
   .replace("__INJECT_DATA__", () => JSON.stringify(atlas))
   .replace("__INJECT_NUTRITION__", () => fs.readFileSync(path.join(root, "lib", "nutrition.js"), "utf8"))
+  .replace("__INJECT_DIARY_PANELS__", () => fs.readFileSync(path.join(root, "lib/diary-panels.js"), "utf8"))
   .replace("__INJECT_NUTRITION_UI__", () => fs.readFileSync(path.join(root, "nutrition-ui.js"), "utf8"))
   .replace("__INJECT_DIARY_SYNC__", () => fs.readFileSync(path.join(root, "lib", "diary-sync.js"), "utf8"))
   .replace("__INJECT_ACCOUNT_STORAGE__", () => fs.readFileSync(path.join(root, "lib", "account-storage.js"), "utf8"))
