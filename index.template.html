@@ -1193,14 +1193,25 @@
   .app-sidebar .database-links button { width: 100%; padding: 11px 10px; font-size: 13px; }
   .menu-pop .database-group > summary { font-weight: 600; }
   .menu-pop .database-links { margin-left: 12px; border-color: var(--line-strong); }
-  .mobile-nav[hidden], .mobile-more[hidden] { display: none; }
-  .mobile-nav { position: fixed; inset: auto 0 0; z-index: 40; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--bg); border-top: 1px solid var(--line-strong); padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 20px #211b2b08; }
-  .mobile-nav button { border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); min-height: 52px; padding: 5px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 600; }
-  .mobile-nav button .nav-icon { font-size: 22px; line-height: 1; }
-  .mobile-nav button[aria-current], .mobile-nav button[aria-expanded="true"] { background: var(--c-good-bg); color: var(--c-bcaa); }
-  .mobile-more { position: fixed; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); right: 12px; z-index: 41; width: min(300px, calc(100vw - 24px)); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 14px; padding: 8px; box-shadow: var(--shadow); }
-  .mobile-more button { display: block; width: 100%; min-height: 48px; border: 0; border-radius: 8px; padding: 12px; background: transparent; color: var(--ink); text-align: left; font-size: 14px; }
-  .mobile-more button:hover { background: var(--c-good-bg); }
+  .mobile-nav[hidden], .mobile-more[hidden], .mobile-database-links[hidden] { display: none; }
+  .mobile-nav { position: fixed; inset: auto 0 0; z-index: 40; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--bg); border-top: 1px solid var(--line); padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 20px #211b2b08; }
+  .mobile-nav button { border: 0; border-radius: 12px; background: transparent; color: var(--ink-2); min-height: 52px; padding: 5px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 600; }
+  .mobile-nav .nav-icon, .mobile-more .nav-icon { width: 21px; height: 21px; flex-shrink: 0; }
+  .mobile-nav button[aria-current], .mobile-nav button[aria-expanded="true"], .mobile-nav button.is-current { background: var(--c-good-bg); color: var(--c-bcaa); }
+  .mobile-more { position: fixed; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); right: 12px; z-index: 41; width: min(340px, calc(100vw - 24px)); max-height: calc(100dvh - 104px - env(safe-area-inset-bottom, 0px)); overflow-y: auto; overscroll-behavior: contain; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 10px; box-shadow: 0 12px 48px #211b2b24, 0 2px 8px #211b2b0c; }
+  .mobile-more button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; border: 0; border-radius: 10px; padding: 10px 12px; background: transparent; color: var(--ink); text-align: left; font: inherit; font-size: 14px; line-height: 1.35; cursor: pointer; }
+  .mobile-more button .nav-icon { color: var(--ink-2); width: 19px; height: 19px; }
+  .mobile-more button:hover, .mobile-more button[aria-current], .mobile-more button[aria-expanded="true"] { background: var(--c-good-bg); color: var(--c-bcaa); }
+  .mobile-nav button:focus-visible, .mobile-more button:focus-visible { outline: 2px solid var(--c-bcaa); outline-offset: -2px; }
+  .mobile-more-head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 6px 12px; }
+  .mobile-more-head h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
+  .mobile-more-head button { width: 44px; min-height: 44px; justify-content: center; padding: 10px; }
+  .mobile-more-label { margin: 8px 12px 4px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--ink-2); font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
+  .mobile-more-chevron { margin-left: auto; width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
+  [aria-expanded="true"] .mobile-more-chevron { transform: rotate(225deg); }
+  .mobile-database-links { margin: 2px 12px 6px 21px; padding-left: 14px; border-left: 1px solid var(--line-strong); }
+  .mobile-database-links button { font-size: 13px; min-height: 44px; }
+  .mobile-more .mobile-more-signout { border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; margin-top: 8px; padding-top: 14px; color: var(--ink-2); }
   @media (max-width:1079px) {
     body.bottom-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
     body.bottom-nav .topbar .menu-wrap, body.bottom-nav #authSlot { display: none; }
@@ -1277,23 +1288,25 @@
   </div>
 </aside>
 <nav id="mobileNav" class="mobile-nav" hidden aria-label="Main navigation">
-  <button type="button" data-act="diary"><span class="nav-icon" aria-hidden="true">▤</span><span>Diary</span></button>
-  <button type="button" id="mobileDatabaseToggle" data-section="atlas" aria-expanded="false" aria-controls="mobileDatabase"><span class="nav-icon" aria-hidden="true">▦</span><span>Database</span></button>
-  <button type="button" data-act="account"><span class="nav-icon" aria-hidden="true">⚙</span><span>Account</span></button>
-  <button type="button" id="mobileMoreToggle" aria-expanded="false" aria-controls="mobileMore"><span class="nav-icon" aria-hidden="true">⋯</span><span>More</span></button>
+  <button type="button" data-act="diary"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3v3m6-3v3M9 11h6m-6 4h6"/></svg><span>Diary</span></button>
+  <button type="button" data-act="meals"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z"/></svg><span>Saved meals</span></button>
+  <button type="button" data-act="account"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg><span>Account</span></button>
+  <button type="button" id="mobileMoreToggle" aria-expanded="false" aria-controls="mobileMore"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg><span>More</span></button>
 </nav>
-<div id="mobileDatabase" class="mobile-more" hidden role="group" aria-label="Database navigation">
-  <button type="button" data-act="atlas">Browse foods</button>
-  <button type="button" data-act="comparefoods">Compare foods</button>
-  <button type="button" data-act="compareaa">Compare amino acids</button>
-</div>
-<div id="mobileMore" class="mobile-more" hidden role="group" aria-label="More navigation">
-  <button type="button" data-act="feedback">Send feedback</button>
-  <button type="button" data-act="history">Data over time</button>
-  <button type="button" data-act="meals">Saved meals</button>
-  <button type="button" data-act="method">How the numbers work</button>
-  <button type="button" data-act="faq">FAQ</button>
-  <button type="button" data-act="signout">Sign out</button>
+<div id="mobileMore" class="mobile-more" hidden role="region" aria-labelledby="mobileMoreTitle">
+  <div class="mobile-more-head"><h2 id="mobileMoreTitle">More</h2><button type="button" id="mobileMoreClose" aria-label="Close more navigation"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+  <button type="button" data-act="history"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5m0 14h16M8 15l4-5 4 3 4-7"/></svg><span>Data over time</span></button>
+  <button type="button" id="mobileDatabaseToggle" data-section="atlas" aria-expanded="false" aria-controls="mobileDatabase"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg><span>Database</span><span class="mobile-more-chevron" aria-hidden="true"></span></button>
+  <div id="mobileDatabase" class="mobile-database-links" hidden role="group" aria-label="Database navigation">
+    <button type="button" data-act="atlas">Browse foods</button>
+    <button type="button" data-act="comparefoods">Compare foods</button>
+    <button type="button" data-act="compareaa">Compare amino acids</button>
+  </div>
+  <p class="mobile-more-label">Help &amp; support</p>
+  <button type="button" data-act="method"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/></svg><span>How the numbers work</span></button>
+  <button type="button" data-act="faq"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4m0 4h.01"/></svg><span>FAQ</span></button>
+  <button type="button" data-act="feedback"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 15a2 2 0 0 1-2 2H9l-5 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/><path d="M8 8h8m-8 4h5"/></svg><span>Send feedback</span></button>
+  <button type="button" data-act="signout" class="mobile-more-signout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H5v16h4m5-12 4 4-4 4m-5-4h12"/></svg><span>Sign out</span></button>
   <p id="mobileSignoutError" class="intake-help" role="status" hidden></p>
 </div>
 
@@ -2765,8 +2778,9 @@ function navigateApp(act) {
     if (desktopApp) { pop.hidden = true; btn.setAttribute("aria-expanded", String(!collapsed)); }
     btn.setAttribute("aria-controls", desktopApp ? "appSidebar" : "mobileMenu");
     btn.setAttribute("aria-label", desktopApp ? "Expand navigation" : "Menu");
-    const active = document.body.dataset.view === "compare" ? "comparefoods" : document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : document.body.dataset.view === "history" ? "history" : document.body.dataset.view === "meals" ? "meals" : "diary";
-    for (const nav of [sidebar, mobileNav]) nav.querySelectorAll("[data-act], [data-section]").forEach(b => { if((b.dataset.act || b.dataset.section) === (nav === mobileNav && active === "comparefoods" ? "atlas" : active)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    const active = document.body.dataset.view === "compare" ? "comparefoods" : document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : document.body.dataset.view === "history" ? "history" : document.body.dataset.view === "meals" ? "meals" : document.body.dataset.view === "faq" ? "faq" : "diary";
+    for (const nav of [sidebar, mobileNav, more]) nav.querySelectorAll("[data-act], [data-section]").forEach(b => { if((b.dataset.act || b.dataset.section) === (b.dataset.section === "atlas" && active === "comparefoods" ? "atlas" : active)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    moreToggle.classList.toggle("is-current", ["atlas", "comparefoods", "history", "faq"].includes(active));
   }
   pop.id = "mobileMenu";
   btn.addEventListener("click", e => {
@@ -2775,17 +2789,17 @@ function navigateApp(act) {
     else { const open = pop.hidden; pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); }
   });
   toggle.addEventListener("click", () => { collapsed = !collapsed; sync(); toggle.focus(); });
-  moreToggle.addEventListener("click", () => { const open = more.hidden; close(); more.hidden = !open; moreToggle.setAttribute("aria-expanded", String(open)); });
-  databaseToggle.addEventListener("click", () => { const open = database.hidden; close(); database.hidden = !open; databaseToggle.setAttribute("aria-expanded", String(open)); });
+  moreToggle.addEventListener("click", () => { const open = more.hidden; close(); more.hidden = !open; moreToggle.setAttribute("aria-expanded", String(open)); if (open) document.getElementById("mobileMoreClose").focus(); });
+  document.getElementById("mobileMoreClose").addEventListener("click", () => { close(); moreToggle.focus(); });
+  databaseToggle.addEventListener("click", () => { const open = database.hidden; database.hidden = !open; databaseToggle.setAttribute("aria-expanded", String(open)); });
   sidebarDatabase.querySelector("summary").addEventListener("click", e => { if (collapsed) { e.preventDefault(); collapsed = false; sidebarDatabase.open = true; sync(); } });
-  for (const nav of [pop, sidebar, mobileNav, more, database]) nav.addEventListener("click", e => {
+  for (const nav of [pop, sidebar, mobileNav, more]) nav.addEventListener("click", e => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     close(); navigateApp(b.dataset.act);
     if (nav === more && !overlay.hidden) lastFocus = moreToggle;
-    if (nav === database && !overlay.hidden) lastFocus = databaseToggle;
   });
   document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap, #mobileNav, #mobileMore, #mobileDatabase")) close(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && (!pop.hidden || !more.hidden || !database.hidden)) { const trigger = !database.hidden ? databaseToggle : more.hidden ? btn : moreToggle; close(); trigger.focus(); } });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && (!pop.hidden || !more.hidden || !database.hidden)) { const trigger = more.hidden ? btn : moreToggle; close(); trigger.focus(); } });
   desktop.addEventListener("change", () => {close(); sync();});
   window.__syncShell = sync; sync();
 })();
