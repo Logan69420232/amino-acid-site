@@ -681,6 +681,100 @@
   .hist-foods { font-size: 12.5px; color: var(--ink-3); margin: 3px 0 0; }
   .hist-note { font-size: 13px; color: var(--ink-3); font-style: italic; margin: 5px 0 0; }
 
+  /* History: overview first, with food-level detail on demand. */
+  #historyPage { max-width: 1120px; margin-inline: auto; scroll-margin-top: 24px; }
+  #historyTitle:focus { outline: none; }
+  #historyPage .history-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 24px 0; }
+  #historyPage .history-heading h1 { margin: 0 0 6px; font-size: clamp(28px, 3.4vw, 38px); }
+  #historyPage .history-heading .sub { color: var(--ink-2); line-height: 1.5; margin: 0; }
+  .history-export { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; min-height: 44px; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .history-export svg { width: 17px; height: 17px; }
+  .history-overview { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin: 0 0 22px; }
+  .history-stat { border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; background: var(--surface); min-width: 0; }
+  .history-stat:first-child { background: var(--c-good-bg); border-color: transparent; }
+  .history-stat dt { color: var(--ink-2); font-size: 13px; margin-bottom: 8px; }
+  .history-stat dd { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -.04em; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .history-stat:first-child dd { color: var(--c-bcaa); }
+  .history-stat dd small { font-size: 16px; font-weight: 400; letter-spacing: 0; }
+  .history-stat p { margin: 5px 0 0; font-size: 12px; color: var(--ink-2); line-height: 1.4; }
+  .history-trends { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 28px; }
+  .history-section-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .history-section-head h2 { font-size: 18px; margin: 0 0 3px; letter-spacing: -.02em; }
+  .history-section-head p { margin: 0; color: var(--ink-2); font-size: 12px; line-height: 1.5; }
+  .history-metric { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 12px; }
+  .history-metric select { min-height: 44px; max-width: 180px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; padding: 8px 28px 8px 10px; cursor: pointer; }
+  .history-chart-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; padding-bottom: 8px; }
+  .history-chart-frame { display: flex; min-width: 0; }
+  .history-chart-frame .history-chart-scroll { flex: 1; min-width: 0; }
+  .history-scale { position: relative; flex: 0 0 36px; height: 222px; color: var(--ink-2); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .history-scale span { position: absolute; right: 6px; transform: translateY(-50%); }
+  .history-scale span:nth-child(1) { top: 33px; }
+  .history-scale span:nth-child(2) { top: 108px; }
+  .history-scale span:nth-child(3) { top: 183px; }
+  .history-bars { height: 222px; display: flex; align-items: stretch; position: relative; gap: 8px; padding: 20px 8px 0; background: linear-gradient(var(--line),var(--line)) left 33px / 100% 1px no-repeat, linear-gradient(var(--line),var(--line)) left 108px / 100% 1px no-repeat, linear-gradient(var(--line),var(--line)) left 183px / 100% 1px no-repeat; }
+  .history-bar-day { flex: 1; position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px; min-width: 44px; padding: 0 0 2px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; font: inherit; }
+  .history-bar-value { font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .history-bar { width: 65%; max-width: 52px; border-radius: 5px 5px 0 0; background: var(--c-bcaa); opacity: .45; flex-shrink: 0; }
+  .history-bar.is-met { opacity: 1; }
+  .history-bar-day:hover .history-bar { opacity: .85; }
+  .history-bar-date { min-height: 32px; padding-top: 5px; font-size: 11px; white-space: nowrap; }
+  .history-goal-line { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--ink-2); pointer-events: none; z-index: 1; }
+  .history-chart-caption { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-2); font-size: 12px; line-height: 1.5; margin: 10px 0 0; }
+  .history-chart-caption .goal-key::before { content: ''; display: inline-block; width: 20px; border-top: 1px dashed var(--ink-2); vertical-align: middle; margin-right: 6px; }
+  .history-chart-caption .bar-key::before { content: ''; display: inline-block; width: 8px; height: 8px; background: var(--c-bcaa); border-radius: 2px; margin-right: 6px; }
+  #historyPage .hist-chart-note { color: var(--ink-2); line-height: 1.5; margin: 8px 0 0; }
+  #historyPage .hist-legend { flex-wrap: wrap; margin-top: 8px; }
+  #historyPage .hl-x, #historyPage .hl-y { fill: var(--ink-2); font-size: 12px; }
+  .history-day-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; align-items: start; }
+  #historyPage .hist-card { margin: 0; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); min-width: 0; }
+  #historyPage .hist-h { flex-wrap: nowrap; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  #historyPage .hist-date { display: block; font-size: 16px; margin: 0; }
+  #historyPage .hist-now { display: inline-block; margin-top: 5px; font-family: var(--font-sans); font-size: 10px; letter-spacing: 0; text-transform: none; padding: 2px 7px; }
+  #historyPage .hist-open { min-height: 44px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--ink); padding: 8px 12px; font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; }
+  .history-day-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin: 18px 0 14px; }
+  .history-day-metrics dt { font-size: 11px; color: var(--ink-2); margin-bottom: 4px; }
+  .history-day-metrics dd { font-size: 22px; font-weight: 600; line-height: 1.2; margin: 0; letter-spacing: -.025em; font-variant-numeric: tabular-nums; }
+  .history-day-metrics dd small { font-size: 12px; font-weight: 400; letter-spacing: 0; }
+  .history-day-metrics > div:first-child dd { color: var(--c-bcaa); }
+  .history-progress { height: 5px; overflow: hidden; background: var(--surface-2); border-radius: 8px; }
+  .history-progress span { display: block; height: 100%; background: var(--c-bcaa); border-radius: inherit; }
+  .history-goal-note { color: var(--ink-2); font-size: 11px; margin: 6px 0 0; }
+  .history-food-details { margin-top: 14px; border-top: 1px solid var(--line); }
+  .history-food-details summary { padding: 12px 0 0; min-height: 44px; color: var(--ink-2); font-size: 12px; cursor: pointer; }
+  .history-food-details ul { list-style: none; margin: 4px 0 8px; padding: 0; }
+  .history-food-details li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--line); }
+  .history-food-details li span:first-child { overflow-wrap: anywhere; }
+  .history-food-details li span:last-child { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .history-food-details p, #historyPage .hist-note { color: var(--ink-2); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+  .history-export-notes { margin: 22px 0 8px; color: var(--ink-2); font-size: 12px; line-height: 1.6; }
+  .history-export-notes summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
+  .history-export-notes p { margin: 0 0 12px; max-width: 75ch; }
+  .history-empty { padding: 32px 24px; border: 1px dashed var(--line-strong); border-radius: 16px; text-align: center; margin-bottom: 24px; }
+  .history-empty h2 { font-size: 20px; margin: 0 0 8px; }
+  .history-empty p { color: var(--ink-2); font-size: 14px; margin: 0 0 18px; }
+  #historyPage button:focus-visible, #historyPage select:focus-visible, #historyPage summary:focus-visible, .history-chart-scroll:focus-visible { outline: 2px solid var(--c-bcaa); outline-offset: 3px; }
+  @media (max-width: 700px) {
+    #historyPage .history-heading { align-items: center; gap: 12px; margin: 20px 0; }
+    #historyPage .history-heading h1 { font-size: 28px; }
+    #histCsv { width: 44px; padding: 10px; }
+    #histCsv .history-export-text { display: none; }
+    .history-export { min-height: 42px; }
+    .history-overview { gap: 7px; margin-bottom: 16px; }
+    .history-stat { padding: 13px 10px; border-radius: 12px; }
+    .history-stat dt { font-size: 11px; margin-bottom: 7px; }
+    .history-stat dd { font-size: 25px; }
+    .history-stat dd small { font-size: 12px; }
+    .history-stat p { font-size: 10px; }
+    .history-trends { padding: 16px 12px; margin-bottom: 24px; }
+    .history-section-head { gap: 10px; }
+    .history-section-head h2 { font-size: 17px; }
+    .history-metric > span { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+    .history-metric select { max-width: 146px; font-size: 13px; }
+    .history-day-grid { grid-template-columns: 1fr; gap: 12px; }
+    #historyPage .hist-card { padding: 16px; }
+    .history-day-metrics dd { font-size: 23px; }
+  }
+
   /* compare picker page */
   .pick-block { background: var(--surface-2); border-radius: 3px; padding: 18px; margin-top: 18px; }
   .pick-block h3 { font-family: var(--font-serif); font-weight: 600; font-size: 20px; margin: 0 0 4px; }
@@ -3278,105 +3372,104 @@ function renderHistoryPage() {
   const page = document.getElementById("historyPage");
   const log = loadLog();
   const target = getThriveG(getWeight());
-  const fmt = iso => { const d = new Date(iso + "T12:00:00"); return isNaN(d) ? iso : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }); };
-  const fmtShort = iso => { const d = new Date(iso + "T12:00:00"); return isNaN(d) ? iso : d.toLocaleDateString(undefined, { weekday: "short" }); };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const dateFormat = (iso, options) => { const d = new Date(iso + "T12:00:00"); return isNaN(d) ? iso : d.toLocaleDateString(undefined, options); };
+  const fmt = iso => dateFormat(iso, { weekday: "short", day: "numeric", month: "short" });
+  const shortDate = iso => dateFormat(iso, { day: "numeric", month: "short" });
   const days = log.days.map((d, i) => ({ d, i, ...dayIntake(d) }));
   const logged = days.filter(x => x.d.entries.length);
-  const chrono = days.slice().sort((a, b) => (a.d.date < b.d.date ? -1 : a.d.date > b.d.date ? 1 : 0));
+  const chrono = days.slice().sort((a, b) => a.d.date.localeCompare(b.d.date));
+  const chartDays = chrono.filter(x => x.d.entries.length);
   const newestFirst = chrono.slice().reverse();
   const avg = logged.length ? logged.reduce((s, x) => s + x.prot, 0) / logged.length : 0;
-  const dayTarget = x => x.d.t || target; // each day scores against the target it was logged with
+  const dayTarget = x => x.d.t || target;
   const hit = logged.filter(x => x.prot >= dayTarget(x)).length;
-  const summary = logged.length
-    ? `${logged.length} day${logged.length === 1 ? "" : "s"} logged · average <b>${avg.toFixed(0)} g protein</b> a day · target of ${target.toFixed(0)} g reached on ${hit} of ${logged.length}`
-    : "Nothing logged yet. Add foods to today and it appears here.";
+  const metrics = [["prot", "Protein"], ["kcal", "Calories"], ["carb", "Carbs"], ["fat", "Fat"], ["macros", "All macros"]];
   page.innerHTML = `
-    <h1 id="historyTitle" tabindex="-1">Data over time</h1>
-    <p class="sub">The last ${WEEK_DAYS} days you logged, synced to your account. Open any day to view or edit it.</p>
-    <p class="hist-summary">${summary}${logged.length ? ` <button type="button" class="csv-btn" id="histCsv" title="Every food, every day, with grams, macros, amino acids, vitamins and minerals, for Excel or any spreadsheet">Download CSV</button>` : ""}</p>
-    ${logged.length ? '<p class="hist-chart-note">CSV includes vitamins and minerals for each food and day total. Units are in the column headings (ug = micrograms); status columns flag partial, trace or unknown amounts. Blank amounts mean no numeric data, not zero.</p>' : ""}
-    ${logged.length ? `<div class="hist-metrics" role="group" aria-label="Chart metric">
-      ${[["prot", "Protein"], ["kcal", "Calories"], ["carb", "Carbs"], ["fat", "Fat"], ["macros", "Macros together"]].map(([k, l]) =>
-        `<button type="button" class="hm-chip" data-m="${k}" aria-pressed="${_histMetric === k}">${l}</button>`).join("")}
+    <div class="history-heading">
+      <div><h1 id="historyTitle" tabindex="-1">Data over time</h1><p class="sub">Your last ${WEEK_DAYS} saved days, at a glance.</p></div>
+      ${logged.length ? `<button type="button" class="history-export" id="histCsv" aria-label="Download CSV" title="Download CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/></svg><span class="history-export-text">Download CSV</span></button>` : ""}
     </div>
-    <div id="histChart"></div>` : ""}
-    ${newestFirst.map(x => `<div class="hist-card">
-      <div class="hist-h">
-        <span class="hist-date">${fmt(x.d.date)}</span>
-        ${x.i === log.active ? '<span class="hist-now">editing now</span>' : ""}
-        <button type="button" class="v2-share-sec hist-open" data-i="${x.i}">Open this day</button>
-      </div>
-      ${x.d.entries.length ? `<p class="hist-stats"><b>${x.prot.toFixed(0)} g protein</b> · ${Math.round(x.prot / dayTarget(x) * 100)}% of target${x.kcal != null ? ` · ${Math.round(x.kcal)} kcal` : ""} · ${x.balance===null ? "amino acid balance unavailable" : "balance "+Math.round(x.balance * 100)+"%"} · ${x.d.entries.length} source${x.d.entries.length === 1 ? "" : "s"}</p>
-      <p class="hist-foods">${x.d.entries.slice(0, 4).map(e => `${e.g} g ${e.name.split(",")[0]}`).join(" · ")}${x.d.entries.length > 4 ? ` · +${x.d.entries.length - 4} more` : ""}</p>` : '<p class="hist-stats">Nothing logged this day.</p>'}
-      ${x.d.note ? `<p class="hist-note">"${x.d.note}"</p>` : ""}
-    </div>`).join("")}`;
-  page.querySelectorAll(".hist-open").forEach(b => b.addEventListener("click", () => {
-    if (!overlay.hidden) closeDetail(false); // a sheet opened by a background auth event must not swallow the navigation
-    const l = loadLog(); l.active = +b.dataset.i; saveLog(l);
+    ${logged.length ? `
+    <dl class="history-overview" aria-label="Your overview">
+      <div class="history-stat"><dt>Avg. protein</dt><dd>${avg.toFixed(0)} <small>g</small></dd><p>per logged day</p></div>
+      <div class="history-stat"><dt>Days logged</dt><dd>${logged.length}</dd><p>with food entries</p></div>
+      <div class="history-stat"><dt>Targets met</dt><dd>${hit}<small> / ${logged.length}</small></dd><p>daily protein goal</p></div>
+    </dl>
+    <section class="history-trends" aria-labelledby="histTrendsTitle">
+      <div class="history-section-head"><div><h2 id="histTrendsTitle">Your trends</h2><p>Logged days, oldest to newest</p></div>
+        <label class="history-metric"><span>Metric</span><select id="histMetric">${metrics.map(([k,l])=>`<option value="${k}"${_histMetric===k?' selected':''}>${l}</option>`).join("")}</select></label>
+      </div><div id="histChart"></div>
+    </section>` : `<div class="history-empty"><h2>Your progress starts with a meal</h2><p>Add food to your diary to see your daily totals and trends here.</p><button type="button" class="history-export" id="historyStart">Open food diary</button></div>`}
+    <div class="history-section-head"><div><h2>Your days</h2><p>Newest first · open a day to view or edit</p></div></div>
+    <div class="history-day-grid">${newestFirst.map(x => {
+      const percent = Math.round(x.prot / dayTarget(x) * 100);
+      return `<article class="hist-card">
+        <div class="hist-h"><div><h3 class="hist-date">${esc(fmt(x.d.date))}</h3>${x.i===log.active?'<span class="hist-now">Selected day</span>':""}</div>
+          <button type="button" class="hist-open" data-i="${x.i}" aria-label="Open ${esc(fmt(x.d.date))}">Open day <span aria-hidden="true">↗</span></button></div>
+        ${x.d.entries.length ? `
+          <dl class="history-day-metrics"><div><dt>Protein</dt><dd>${x.prot.toFixed(0)} <small>g</small></dd></div><div><dt>Calories</dt><dd>${x.kcal===null?'—':Math.round(x.kcal)} <small>kcal</small></dd></div><div><dt>Protein goal</dt><dd>${percent}<small>%</small></dd></div></dl>
+          <div class="history-progress" aria-hidden="true"><span style="width:${Math.max(0,Math.min(100,x.prot/dayTarget(x)*100))}%"></span></div>
+          <p class="history-goal-note">${x.prot>=dayTarget(x)?'Goal reached':'Working towards goal'} · ${dayTarget(x).toFixed(0)} g protein target</p>
+          <details class="history-food-details"><summary>${x.d.entries.length} food entr${x.d.entries.length===1?'y':'ies'} · view details</summary>
+            <p>Carbs: ${x.carb===null?'unavailable':x.carb.toFixed(0)+' g'} · Fat: ${x.fat===null?'unavailable':x.fat.toFixed(0)+' g'}<br>Amino acid balance: ${x.balance===null?'unavailable':Math.round(x.balance*100)+'%'}</p>
+            <ul>${x.d.entries.map(e=>`<li><span>${esc(e.name)}</span><span>${esc(e.g)} g</span></li>`).join("")}</ul>
+          </details>` : '<p class="hist-stats">No food logged yet.</p>'}
+        ${x.d.note ? `<p class="hist-note">${esc(x.d.note)}</p>` : ""}
+      </article>`;
+    }).join("")}</div>
+    ${logged.length ? `<details class="history-export-notes"><summary>About your data &amp; CSV download</summary><p>The overview uses days with food entries. Each day is compared with its saved protein target, or your current target if none was saved. Trends show one point per logged day; gaps between dates are not empty days.</p><p>CSV includes each food and day total, with macros, amino acids, vitamins and minerals. Units appear in the column headings (ug = micrograms). Status columns flag partial, trace or unknown nutrient amounts; blank amounts mean no numeric data, not zero.</p></details>` : ""}`;
+  function openDay(index) {
+    if (!overlay.hidden) closeDetail(false);
+    const l = loadLog(); l.active = index; saveLog(l);
     if (window.__v2Render) window.__v2Render();
     showView("day");
-  }));
-  /* one chart, five views: bars per metric, or the three macros as lines */
+  }
+  page.querySelectorAll(".hist-open").forEach(b => b.addEventListener("click", () => openDay(+b.dataset.i)));
+  page.querySelector("#historyStart")?.addEventListener("click", () => navigateApp("diary"));
   function chartHTML() {
     const m = _histMetric;
     if (m === "macros") {
-      const series = [["prot", "Protein", "var(--c-bcaa)"], ["carb", "Carbs", "var(--c-limit)"], ["fat", "Fat", "var(--ink-3)"]];
-      const n = chrono.length;
-      const rawMax = Math.max(1, ...series.flatMap(([k]) => chrono.map(x => x[k] ?? 0)));
-      /* axis runs to a round number just above the data, so the gridline labels read cleanly */
-      const step = niceStep(rawMax, 4);
-      const maxV = Math.ceil(rawMax / step) * step;
-      const W = 560, H = 200, padL = 46, padR = 12, padT = 12, padB = 26;
-      const X = i => n === 1 ? padL + (W - padL - padR) / 2 : padL + i * (W - padL - padR) / (n - 1);
-      const Y = v => padT + (H - padT - padB) * (1 - v / maxV);
+      const series = [["prot", "Protein", "var(--c-bcaa)"], ["carb", "Carbs", "var(--c-limit)"], ["fat", "Fat", "var(--ink-2)"]];
+      const n = chartDays.length;
+      const rawMax = Math.max(1, ...series.flatMap(([k]) => chartDays.map(x => x[k] ?? 0)));
+      const step = niceStep(rawMax, 4), maxV = Math.ceil(rawMax / step) * step;
+      const W = Math.max(360,n*64), H = 230, padL = 42, padR = 24, padT = 16, padB = 32;
+      const X = i => n===1 ? (padL+W-padR)/2 : padL+i*(W-padL-padR)/(n-1);
+      const Y = v => padT+(H-padT-padB)*(1-v/maxV);
       let grid = "";
-      for (let g = 0; g <= maxV + step * 0.01; g += step) {
-        grid += `<line x1="${padL}" x2="${W - padR}" y1="${Y(g).toFixed(1)}" y2="${Y(g).toFixed(1)}" stroke="currentColor" stroke-opacity="${g === 0 ? 0.3 : 0.12}"/>
-          <text x="${padL - 7}" y="${(Y(g) + 3.5).toFixed(1)}" text-anchor="end" class="hl-y">${g}${g === maxV ? " g" : ""}</text>`;
-      }
-      const labelEvery = Math.max(1, Math.ceil(n / 8));
-      const xLabel = (x, i) => (i % labelEvery === 0 || i === n - 1) ? (n > 12 ? fmt(x.d.date).replace(/^\w+,?\s*/, "") : fmtShort(x.d.date)) : "";
-      const lines = series.map(([k, l, c]) =>
-        `<polyline points="${chrono.map((x, i) => `${X(i).toFixed(1)},${Y(x[k] ?? 0).toFixed(1)}`).join(" ")}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/>` +
-        chrono.map((x, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(x[k] ?? 0).toFixed(1)}" r="${n > 12 ? 2.5 : 3.5}" fill="${c}"><title>${l} ${(x[k] ?? 0).toFixed(0)} g · ${fmt(x.d.date)}</title></circle>`).join("")
-      ).join("");
-      return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Protein, carbs and fat per day as lines, grams on the vertical axis">
-        ${grid}
-        ${lines}
-        ${chrono.map((x, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="hl-x">${xLabel(x, i)}</text>`).join("")}
-      </svg>
-      <p class="hist-legend">${series.map(([k, l, c]) => `<span><span class="dot" style="background:${c}"></span>${l}</span>`).join("")}</p>
-      <p class="hist-chart-note">Grams per day. A food with unknown macros counts as 0 toward carbs and fat.</p>`;
+      for(let g=0;g<=maxV+step*0.01;g+=step) grid+=`<line x1="${padL}" x2="${W-padR}" y1="${Y(g)}" y2="${Y(g)}" stroke="currentColor" stroke-opacity=".12"/><text x="${padL-8}" y="${Y(g)+4}" text-anchor="end" class="hl-y">${g}</text>`;
+      const lines = series.map(([k,label,color]) => {
+        // Split lines at unknown values; missing data is not a measured zero.
+        const segments = []; let points = [];
+        chartDays.forEach((x,i)=> { if(x[k]===null) { if(points.length) segments.push(points); points=[]; } else points.push(`${X(i)},${Y(x[k])}`); });
+        if(points.length) segments.push(points);
+        return segments.map(p=>`<polyline points="${p.join(' ')}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>`).join('')+chartDays.map((x,i)=>x[k]===null?'':`<circle cx="${X(i)}" cy="${Y(x[k])}" r="3.5" fill="${color}"><title>${label}: ${x[k].toFixed(0)} g · ${esc(fmt(x.d.date))}</title></circle>`).join('');
+      }).join('');
+      return `<div class="history-chart-scroll" tabindex="0" role="region" aria-label="Macro trend chart, scroll for all dates"><svg viewBox="0 0 ${W} ${H}" style="display:block;width:100%;min-width:${W}px" role="img" aria-label="Protein, carbs and fat in grams per logged day">${grid}${lines}${chartDays.map((x,i)=>`<text x="${X(i)}" y="${H-8}" text-anchor="middle" class="hl-x">${esc(shortDate(x.d.date))}</text>`).join('')}</svg></div>
+        <p class="hist-legend">${series.map(([,l,c])=>`<span><span class="dot" style="background:${c}"></span>${l}</span>`).join('')}</p><p class="hist-chart-note">Grams per logged day. Scroll for all dates. Totals use available data; some foods may have missing macros.</p>`;
     }
-    const label = { prot: "Protein per day, g", kcal: "Calories per day", carb: "Carbs per day, g", fat: "Fat per day, g" }[m];
-    const maxV = Math.max(m === "prot" ? target : 1, ...chrono.map(x => x[m] ?? 0), 1);
-    const px2 = v => Math.round(v / maxV * 120);
-    const dense = chrono.length > 12; /* a month of bars: drop the per-bar numbers, label every few days */
-    const every = Math.max(1, Math.ceil(chrono.length / 8));
-    return `<div class="hist-chart${dense ? " dense" : ""}">
-      ${m === "prot" ? `<span class="hist-target" style="bottom:${22 + px2(target)}px" title="Your ${target.toFixed(0)} g daily target"></span>` : ""}
-      ${chrono.map((x, i) => { const v = x[m] ?? 0; return `<div class="hc-col" title="${v.toFixed(0)} · ${fmt(x.d.date)}">
-        <span class="hc-val">${!dense && v > 0 ? v.toFixed(0) : ""}</span>
-        <span class="hc-bar${m === "prot" && v >= dayTarget(x) ? " good" : ""}${m !== "prot" ? " neutral" : ""}" style="height:${Math.max(px2(v), 2)}px"></span>
-        <span class="hc-day">${dense ? (i % every === 0 || i === chrono.length - 1 ? +x.d.date.slice(8) : "") : fmtShort(x.d.date)}</span></div>`; }).join("")}
-    </div>
-    <p class="hist-chart-note">${label}.${m === "prot" ? " Green bars reached your target; the dashed line is the target itself." : ""}</p>`;
+    const unit = m==='kcal'?'kcal':'g', label = metrics.find(([k])=>k===m)[1];
+    const maxV = Math.max(m==='prot'?target:1,...chartDays.map(x=>x[m]??0),1);
+    const height = v => v/maxV*150;
+    return `<div class="history-chart-frame"><div class="history-scale" aria-hidden="true"><span>${Math.round(maxV)}</span><span>${Math.round(maxV/2)}</span><span>0</span></div><div class="history-chart-scroll" tabindex="0" role="region" aria-label="${label} chart, scroll for all dates"><div class="history-bars" style="min-width:${chartDays.length*56}px">
+      ${m==='prot'?`<span class="history-goal-line" style="bottom:${39+height(target)}px" aria-hidden="true"></span>`:''}
+      ${chartDays.map(x=>{const v=x[m];return `<button type="button" class="history-bar-day" data-i="${x.i}" aria-label="${esc(fmt(x.d.date))}: ${v===null?'unavailable':v.toFixed(0)+' '+unit} ${label.toLowerCase()}. Open day."><span class="history-bar-value">${v===null?'—':v.toFixed(0)}</span><span class="history-bar${m==='prot'&&v>=dayTarget(x)?' is-met':''}" style="height:${v===null?0:Math.max(height(v),v>0?2:0)}px"></span><span class="history-bar-date">${esc(shortDate(x.d.date))}</span></button>`;}).join('')}
+    </div></div></div><p class="history-chart-caption"><span>${label} · ${unit} per day</span>${m==='prot'?`<span class="goal-key">Current target: ${target.toFixed(0)} g</span><span class="bar-key">Daily target met</span>`:''}</p><p class="hist-chart-note">Tap a bar to open that day.${chartDays.length>5?' Scroll for all dates.':''}${m!=='prot'?' Totals use available food data.':''}</p>`;
   }
   const chartEl = page.querySelector("#histChart");
-  if (chartEl) {
+  function renderChart() {
     chartEl.innerHTML = chartHTML();
-    page.querySelectorAll(".hm-chip").forEach(b => b.addEventListener("click", () => {
-      _histMetric = b.dataset.m;
-      page.querySelectorAll(".hm-chip").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-      chartEl.innerHTML = chartHTML();
-    }));
+    chartEl.querySelectorAll('.history-bar-day').forEach(b=>b.addEventListener('click',()=>openDay(+b.dataset.i)));
+    const scroller=chartEl.querySelector('.history-chart-scroll');
+    if(scroller) scroller.scrollLeft=scroller.scrollWidth;
   }
-  /* full export: every food of every logged day, plus a totals row per day */
-  const csvBtn = page.querySelector("#histCsv");
-  if (csvBtn) csvBtn.addEventListener("click", () => {
-    downloadCSV("aminodata-diary-" + todayISO() + ".csv", historyCSV(chrono));
-  });
-  page.querySelector("#historyTitle").focus();
+  if(chartEl) {
+    renderChart();
+    page.querySelector('#histMetric').addEventListener('change',e=>{_histMetric=e.target.value;renderChart();});
+  }
+  page.querySelector('#histCsv')?.addEventListener('click',()=>downloadCSV('aminodata-diary-'+todayISO()+'.csv',historyCSV(chrono)));
+  page.querySelector('#historyTitle').focus();
 }
 
 /* ================= saved meals: the library page ================= */
