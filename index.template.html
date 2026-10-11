@@ -3222,6 +3222,44 @@ function dayIntake(d) {
 }
 let _histMetric = "prot";
 let _mealsAddOpen = null;
+function historyCSV(chrono) {
+  const aaKeys = AA_META.map(x => x[0]);
+  const nutrients = Nutrition.definitions.filter(d => d.group === "Vitamins" || d.group === "Minerals");
+  // Numeric amounts stay spreadsheet-friendly; status columns distinguish partial,
+  // trace and unknown data from a reported zero. Keep analytical forms separate.
+  const nutrientCells = entries => {
+    const totals = nutrients.map(d => Nutrition.total(entries, foodByName, d.key));
+    return [
+      ...totals.map(t => t.value === null ? "" : Number(t.value.toPrecision(12))),
+      ...totals.map(t => t.value === null
+        ? (t.trace ? "trace" + (t.missing ? " + unknown" : "") : "unknown")
+        : (t.missing ? "partial" : "reported") + (t.trace ? " + trace" : ""))
+    ];
+  };
+  const escC = v => { v = String(v == null ? "" : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const lines = [["date", "meal", "food", "grams", "protein_g", "kcal", "carb_g", "fat_g", ...aaKeys.map(k => k + "_g"),
+    ...nutrients.map(d => d.key + "_" + (d.unit === "µg" ? "ug" : d.unit)),
+    ...nutrients.map(d => d.key + "_status")].join(",")];
+  chrono.forEach(x => {
+    x.d.entries.forEach(e => {
+      const f = foodByName(e.name);
+      if (!f) return;
+      const g = e.g;
+      lines.push([x.d.date, MEAL_LABEL[e.meal] || e.meal, f.name, g,
+        (f.protein_g_per_100g * g / 100).toFixed(2),
+        f.kcal != null ? (f.kcal * g / 100).toFixed(1) : "",
+        f.carb != null ? (f.carb * g / 100).toFixed(2) : "",
+        f.fat != null ? (f.fat * g / 100).toFixed(2) : "",
+        ...aaKeys.map(k => Nutrition.hasAminoAcids(f) ? ((f.aa[k] || 0) * g / 100).toFixed(3) : ""),
+        ...nutrientCells([e])
+      ].map(escC).join(","));
+    });
+    if (x.d.entries.length) lines.push([x.d.date, "", "DAY TOTAL", "", x.prot.toFixed(1),
+      x.kcal != null ? x.kcal.toFixed(0) : "", x.carb != null ? x.carb.toFixed(1) : "", x.fat != null ? x.fat.toFixed(1) : "",
+      ...aaKeys.map(() => ""), ...nutrientCells(x.d.entries)].map(escC).join(","));
+  });
+  return lines.join("\n");
+}
 function renderHistoryPage() {
   const page = document.getElementById("historyPage");
   const log = loadLog();
@@ -3241,7 +3279,8 @@ function renderHistoryPage() {
   page.innerHTML = `
     <h1 id="historyTitle" tabindex="-1">Data over time</h1>
     <p class="sub">The last ${WEEK_DAYS} days you logged, synced to your account. Open any day to view or edit it.</p>
-    <p class="hist-summary">${summary}${logged.length ? ` <button type="button" class="csv-btn" id="histCsv" title="Every food, every day, with grams, macros and amino acids, for Excel or any spreadsheet">Download CSV</button>` : ""}</p>
+    <p class="hist-summary">${summary}${logged.length ? ` <button type="button" class="csv-btn" id="histCsv" title="Every food, every day, with grams, macros, amino acids, vitamins and minerals, for Excel or any spreadsheet">Download CSV</button>` : ""}</p>
+    ${logged.length ? '<p class="hist-chart-note">CSV includes vitamins and minerals for each food and day total. Units are in the column headings (ug = micrograms); status columns flag partial, trace or unknown amounts. Blank amounts mean no numeric data, not zero.</p>' : ""}
     ${logged.length ? `<div class="hist-metrics" role="group" aria-label="Chart metric">
       ${[["prot", "Protein"], ["kcal", "Calories"], ["carb", "Carbs"], ["fat", "Fat"], ["macros", "Macros together"]].map(([k, l]) =>
         `<button type="button" class="hm-chip" data-m="${k}" aria-pressed="${_histMetric === k}">${l}</button>`).join("")}
@@ -3321,27 +3360,7 @@ function renderHistoryPage() {
   /* full export: every food of every logged day, plus a totals row per day */
   const csvBtn = page.querySelector("#histCsv");
   if (csvBtn) csvBtn.addEventListener("click", () => {
-    const aaKeys = AA_META.map(x => x[0]);
-    const escC = v => { v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-    const lines = [["date", "meal", "food", "grams", "protein_g", "kcal", "carb_g", "fat_g", ...aaKeys.map(k => k + "_g")].join(",")];
-    chrono.forEach(x => {
-      x.d.entries.forEach(e => {
-        const f = foodByName(e.name);
-        if (!f) return;
-        const g = e.g;
-        lines.push([x.d.date, MEAL_LABEL[e.meal] || e.meal, f.name, g,
-          (f.protein_g_per_100g * g / 100).toFixed(2),
-          f.kcal != null ? (f.kcal * g / 100).toFixed(1) : "",
-          f.carb != null ? (f.carb * g / 100).toFixed(2) : "",
-          f.fat != null ? (f.fat * g / 100).toFixed(2) : "",
-          ...aaKeys.map(k => Nutrition.hasAminoAcids(f) ? ((f.aa[k] || 0) * g / 100).toFixed(3) : "")
-        ].map(escC).join(","));
-      });
-      if (x.d.entries.length) lines.push([x.d.date, "", "DAY TOTAL", "", x.prot.toFixed(1),
-        x.kcal != null ? x.kcal.toFixed(0) : "", x.carb != null ? x.carb.toFixed(1) : "", x.fat != null ? x.fat.toFixed(1) : "",
-        ...aaKeys.map(() => "")].map(escC).join(","));
-    });
-    downloadCSV("aminodata-diary-" + todayISO() + ".csv", lines.join("\n"));
+    downloadCSV("aminodata-diary-" + todayISO() + ".csv", historyCSV(chrono));
   });
   page.querySelector("#historyTitle").focus();
 }
