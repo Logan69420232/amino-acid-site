@@ -520,8 +520,12 @@
   .v2-nutrients { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
   .v2-nutrient-panel { min-width: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .v2-nutrient-heading { background: var(--surface-2); padding: 14px 16px; }
-  .v2-nutrient-heading h3 { font-size: 17px; margin: 0 0 4px; }
-  .v2-nutrient-heading p { font-size: 12.5px; color: var(--ink-3); margin: 0; }
+  summary.v2-nutrient-heading { cursor: pointer; font-size: 17px; font-weight: 700; min-height: 48px; }
+  .v2-nutrient-heading span { display: block; font-size: 12.5px; font-weight: 400; color: var(--ink-3); margin-top: 4px; }
+  .diary-amino-panel { margin: 24px 0; }
+  .diary-amino-content { padding: 0 16px 16px; }
+  details[data-diary-section] > summary:focus-visible { outline: 3px solid var(--c-bcaa); outline-offset: -3px; }
+  @media(max-width:560px) { .diary-amino-content { padding: 0 10px 10px; } }
   .v2-nutrient-panel .covbars { max-width: none; padding: 12px 16px 16px; }
   .v2-nutrient-panel .covrow { grid-template-columns: 140px minmax(0, 1fr) 48px; gap: 8px; min-height: 29px; font-size: 13px; }
   .v2-nutrient-panel .aa-name { text-align: left; }
@@ -2384,12 +2388,14 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !overlay.h
 
 __INJECT_ACCOUNT_STORAGE__
 __INJECT_DIARY_SYNC__
+__INJECT_DIARY_PANELS__
 const browserStore = (() => {
   try { localStorage.setItem("aa_test", "1"); localStorage.removeItem("aa_test"); return localStorage; }
   catch (e) { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; }
 })();
 // Old unscoped data has no reliable owner. Preserve it, but never import it into an account automatically.
 const store = AccountStorage.create(browserStore);
+const diaryPanels = DiaryPanels.create(browserStore);
 __INJECT_INTAKE_UI__
 function getWeight() { return +(store.getItem("aa_weight") || 75); }
 function getThriveG(weightKg) {
@@ -4051,14 +4057,14 @@ function groupedNeedRows(totals, weight, aaScale, panels = false) {
     <div class="cov-set ess">${["histidine", "lysine", "saa", "aaa", "threonine", "tryptophan"].map(rowFor).join("")}</div>`;
   const nonessential = `<div class="cov-set non">${nonKeys.map(k => covRowAmt(AA_META.find(m => m[0] === k)[1], totals[k], maxNon, k)).join("")}</div>`;
   if (panels) return `<div class="v2-nutrients">
-    <section class="v2-nutrient-panel" aria-labelledby="essentialHeading">
-      <div class="v2-nutrient-heading"><h3 id="essentialHeading">Essential amino acids</h3><p>Daily intake · percentage of your target</p></div>
+    <details class="v2-nutrient-panel" data-diary-section="essential-amino-acids" open>
+      <summary class="v2-nutrient-heading">Essential amino acids<span>Daily intake · percentage of your target</span></summary>
       <div class="covbars">${essential}</div>
-    </section>
-    <section class="v2-nutrient-panel" aria-labelledby="nonessentialHeading">
-      <div class="v2-nutrient-heading"><h3 id="nonessentialHeading">Non-essential amino acids</h3><p>Amount eaten in grams · your body makes these, so no daily target</p></div>
+    </details>
+    <details class="v2-nutrient-panel" data-diary-section="nonessential-amino-acids" open>
+      <summary class="v2-nutrient-heading">Non-essential amino acids<span>Amount eaten in grams · no daily target</span></summary>
       <div class="covbars">${nonessential}</div>
-    </section>
+    </details>
   </div>`;
   return essential + `<div class="cov-group">Non-essential <span>your body makes these; no daily requirement, so this is the amount eaten</span></div>` + nonessential;
 }
@@ -4748,6 +4754,7 @@ window.addEventListener("popstate", () => {
     }
   }
   function render() {
+    diaryPanels.capture(result);
     renderDayChrome();
     const day = loadDay();
     // Keep the single search form and its listeners when rebuilding the meal cards.
@@ -4994,14 +5001,17 @@ window.addEventListener("popstate", () => {
       </dialog>
       ${nutritionDashboard(day)}
       <div data-aa-only>
-      <div class="v2-sec">Your amino acids · day total</div>
+      <details class="nutrition-panel diary-amino-panel" data-diary-section="amino-acids" open>
+      <summary>Your amino acids · day total</summary><div class="diary-amino-content">
           <p class="cov-legend"><span class="lgt base"></span> baseline requirement, WHO/FAO 2007 at your weight · <span class="lgt tgt"></span> your target, baseline scaled ×${aaScale.toFixed(1)} (our assumption) · <span class="lgt band"></span> indicative ±10% data variation</p>
       ${eaaRows}
-      <details class="v2-method">
+      <details class="v2-method" data-diary-section="amino-method">
         <summary>How to read these numbers</summary>
           <p class="v2-note">The faint line marks the published baseline requirement (WHO/FAO 2007 at your body weight); the dark line is your target, that baseline scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein goal. No official amino acid figures exist for intakes above the baseline, so the proportional scaling is our assumption, shown here rather than hidden. Percentages are against your target; bars stay amber until they reach it. The grey band at each bar's tip is an indicative ±10% allowance for variation in food composition data, not a measured confidence interval: lab analyses of the same food vary with breed, feed, season and processing. To be sure a target is truly met, get the whole band past the dark line, which in practice means aiming about 10% over it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar at the top of your results is the one to watch for quantity; the amino acid bars here tell you whether that protein was the right kind.</p>
       </details>
+      </div></details>
       ${gapsHtml}</div>`;
+    diaryPanels.bind(result);
 
     if(!aaComplete) {
       result.querySelectorAll('[data-aa-only]').forEach(e=>e.hidden=true);
