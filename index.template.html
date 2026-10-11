@@ -1681,6 +1681,7 @@
 /* ================= DATA ================= */
 __INJECT_INTAKE_TARGETS__
 __INJECT_NUTRITION__
+__INJECT_RECOMMENDATIONS__
 const ATLAS = __INJECT_DATA__;
 const DIARY_FOODS = [...ATLAS.foods, ...(ATLAS.nutritionFoods || [])];
 const FOOD_BY_NAME = new Map(DIARY_FOODS.map(f=>[f.name,f]));
@@ -1917,74 +1918,9 @@ CAT_FILTERS.forEach(([id, label]) => {
 const solidSource = f => f.protein_g_per_100g >= 8 && !SEARCH_DEMOTE_GROUPS.test(f.source || "") && !SEARCH_BRAND.test(f.name);
 const balanced = f => f.metrics.score >= 0.6;
 const PLANT_CATS = ["legume", "soy", "grain", "nuts_seeds"];
-/* Suggest up to three real foods whose typical serving best closes the day's gaps */
+/* Shared dietary filter for database browsing. */
 const ANIMAL_WORDS = /\b(whey|casein|collagen|gelatin|egg|eggs|milk|cheese|yogurt|yoghurt|butter|cream|beef|veal|pork|ham|bacon|chicken|turkey|duck|goose|hen|quail|pheasant|grouse|lamb|mutton|goat|venison|deer|elk|moose|caribou|reindeer|antelope|bison|buffalo|bear|rabbit|squirrel|muskrat|beaver|seal|whale|walrus|game|fish|salmon|tuna|cod|halibut|herring|trout|smelt|roe|caviar|shrimp|prawn|crab|lobster|oyster|clam|mussel|squid|octopus|anchov|sardine|honey|bone|broth|lard|tallow|blubber|meat|sausage|frankfurter|salami|liver|kidney|heart|tongue|tripe|steak|roast|fillet|filet|breast|thigh|drumstick|wing|loin|ribs?|chop|chops|brisket|jerky)\b/i;
 const isVeganFood = f => !["meat", "seafood", "dairy", "egg"].includes(f.category) && !ANIMAL_WORDS.test(f.name);
-function suggestFoods(day, gaps, protGap, protRoom, vegan) {
-  const have = new Set(day.map(e => e.name));
-  const familiar=new Set(loadLog().days.flatMap(d=>d.entries.map(e=>e.name)));
-  const avoided=new Set(uiAvoidedFoods());
-  const heads = new Set();
-  const haveCats = new Set(day.map(e => (foodByName(e.name) || {}).category));
-  const totalGap = gaps.reduce((s, g) => s + g.gap, 0) || 1;
-  const cands = [];
-  for (const f of ATLAS.foods) {
-    if (!solidSource(f) || avoided.has(f.name)) continue;
-    if (vegan && !isVeganFood(f)) continue;
-    if (["meat", "seafood", "egg"].includes(f.category) && /\braw\b/i.test(f.name)) continue;          // never raw meat, fish or egg
-    if (f.category !== "nuts_seeds" && /\braw\b/i.test(f.name) && f.tier !== "featured") continue;   // suggest what people actually eat: cooked forms
-    if (/\b(flour|meal|bran|germ|starch|extract|frozen|unprepared)\b/i.test(f.name)) continue;
-    if (/^Spices?,|\(Spices and Herbs\)|cottonseed|sisymbrium|papad|cracker|chips|crisps|snack/i.test(f.name + " " + (f.source || ""))) continue;
-    if (f.tier !== "featured" && /\b(dry|dried|dehydrated|powder|jerky|variety meats|by-products|pickled)\b/i.test(f.name)) continue;
-    // how rich is this food, per gram of protein, in each amino acid we are short of? (1.0 = the WHO pattern)
-    const contrib = gaps.map(g => {
-      const per100 = g.keys.reduce((t2, k) => t2 + f.aa[k], 0);
-      return { label: g.label, rid: g.rid, keys: g.keys, per100, gap: g.gap, rich: (per100 / f.protein_g_per_100g * 100) / (WHO[g.rid] / 10) };
-    });
-    const biggest = contrib.length ? contrib.reduce((a, b) => b.gap > a.gap ? b : a) : null;
-    // only balanced proteins, or ones exceptionally rich in the amino acid you are most short of
-    if (f.metrics.score < 0.75 && !(biggest && biggest.rich >= 1.5)) continue;
-    // size the portion to the job: enough to close the biggest gap, within half to one-and-a-half typical
-    // servings, and never more protein than the day has room for
-    const typical = f.serving_g || 100, perGProt = f.protein_g_per_100g / 100;
-    let needG = 0;
-    for (const c of contrib) { const perG = c.per100 / 100; if (perG > 0) needG = Math.max(needG, c.gap / perG); }
-    if (!gaps.length) needG = protGap / perGProt;
-    const maxMult = f.category === "nuts_seeds" ? 1 : 1.5;                     // nobody eats 150 g of seeds
-    const roomG = Math.max(20, Math.min(40, protRoom + 10)) / perGProt;         // a meal's worth of protein at most, and never past the target
-    let serve = Math.max(typical * 0.5, Math.min(typical * maxMult, needG || typical));
-    serve = Math.round(Math.min(serve, roomG) / 5) * 5;
-    if (serve < 20) continue;
-    const factor = serve / 100, protAdd = f.protein_g_per_100g * factor;
-    if (protAdd < 6) continue;                                                  // a token portion is not a recommendation
-    let score = 0; const closes = [];
-    if (gaps.length) {
-      let closeScore = 0, richSum = 0;
-      for (const c of contrib) {
-        c.add = c.per100 * factor; c.frac = Math.min(1, c.add / c.gap);
-        closeScore += c.frac * (c.gap / totalGap); richSum += Math.min(2, c.rich);
-        if (c.frac >= 0.999) closes.push(c.label);
-      }
-      score = 0.55 * closeScore + 0.45 * Math.min(1, (richSum / contrib.length) / 1.5);   // rich in what is missing counts as much as closing it
-    } else score = Math.min(1, protAdd / Math.max(protGap, 1));
-    score += 0.05 * Math.min(1, f.metrics.score) + (f.tier === "featured" ? 0.08 : 0) + (haveCats.has(f.category) ? 0 : 0.04) - (f.category === "supplement" ? 0.06 : 0);   // whole foods first, powders as a fallback
-    score += (familiar.has(f.name)?0.3:0) + (/chicken|salmon|lentil|tofu|chickpea|yogurt|yoghurt|sardine|tuna|egg|tempeh/i.test(f.name)?0.15:0) - (/elk|bison|game|moose|seal|walrus/i.test(f.name)?0.5:0);
-    cands.push({ f, score, serve, protAdd, closes, contrib: contrib.sort((x, y) => y.rich - x.rich) });
-  }
-  cands.sort((a, b) => b.score - a.score);
-  // variety: one food per category first; allow a second per category only if that is all there is
-  const out = [], cats = {}, used = new Set();
-  for (const perCat of [1, 2]) {
-    for (const c of cands) {
-      if (out.length === 3) break;
-      const head = c.f.name.split(",")[0].toLowerCase().replace(/\s*\(usda\)\s*$/, "");
-      if (used.has(c) || out.some(x=>x.f.name.split(",")[0].toLowerCase()===head) || (cats[c.f.category] || 0) >= perCat) continue;
-      heads.add(head); cats[c.f.category] = (cats[c.f.category] || 0) + 1; used.add(c);
-      out.push(c);
-    }
-  }
-  return out;
-}
 
 const QUICK = [
   ["complete", "Complete proteins", f => solidSource(f) && f.metrics.score >= 1, "protein", "amino acid score of 100% or more, among foods with at least 8 g protein per 100 g; most protein-dense first"],
@@ -2403,6 +2339,7 @@ const store = AccountStorage.create(browserStore);
 const diaryPanels = DiaryPanels.create(browserStore);
 __INJECT_USABILITY_UI__
 __INJECT_INTAKE_UI__
+function getEpaDhaGoalMg() { return Nutrition.normaliseEpaDhaGoal(store.getItem("aa_epa_dha_goal_mg")); }
 function getWeight() { return +(store.getItem("aa_weight") || 75); }
 function getThriveG(weightKg) {
   const custom = +store.getItem("aa_thrive_g");
@@ -3005,6 +2942,7 @@ function bumpSettings() { store.setItem("aa_settings_at", Date.now()); }
 function collectSettings() {
   return {
     weight: store.getItem("aa_weight") || null, thrive: store.getItem("aa_thrive_g") || "",
+    epaDhaGoalMg: store.getItem("aa_epa_dha_goal_mg") || "",
     intake: getIntakeProfile(), intakeCompleted: store.getItem("aa_intake_completed") === "1",
     unit: store.getItem("aa_wunit") || null, diet: store.getItem("aa_diet") || null,
     meal: store.getItem("aa_meal") || null,
@@ -3029,6 +2967,7 @@ function applySettings(st) {
   [["aa_weight", st.weight], ["aa_thrive_g", st.thrive], ["aa_wunit", st.unit], ["aa_diet", st.diet], ["aa_meal", st.meal],
    ["aa_acct_type", st.atype], ["aa_acct_role", st.role]]
     .forEach(([k, v]) => { if (v != null) store.setItem(k, v); });
+  if (st.epaDhaGoalMg != null) store.setItem("aa_epa_dha_goal_mg", st.epaDhaGoalMg === "" ? "" : Nutrition.normaliseEpaDhaGoal(st.epaDhaGoalMg));
   if (+st.at) store.setItem("aa_settings_at", +st.at);
 }
 const PRO_ROLES = [
@@ -3337,9 +3276,14 @@ function renderAccountPage() {
           <label for="acctT">Daily protein target</label>
           <div class="account-unit-control"><input id="acctT" type="number" min="30" max="500" step="1" value="${thrive > 0 ? thrive.toFixed(0) : ""}" placeholder="Auto" aria-describedby="acctProteinUnit"><span class="account-unit" id="acctProteinUnit">g/day</span></div>
         </div>
+        <div class="account-field">
+          <label for="acctOmega">Daily EPA + DHA goal</label>
+          <div class="account-unit-control"><input id="acctOmega" type="number" min="1" step="any" value="${store.getItem('aa_epa_dha_goal_mg') ? getEpaDhaGoalMg() : ''}" placeholder="250" aria-describedby="acctOmegaHelp"><span class="account-unit">mg/day</span></div>
+        </div>
         <label class="account-field"><span>Diet</span><select id="acctDiet"><option value="all"${vegan ? "" : " selected"}>Everything</option><option value="vegan"${vegan ? " selected" : ""}>Vegan</option></select></label>
       </div>
       <p class="intake-help">Leave the protein field blank to use the activity suggestion, or enter your own target.</p>
+      <p class="intake-help" id="acctOmegaHelp">Combined EPA + DHA from food and supplements, not total fish-oil weight. Leave blank for the EFSA adult reference of 250 mg/day, or enter your chosen goal. A custom goal is not a prescribed dose.</p>
       ${intakeFields("acct")}
       <div class="account-actions">
         <label class="account-field"><span>Account type</span><select id="acctType"><option value=""${isPro ? "" : " selected"}>Individual</option><option value="pro"${isPro ? " selected" : ""}>Professional</option></select></label>
@@ -3382,6 +3326,8 @@ function renderAccountPage() {
     account.querySelector("#acctRoleWrap").hidden = e.target.value !== "pro";
   });
   account.querySelector("#acctSave").addEventListener("click", () => {
+    const omegaInput=account.querySelector('#acctOmega');
+    if(!omegaInput.checkValidity()){omegaInput.reportValidity();return;}
     if (!saveIntake()) return;
     saveAccountType(account.querySelector("#acctType").value, account.querySelector("#acctRole").value);
     const unit = account.querySelector("#acctU").value;
@@ -3391,6 +3337,7 @@ function renderAccountPage() {
     store.setItem("aa_wunit", unit);
     const t = +account.querySelector("#acctT").value;
     store.setItem("aa_thrive_g", t > 0 ? Math.max(30, Math.min(500, t)) : "");
+    store.setItem("aa_epa_dha_goal_mg", omegaInput.value.trim() ? Nutrition.normaliseEpaDhaGoal(omegaInput.value) : "");
     store.setItem("aa_diet", account.querySelector("#acctDiet").value === "vegan" ? "vegan" : "");
     bumpSettings();
     pushNow(); // a profile save goes to the server immediately, not on the debounce
@@ -3795,6 +3742,8 @@ function openOnboardSheet() {
     sheet.querySelector("#obRoleWrap").hidden = b.dataset.v !== "pro";
   }));
   sheet.querySelector("#obSave").addEventListener("click", () => {
+    const omegaInput=account.querySelector('#acctOmega');
+    if(!omegaInput.checkValidity()){omegaInput.reportValidity();return;}
     if (!saveIntake()) return;
     saveAccountType(obSeg.querySelector("button.on").dataset.v, sheet.querySelector("#obRole").value);
     const unit = sheet.querySelector("#obU").value;
@@ -4403,12 +4352,12 @@ window.addEventListener("popstate", () => {
 
   const short = label => label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr");
   const clamp = (v, lo, hi, d) => { v = +v; return v > 0 ? Math.max(lo, Math.min(hi, v)) : d; };
-  let last = null, sharedNotice = false, lastSugg = [];
+  let last = null, sharedNotice = false, lastSugg = [], recommendationFocus = "";
   const editor = $("mealEditor");
   const expandedMeals = new Map();
   let editingMeal = null, savingMeal = null, pickerMode="recent";
   window.__v2ResetAccount = () => {
-    editingMeal = null; savingMeal = null; sharedNotice = false; last = null; lastSugg = [];
+    editingMeal = null; savingMeal = null; sharedNotice = false; last = null; lastSugg = []; recommendationFocus = "";
     expandedMeals.clear(); hideDD(); clearFoodSelection(); food.value = ""; grams.value = "100";
     $("diaryFoodSource").value = "all";
     $("dayMeta").hidden = true;
@@ -4951,30 +4900,15 @@ window.addEventListener("popstate", () => {
     const verdict = (!aaComplete ? 'None of these foods has an amino acid profile available, so only your nutrition totals are shown below.' : shortOn.length
       ? `Against your target you're still short on <span class="short">${shortOn.join(", ")}</span>. Add a source rich in ${shortOn[0]}, or increase a portion.`
       : "Every essential amino acid target is covered for the day.") + (aaComplete ? aaNote : "");
-    const gaps = SCORE_ROWS.map(([rid, label, keys]) => { const got = keys.reduce((t, k) => t + totals[k], 0), need = WHO_KG[rid] * weight * aaScale / 1000; return { rid, label, keys, got, need, gap: Math.max(0, need - got) }; }).filter(g => g.gap > 0.005);
-    const protGap = Math.max(0, protThrive - prot);
     const vegan = store.getItem("aa_diet") === "vegan";
-    lastSugg = aaComplete ? suggestFoods(day, gaps, protGap, protThrive - prot, vegan) : [];
-    /* The bars above already carry the numbers; this is just the one-line lead. */
-    const worstGap = gaps.slice().sort((a, b) => b.gap - a.gap)[0];
-    const gapSummary = !gaps.length ? "" : gaps.length <= 3
-      ? `You're short on <b>${gaps.map(g => short(g.label).toLowerCase()).join(", ")}</b>.`
-      : `You're short on <b>${gaps.length} of the 9 essential targets</b>, with the biggest gap in ${short(worstGap.label).toLowerCase()}.`;
-    const lockSugg = ACCOUNTS_ON && !authedUser;
-    const gapsHtml = (gaps.length || protGap > 0) ? (lockSugg ? `<div class="v2-gaps">
-        <div class="v2-sec">What you're missing</div>
-        <p class="v2-p">${gapSummary || `You're ${protGap.toFixed(0)} g short of your protein target.`} Sign up for a free account to see which foods close your gaps, with exact portions, plus a full week of days and notes.</p>
-        <button type="button" class="land-cta" id="gapsSignup">Create your free account</button>
-      </div>` : `<div class="v2-gaps">
-        <div class="v2-sec">${gaps.length ? "What you're missing" : "Almost there"}</div>
-        ${gaps.length ? "" : `<p class="v2-p">Every essential amino acid is covered. You're ${protGap.toFixed(0)} g short of your protein target.</p>`}
-        ${lastSugg.length ? `<p class="v2-p sugg-lead">${gaps.length ? `${gapSummary} ${vegan ? "Plant" : "Protein"} sources rich in what's missing:` : `${vegan ? "Plant" : "Protein"} sources to make up the difference:`}</p>
-        <div class="sugg">${lastSugg.map((c, i) => `<div class="sugg-card">
-          <div class="sugg-name">${c.f.name}</div>
-          ${c.contrib.length ? `<div class="sugg-rich">Rich in ${c.contrib.slice(0, 2).map(x => short(x.label).toLowerCase()).join(" and ")} <span>(${c.contrib[0].rich.toFixed(1)}× the WHO pattern for ${short(c.contrib[0].label).toLowerCase()})</span></div>` : ""}
-          <div class="sugg-sub">${c.serve} g adds ${c.contrib.slice(0, 3).map(x => x.add.toFixed(1) + " g " + short(x.label).toLowerCase()).join(", ")}${c.contrib.length ? " and " : ""}${c.protAdd.toFixed(0)} g protein${c.closes.length === gaps.length && gaps.length ? " · closes every gap" : c.closes.length ? " · closes " + c.closes.map(x => short(x).toLowerCase()).join(", ") : ""}</div>
-          <button type="button" class="sugg-add" data-i="${i}">Add ${c.serve} g</button></div>`).join("")}</div>` : `<p class="v2-p">No ${vegan ? "plant " : ""}source in the atlas closes this in one serving. Try adding a bit more of what you already eat.</p>`}
-      </div>`) : `<p class="v2-p v2-done">Every essential amino acid and your protein target are covered. Nice day.</p>`;
+    const recommendation = Recommendations.recommend({
+      entries:day, lookup:foodByName, foods:DIARY_FOODS, proteinTarget:protThrive,
+      aminoTargets:SCORE_ROWS.map(([id,label,keys])=>({id,label,keys,target:WHO_KG[id]*weight*aaScale/1000})),
+      vegan, avoided:uiAvoidedFoods(), familiar:loadLog().days.flatMap(d=>d.entries.map(e=>e.name)),
+      focus:recommendationFocus, epaDhaGoalMg:getEpaDhaGoalMg(), calorieTarget:IntakeTargets.calorieTarget(weight,getIntakeProfile())
+    });
+    lastSugg = recommendation.candidates;
+    recommendationFocus = recommendation.focus;
 
     // static bloom: strip the hover class so tooltips never look up a pseudo food
     const bloom = aaComplete ? renderBloom(pseudo, { unit: "protein", band: false }).replace(/ class="ray"[^>]*?(?=\/>)/g, "") : '';
@@ -5034,7 +4968,7 @@ window.addEventListener("popstate", () => {
         <p class="v2-bloom-pan-hint">Swipe across the chart to see all labels.</p>
         <div class="v2-bloom-scroll" tabindex="0" role="region" aria-label="Enlarged amino acid chart; scroll horizontally to explore">${bloom}</div>
       </dialog>
-      ${nutritionDashboard(day)}
+      ${nutritionDashboard(day,{epaDhaGoalMg:getEpaDhaGoalMg()})}
       <div data-aa-only>
       <details class="nutrition-panel diary-amino-panel" data-diary-section="amino-acids">
       <summary>Your amino acids · day total</summary><div class="diary-amino-content">
@@ -5046,7 +4980,9 @@ window.addEventListener("popstate", () => {
       </details>
       </div></details>
       </div>`;
-    $("diarySuggestions").innerHTML=uiSuggestions(lastSugg,gaps,protGap,aaComplete);
+    $("diarySuggestions").innerHTML=uiSuggestions(recommendation);
+    const focusSelect=$("diarySuggestions").querySelector("[data-recommendation-focus]");
+    if(focusSelect)focusSelect.onchange=e=>{recommendationFocus=e.target.value;render();$("diarySuggestions").querySelector("[data-recommendation-focus]").focus({preventScroll:true});};
     diaryPanels.bind(result);
 
     if(!aaComplete) {
@@ -5066,8 +5002,6 @@ window.addEventListener("popstate", () => {
     });
     $("diarySuggestions").querySelectorAll(".sugg-add").forEach(b=>b.onclick=()=>{const i=+b.dataset.i,c=lastSugg[i],meal=$("diarySuggestions").querySelector(`[data-suggestion-meal="${i}"]`).value;uiMutateDay(()=>addToDay(c.f.name,c.serve,meal),"Added to "+MEAL_LABEL[meal]+".");render();});
     $("diarySuggestions").querySelectorAll('[data-skip-food]').forEach(b=>b.onclick=()=>{const avoided=uiAvoidedFoods();avoided.push(lastSugg[+b.dataset.skipFood].f.name);store.setItem('aa_avoided_foods',JSON.stringify([...new Set(avoided)]));render();uiToast('Suggestion hidden. You can reset food preferences in your targets.');});
-    const gs = result.querySelector("#gapsSignup");
-    if (gs) gs.addEventListener("click", () => openAuthSheet("See exactly which foods close your gaps, with portions that do it in one serving."));
     const bloomDialog = $("dayBloomDialog"), bloomToggle = $("openDayBloom");
     bloomToggle.addEventListener("click", () => {
       bloomDialog.showModal();

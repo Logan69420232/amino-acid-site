@@ -1,8 +1,8 @@
-function nutritionDashboard(day) {
+function nutritionDashboard(day, {epaDhaGoalMg} = {}) {
   const esc = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const datasets = new Set(day.map(e=>foodByName(e.name)?.nutritionSource?.dataset).filter(Boolean));
   const total = key => Nutrition.total(day,foodByName,key);
-  const combinedOmega = Nutrition.epaDhaProgress(day,foodByName);
+  const combinedOmega = Nutrition.epaDhaProgress(day,foodByName,epaDhaGoalMg);
   const macros = [['kcal','Calories','kcal'],['protein','Protein','g']];
   if(datasets.has('USDA') || !datasets.has('CoFID')) macros.push(['carb','Carbs · USDA total','g']);
   if(datasets.has('CoFID')) macros.push(['carb_uk','Carbs · UK available','g']);
@@ -40,7 +40,7 @@ function nutritionDashboard(day) {
   const sources=day.map(e=>foodByName(e.name)).filter((f,i,a)=>a.findIndex(x=>x.key===f.key)===i);
   return `<section class="nutrition-dashboard" aria-labelledby="nutritionTitle">
     <h2 class="v2-sec" id="nutritionTitle">Vitamins, minerals &amp; fats</h2><details class="nutrition-reading"><summary>About targets and missing data</summary>
-    <p class="v2-note">Amounts from the foods and portions you logged. <b>Partial</b> means some foods have no value recorded; <b>Unknown</b> is not zero. These totals are not personalised targets or a deficiency assessment.</p>
+    <p class="v2-note">Amounts from the foods and portions you logged. <b>Partial</b> means some foods have no value recorded; <b>Unknown</b> is not zero. References are general unless labelled as your chosen goal; totals are not a deficiency assessment.</p>
     <p class="v2-note nutrition-dv-note"><b>%DV · US FDA Daily Values</b> (adults and ages 4+). A general label reference, not your personal requirement or the UK NRV. 100% is not a safety ceiling, and higher is not always better. Partial percentages use only available amounts. <a href="${Nutrition.dailyValueSource}" target="_blank" rel="noopener">Reference values</a> · Lipids use the separately labelled adult guidance below. Tap a nutrient for details.</p>
     </details><div class="nutrition-macros">${macros.map(([key,label,unit])=>{
       const t=total(key),dv=Nutrition.dailyValue(key,t);return `<div class="v2-stat"><div class="k">${label}</div><div class="v" data-macro="${key}">${display(t,unit)}</div>${dv.reference?`<span class="nutrition-dv">${esc(dv.label)}${dv.percent!==null&&dv.partial?' · partial':''}</span>${meter(dv)}`:''}${t.missing?`<small>${t.known||t.trace?'Partial · ':''}${t.missing} entr${t.missing===1?'y':'ies'} missing data</small>`:''}</div>`;
