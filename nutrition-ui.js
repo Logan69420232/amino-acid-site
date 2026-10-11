@@ -32,6 +32,21 @@ function nutritionDashboard(day) {
       ${t.derived?`<p>${t.derived} entr${t.derived===1?'y uses':'ies use'} a partial component sum because no omega total was reported: ${d.key==='omega_3'?'ALA + DHA + EPA + DPA':'LA + arachidonic acid'}, where known. Other or unidentified fatty acids may be missing. A reported total takes priority and is never added to its components.</p>`:''}
       <p>Measured or reported amounts available for ${t.known} of ${day.length} logged entries.${t.trace?' '+t.trace+' report a trace amount, not included in the numeric total.':''}${t.missing?' Missing data for: '+t.missingFoods.map(esc).join('; ')+'.':''}</p></details>`;
   }
+  function omegaTarget() {
+    const p = Nutrition.epaDhaProgress(day, foodByName);
+    const component = t => display({...t, value:t.value === null ? null : t.value * 1000}, 'mg') + (t.missing && t.value !== null ? ' · partial' : '');
+    const amount = p.valueMg === null ? 'Amount unavailable' : Nutrition.format(p.valueMg) + ' mg';
+    const progress = p.percent === null ? 'Log foods with EPA and DHA data to see progress.' :
+      (p.percent > 0 && p.percent < 1 ? '<1' : String(Math.round(p.percent))) + '% of daily target' + (p.partial ? ' · partial data' : '');
+    return `<section class="omega-target" aria-labelledby="omegaTargetTitle">
+      <div class="omega-target-heading"><div><p class="omega-target-eyebrow">Daily omega-3 target</p><h3 id="omegaTargetTitle">EPA + DHA</h3></div><span class="omega-target-goal">${p.targetMg} mg / day</span></div>
+      <p class="omega-target-amount">${amount}<span> combined from logged foods</span></p>
+      ${meter({percent:p.percent,partial:p.partial})}<p class="omega-target-progress">${esc(progress)}</p>
+      <div class="omega-target-components"><span><b>EPA</b> ${esc(component(p.epa))}</span><span><b>DHA</b> ${esc(component(p.dha))}</span></div>
+      ${p.partial?'<p class="omega-target-note">Some EPA or DHA amounts are missing or trace-only. Progress uses known amounts; missing data is not zero.</p>':''}
+      <details><summary>About this target</summary><p>250 mg a day of EPA + DHA combined is the <a href="${Nutrition.epaDhaSource}" target="_blank" rel="noopener">EFSA adequate intake for adults</a>. It is a general adult reference, not an FDA Daily Value or a personalised treatment target. There are no separate EPA and DHA targets here; ALA and DPA do not count towards this combined amount. Pregnancy and breastfeeding recommendations differ.</p></details>
+    </section>`;
+  }
   const sources=day.map(e=>foodByName(e.name)).filter((f,i,a)=>a.findIndex(x=>x.key===f.key)===i);
   return `<section class="nutrition-dashboard" aria-labelledby="nutritionTitle">
     <h2 class="v2-sec" id="nutritionTitle">Your nutrition · day total</h2>
@@ -40,6 +55,7 @@ function nutritionDashboard(day) {
     <div class="nutrition-macros">${macros.map(([key,label,unit])=>{
       const t=total(key),dv=Nutrition.dailyValue(key,t);return `<div class="v2-stat"><div class="k">${label}</div><div class="v" data-macro="${key}">${display(t,unit)}</div>${dv.reference?`<span class="nutrition-dv">${esc(dv.label)}${dv.percent!==null&&dv.partial?' · partial':''}</span>${meter(dv)}`:''}${t.missing?`<small>${t.known||t.trace?'Partial · ':''}${t.missing} entr${t.missing===1?'y':'ies'} missing data</small>`:''}</div>`;
     }).join('')}</div>
+    ${omegaTarget()}
     <div class="nutrition-panels">${['Vitamins','Minerals','Lipids','More nutrition'].map(group=>`<details class="nutrition-panel${group==='Lipids'?' nutrition-lipids':''}" ${group!=='More nutrition'?'open':''}>
       <summary>${group==='More nutrition'?'Carbohydrates, sugars & fibre':group}</summary>
       ${group==='Lipids'?'<p class="nutrition-panel-note">Daily amounts · indented rows are parts of the totals above, not extra fat to add. Omega totals may be partial; tap a row for coverage.</p>':''}

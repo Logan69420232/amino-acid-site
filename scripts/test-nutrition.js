@@ -258,3 +258,30 @@ test('history CSV preserves quoted food names and does not change the diary', ()
   assert.equal(rows[0].food,name); assert.equal(rows[0].calcium_mg,'20');
   assert.equal(JSON.stringify(days),before);
 });
+
+test('EPA + DHA target scales portions from grams to mg and excludes other omega-3s', () => {
+  const foods={fish:{nutrients:{epa:0.3,dha:0.2,ala:2,dpa:1,omega_3:4}}};
+  const p=Nutrition.epaDhaProgress([{name:'fish',g:50}],n=>foods[n]);
+  assert.equal(p.targetMg,250);assert.equal(p.valueMg,250);assert.equal(p.percent,100);assert.equal(p.partial,false);
+  assert.equal(Nutrition.epaDhaProgress([{name:'fish',g:200}],n=>foods[n]).percent,400);
+  assert.equal(Nutrition.dailyValue('epa',{value:0.25}).label,'No DV set');
+});
+
+test('EPA + DHA target preserves zero, missing components, trace and empty logs', () => {
+  const calc=nutrients=>Nutrition.epaDhaProgress([{name:'food',g:100}],()=>({nutrients}));
+  const zero=calc({epa:0,dha:0});assert.equal(zero.valueMg,0);assert.equal(zero.percent,0);assert.equal(zero.partial,false);
+  const partial=calc({epa:0.1});assert.equal(partial.valueMg,100);assert.equal(partial.percent,40);assert.equal(partial.partial,true);
+  const trace=calc({epa:0.1,dha:'trace'});assert.equal(trace.valueMg,100);assert.equal(trace.partial,true);
+  for(const nutrients of [{},{epa:'trace'},{omega_3:1,ala:1}]){const p=calc(nutrients);assert.equal(p.valueMg,null);assert.equal(p.percent,null);}
+  assert.equal(Nutrition.epaDhaProgress([],()=>null).valueMg,null);
+  const p=Nutrition.epaDhaProgress([{name:'fish',g:100},{name:'missing',g:100}],n=>n==='fish'?{nutrients:{epa:0.1,dha:0.2}}:undefined);
+  assert.ok(Math.abs(p.valueMg-300)<1e-9);assert.equal(p.partial,true);
+});
+
+test('EPA + DHA card labels its combined adult target and does not imply missing data is zero', () => {
+  const vm=require('node:vm'),fs=require('node:fs');
+  const render=nutrients=>{const context=vm.createContext({Nutrition,foodByName:()=>({key:'f',name:'Food',nutrients})});vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../nutrition-ui.js'),'utf8'),context);return context.nutritionDashboard([{name:'f',g:100}]).match(/<section class="omega-target"[\s\S]*?<\/section>/)[0];};
+  const html=render({epa:0.1,dha:0.4});assert.match(html,/500 mg/);assert.match(html,/200% of daily target/);assert.match(html,/width:100.00%/);assert.match(html,/<b>EPA<\/b> 100 mg/);assert.match(html,/<b>DHA<\/b> 400 mg/);assert.match(html,/EFSA adequate intake for adults/);
+  const partial=render({epa:0.1});assert.match(partial,/40% of daily target · partial data/);assert.match(partial,/is-partial/);assert.match(partial,/<b>DHA<\/b> Unknown/);
+  const unknown=render({});assert.match(unknown,/Amount unavailable/);assert.doesNotMatch(unknown,/nutrition-meter|0% of daily target/);
+});
