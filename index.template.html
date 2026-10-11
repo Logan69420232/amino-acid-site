@@ -325,11 +325,11 @@
     background: var(--surface-2); border: 1px solid var(--line);
     border-radius: 14px;
   }
-  .meal-header { display: flex; align-items: center; min-height: 64px; padding: 0 10px; gap: 8px; }
+  .meal-header { display: flex; align-items: center; min-height: 76px; padding: 0 18px; gap: 10px; }
   .meal-plus, .meal-toggle { border: 0; background: transparent; color: var(--ink); cursor: pointer; }
   .meal-plus { flex: 0 0 auto; min-height: 44px; padding: 8px 12px; background: var(--c-bcaa); color: #fff; font-size: 13px; font-weight: 600; border-radius: 8px; }
   .meal-plus:hover { filter: brightness(1.1); }
-  .meal-save { flex: 0 0 auto; min-height: 44px; padding: 8px 10px; background: transparent; border: 1px dashed var(--line-strong); color: var(--ink-2); font-size: 12.5px; font-weight: 600; border-radius: 8px; white-space: nowrap; }
+  .meal-save { flex: 0 0 auto; width: 44px; min-height: 44px; padding: 8px; background: transparent; border: 1px solid var(--line); color: var(--ink-2); font-size: 22px; border-radius: 10px; }
   .meal-save:hover { border-color: var(--c-bcaa); color: var(--c-bcaa); }
   @media (max-width: 560px) { .ms-txt { display: none; } }
   .save-meal-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; }
@@ -371,16 +371,42 @@
   .meal-chevron { width: 10px; height: 10px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); flex-shrink: 0; margin: -5px 3px 0 0; }
   .meal-toggle[aria-expanded="true"] .meal-chevron { transform: rotate(225deg); margin-top: 5px; }
   .meal-panel[hidden], .meal-editor[hidden] { display: none; }
-  .meal-totals { font-size: 13px; color: var(--ink-2); border-top: 1px dashed var(--line); padding: 9px 0 2px; margin: 8px 0 0; font-variant-numeric: tabular-nums; }
-  .meal-totals b { color: var(--c-bcaa); }
-  .meal-totals span { color: var(--ink-3); font-size: 11.5px; }
-  .meal-panel { border-top: 1px solid var(--line-strong); }
-  .meal-empty { padding: 16px 20px; margin: 0; color: var(--ink-3); font-size: 14px; }
-  .meal-editor { padding: 16px; background: var(--surface); border-radius: 0 0 14px 14px; }
-  .meal-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: 14px; font-weight: 600; }
+  .meal-heading { display: grid; gap: 4px; }
+  .meal-heading small { font-size: 12px; font-weight: 400; color: var(--ink-2); }
+  .meal-totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 14px 18px; background: var(--surface-2); border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .meal-totals div { display: grid; gap: 3px; }
+  .meal-totals dt { font-size: 11px; color: var(--ink-2); }
+  .meal-totals dd { margin: 0; font-size: 17px; font-weight: 600; color: var(--ink); }
+  .meal-totals div:first-child dd { color: var(--c-bcaa); }
+  .meal-totals dd small { font-size: 11px; font-weight: 400; }
+  .meal-missing { padding: 0 18px 12px; margin: 0; font-size: 12px; color: var(--ink-2); }
+  .meal-panel { border-top: 1px solid var(--line); }
+  .meal-empty { padding: 16px 18px; margin: 0; color: var(--ink-3); font-size: 14px; }
+  .meal-editor { padding: 20px; background: var(--surface); border-top: 1px solid var(--line); border-radius: 0 0 14px 14px; }
+  .meal-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; font-size: 16px; font-weight: 600; }
+  .meal-editor .v2-form { display: block; }
+  .meal-search-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .meal-search-head > label { font-size: 13px; font-weight: 600; }
+  .meal-search-head .nutrition-source-select { margin: 0; font-size: 12px; color: var(--ink-2); }
+  .meal-search-head .nutrition-source-select select { min-height: 36px; max-width: 160px; font-size: 12px; }
   .meal-editor .v2-search { min-width: 0; }
-  .meal-editor .v2-add { min-height: 44px; }
-  .meal-close { border: 0; background: none; color: var(--ink-2); min-height: 44px; padding: 0 8px; cursor: pointer; font: inherit; }
+  .meal-editor .v2-dd { max-height: min(360px, 45dvh); overflow-y: auto; overscroll-behavior: contain; }
+  .meal-editor #v2Food { border-color: var(--line-strong); font-size: 16px; padding: 13px 14px; }
+  .meal-editor #v2Food:focus { border-color: var(--c-bcaa); }
+  .meal-portion { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding-top: 16px; }
+  .meal-portion[hidden] { display: none; }
+  .meal-portion-field { display: grid; gap: 6px; }
+  .meal-portion-field > label { font-size: 12px; color: var(--ink-2); }
+  .meal-portion .v2-g { gap: 6px; }
+  .meal-portion #v2Grams { width: 80px; min-height: 44px; padding: 10px; border-radius: 8px; }
+  #v2Unit { min-height: 44px; max-width: 150px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 8px; font-size: 16px; }
+  .meal-portion-preview { flex: 1; min-width: 100px; color: var(--ink-2); font-size: 13px; line-height: 1.6; }
+  .meal-portion-preview strong { display: block; color: var(--c-bcaa); font-size: 16px; }
+  .meal-editor .v2-add { min-height: 46px; padding: 12px 20px; align-self: flex-end; }
+  .meal-search-hint { color: var(--ink-2); font-size: 12px; margin: 10px 0 0; }
+  .meal-close { border: 0; background: var(--surface-2); color: var(--ink-2); min-height: 36px; border-radius: 8px; padding: 0 12px; cursor: pointer; font-size: 13px; }
+  .meal-editor .saved-meal-row { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .meal-editor .sm-pick-btn { border-style: solid; }
   .day-meta { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-top: 14px; }
   .day-meta label { font-size: 13.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 8px; }
   .day-meta input[type="date"] {
@@ -414,24 +440,38 @@
   .v2-err { color: var(--c-limit); font-size: 13px; margin: 8px 0 0; }
   .v2-hint { color: var(--ink-3); font-size: 13px; margin: 10px 0 0; }
   .v2-list { display: flex; flex-direction: column; gap: 16px; margin: 16px 0 6px; }
-  .v2-item { display: grid; grid-template-columns: minmax(0, 1fr) auto 44px; align-items: center; gap: 10px; padding: 12px 10px 12px 20px; font-size: 15px; }
+  .v2-item { display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, 220px) 130px 36px; align-items: center; gap: 18px; padding: 18px; background: var(--surface); font-size: 15px; }
   .v2-item + .v2-item { border-top: 1px solid var(--line); }
-  .v2-item .nm { display: block; min-width: 0; line-height: 1.35; overflow-wrap: anywhere; font-weight: 500; margin-bottom: 4px; }
-  .v2-item .qty { display: flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--ink-2); }
-  .v2-item input { width: 72px; min-height: 36px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 16px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
-  .v2-item .unit-sel { min-height: 36px; max-width: 128px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 4px; font-size: 14px; background: var(--bg); color: var(--ink-2); }
-  .v2-item .unit-g { color: var(--ink-3); font-size: 12px; }
-  .v2-item .cal { color: var(--ink-2); font-size: 16px; font-variant-numeric: tabular-nums; text-align: right; }
-  .v2-item .cal small { display: block; font-size: 13px; margin-top: 3px; }
-  @media (max-width: 560px) {
-    .v2-item { gap: 6px; padding-left: 14px; }
-    .meal-toggle { font-size: 17px; }
-    .meal-editor { padding: 12px; }
-    .meal-editor .v2-search { flex-basis: 100%; }
-    .meal-editor .v2-add { flex: 1; padding: 0 12px; }
-  }
-  .v2-item .rm { border: 0; background: transparent; color: var(--ink-3); font-size: 15px; width: 44px; min-height: 44px; cursor: pointer; }
+  .v2-item .nm { display: block; min-width: 0; line-height: 1.4; overflow-wrap: anywhere; font-weight: 600; }
+  .v2-item .qty { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--ink-2); }
+  .v2-item .portion-label { display: block; flex-basis: 100%; font-size: 11px; color: var(--ink-2); }
+  .v2-item input { width: 72px; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px; font-size: 16px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .v2-item .unit-sel { min-height: 44px; max-width: 115px; border: 1px solid var(--line-strong); border-radius: 8px; padding: 5px 4px; font-size: 14px; background: var(--bg); color: var(--ink-2); }
+  .v2-item .unit-g { flex-basis: 100%; color: var(--ink-3); font-size: 11px; }
+  .v2-item .food-macros { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; line-height: 1.6; }
+  .v2-item .food-macros strong { display: block; color: var(--c-bcaa); font-size: 15px; font-weight: 600; }
+  .v2-item .rm { border: 0; background: transparent; color: var(--ink-3); font-size: 19px; width: 36px; min-height: 44px; cursor: pointer; }
   .v2-item .rm:hover { color: var(--c-limit); }
+  @media (max-width: 800px) {
+    .v2-item { grid-template-columns: minmax(0, 1fr) auto 32px; gap: 10px; padding: 14px; }
+    .v2-item .food-info { grid-column: 1 / 3; }
+    .v2-item .rm { grid-column: 3; grid-row: 1; width: 32px; align-self: start; }
+    .v2-item .qty { grid-column: 1; grid-row: 2; }
+    .v2-item .food-macros { grid-column: 2 / 4; grid-row: 2; align-self: end; padding-bottom: 3px; }
+  }
+  @media (max-width: 560px) {
+    .meal-header { padding: 0 12px; gap: 8px; }
+    .meal-toggle { font-size: 17px; }
+    .meal-editor { padding: 14px; }
+    .meal-editor .v2-add { width: 100%; }
+    .meal-portion { gap: 12px; }
+    .meal-portion-preview { text-align: right; }
+    .meal-totals { padding: 12px 14px; gap: 4px; }
+    .meal-totals dd { font-size: 16px; }
+    .meal-totals dt { font-size: 10px; }
+    .v2-item .unit-sel { max-width: 90px; }
+    .v2-item input { width: 62px; }
+  }
   .v2-result { margin: 26px 0 40px; padding-top: 22px; border-top: 2px solid var(--ink); }
   .v2-result .you {
     display: flex; flex-wrap: wrap; gap: 12px 26px; align-items: center; justify-content: center;
@@ -1522,17 +1562,21 @@
     <div class="day-nav" id="dayTabs" role="group" aria-label="Diary day navigation"></div>
     <div class="meal-editor" id="mealEditor" hidden>
     <div class="meal-editor-head"><span id="mealEditorLabel">Add food</span><button type="button" class="meal-close" id="mealEditorClose">Done</button></div>
-    <label class="nutrition-source-select">Food source <select id="diaryFoodSource"><option value="all">All foods</option><option value="USDA">USDA foods</option><option value="CoFID">UK foods · CoFID</option></select></label>
     <form class="v2-form" id="v2Form" autocomplete="off">
-      <div class="v2-search"><input id="v2Food" placeholder="Search a food (lentils, chicken, apples...)" aria-label="Food to add" aria-autocomplete="list" aria-controls="v2DD" /><div class="v2-dd" id="v2DD" role="listbox" hidden></div></div>
-      <span class="v2-g"><input id="v2Grams" type="number" min="0.1" max="2000" step="any" placeholder="100" aria-label="Amount in grams" /> g</span>
-      <button type="submit" class="v2-add">Add food</button>
+      <div class="meal-search-head"><label for="v2Food">Find a food</label><label class="nutrition-source-select">Source <select id="diaryFoodSource"><option value="all">All foods</option><option value="USDA">USDA foods</option><option value="CoFID">UK foods · CoFID</option></select></label></div>
+      <div class="v2-search"><input id="v2Food" placeholder="Search foods, e.g. eggs or oats" role="combobox" aria-label="Food to add" aria-autocomplete="list" aria-expanded="false" aria-controls="v2DD" aria-describedby="mealSearchHint" /><div class="v2-dd" id="v2DD" role="listbox" hidden></div></div>
+      <p class="meal-search-hint" id="mealSearchHint" role="status">Choose a food, then set your portion.</p>
+      <div class="meal-portion" id="mealPortion" hidden>
+        <div class="meal-portion-field"><label for="v2Grams">Your portion</label><div class="v2-g"><input id="v2Grams" type="number" min="0.1" max="2000" step="any" value="100" required aria-label="Portion amount" /><select id="v2Unit" aria-label="Portion unit"><option value="">g</option></select></div></div>
+        <div class="meal-portion-preview" id="mealPortionPreview" aria-live="polite"></div>
+        <button type="submit" class="v2-add" id="mealAddConfirm" disabled>Add to Breakfast</button>
+      </div>
     </form>
     <div class="saved-meal-row" id="savedMealRow" hidden></div>
     <p class="v2-err" id="v2Err" hidden>Pick a food from the list first.</p>
     </div>
     <div class="v2-list" id="v2List"></div>
-    <p class="v2-hint" id="v2Hint">Choose a <b>meal name</b> or <b>Add food</b> to search <b id="v2Count"></b> foods, then set your portion. Or explore the <a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</p>
+    <p class="v2-hint" id="v2Hint">Choose <b>Add food</b> to search <b id="v2Count"></b> foods and set your portion. Or explore the <a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</p>
     <div class="day-meta" id="dayMeta" hidden>
       <p id="dayFull" class="intake-help" hidden>Your diary holds 31 days. Remove a day to make room for another; the oldest drops off automatically as you keep logging.</p>
       <label class="dm-date">Date <input type="date" id="dayDate" aria-label="Date of this day"></label>
@@ -4279,7 +4323,7 @@ window.addEventListener("popstate", () => {
   let editingMeal = null, savingMeal = null;
   window.__v2ResetAccount = () => {
     editingMeal = null; savingMeal = null; sharedNotice = false; last = null; lastSugg = [];
-    expandedMeals.clear(); hideDD(); food.value = ""; grams.value = "100";
+    expandedMeals.clear(); hideDD(); clearFoodSelection(); food.value = ""; grams.value = "100";
     $("diaryFoodSource").value = "all";
     $("dayMeta").hidden = true;
     currentMeal = store.getItem("aa_meal") || "breakfast";
@@ -4288,6 +4332,7 @@ window.addEventListener("popstate", () => {
   const html = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   window.__v2RevealMeal = m => expandedMeals.set(mealKey(m), true);
   function openMeal(m) {
+    if (editingMeal !== m) { clearFoodSelection(); food.value = ""; }
     currentMeal = m; store.setItem("aa_meal", m); editingMeal = m;
     expandedMeals.set(mealKey(m), true); hideDD(); err.hidden = true;
     render(); food.focus();
@@ -4305,7 +4350,7 @@ window.addEventListener("popstate", () => {
     row.hidden = false;
     if (!meals.length) {
       /* an empty list still explains itself, so the feature stays findable */
-      row.innerHTML = '<span class="sm-hint">No saved meals yet. Add foods to a meal, then tap ☆ Save meal; it appears here for one-tap reuse.</span>';
+      row.innerHTML = '<span class="sm-hint">Eat this often? Tap ☆ beside the meal name to save it for next time.</span>';
       return;
     }
     row.innerHTML = `<div class="sm-picker">
@@ -4467,41 +4512,64 @@ window.addEventListener("popstate", () => {
     return rankFoods(q, limit, source === 'all' ? DIARY_FOODS : DIARY_FOODS.filter(f=>f.nutritionSource?.dataset===source));
   }
   let ddItems = [], ddIdx = -1, ddTimer = null;
-  function hideDD() { dd.hidden = true; dd.innerHTML = ""; ddItems = []; ddIdx = -1; }
-  function pick(f) {
-    /* Picking a suggestion adds it straight to the day: typed grams win,
-       otherwise one item for countable foods (an egg, a slice), else the
-       typical serving. The row's amount stays editable in items or grams. */
-    hideDD();
-    const units = portionUnits(f);
-    const ok = !grams.value && units.length
-      ? addToDay(f.name, units[0][1], undefined, units[0][0])
-      : addToDay(f.name, clamp(grams.value, 0.1, 2000, f.serving_g || 100));
-    if (!ok) return;
-    food.value = ""; grams.value = ""; err.hidden = true;
-    hideDD(); render(); food.focus();
+  let selectedFood = null, selectedUnit = "";
+  function hideDD() { clearTimeout(ddTimer); dd.hidden = true; dd.innerHTML = ""; ddItems = []; ddIdx = -1; food.setAttribute("aria-expanded", "false"); food.removeAttribute("aria-activedescendant"); }
+  function clearFoodSelection() {
+    selectedFood = null;
+    $("mealPortion").hidden = true; $("mealAddConfirm").disabled = true;
+    $("mealSearchHint").textContent = "Choose a food, then set your portion.";
   }
+  function previewPortion() {
+    if (!selectedFood) return;
+    const unit = portionUnits(selectedFood).find(u => u[0] === $("v2Unit").value);
+    const amount = Math.min(2000, clamp(grams.value, unit ? 0.01 : 0.1, 2000, 100) * (unit ? unit[1] : 1));
+    $("mealPortionPreview").innerHTML = `<strong>${(selectedFood.protein_g_per_100g * amount / 100).toFixed(1)} g protein</strong>${selectedFood.kcal == null ? "Calories unavailable" : Math.round(selectedFood.kcal * amount / 100) + " kcal"}${unit ? " · " + Math.round(amount) + " g" : ""}`;
+  }
+  function pick(f) {
+    hideDD(); selectedFood = f; food.value = f.name; err.hidden = true;
+    const units = portionUnits(f);
+    $("v2Unit").innerHTML = '<option value="">g</option>' + units.map(([name]) => `<option value="${html(name)}">${html(name)}</option>`).join("");
+    selectedUnit = ""; $("v2Unit").value = "";
+    grams.min = "0.1"; grams.max = "2000"; grams.value = String(f.serving_g || 100);
+    $("mealPortion").hidden = false; $("mealAddConfirm").disabled = false;
+    $("mealSearchHint").textContent = "Selected. Check your portion below, then add it to your meal.";
+    previewPortion(); grams.focus(); grams.select();
+  }
+  grams.addEventListener("input", previewPortion);
+  $("v2Unit").addEventListener("change", () => {
+    if (!selectedFood) return;
+    const units = portionUnits(selectedFood);
+    const previous = units.find(u => u[0] === selectedUnit);
+    const amount = clamp(grams.value, 0.01, 2000, 100) * (previous ? previous[1] : 1);
+    selectedUnit = $("v2Unit").value;
+    const unit = units.find(u => u[0] === selectedUnit);
+    grams.value = String(+(amount / (unit ? unit[1] : 1)).toFixed(2));
+    grams.min = unit ? "0.01" : "0.1"; grams.max = String(2000 / (unit ? unit[1] : 1));
+    previewPortion();
+  });
   function showDD() {
     const q = food.value.trim();
     if (q.length < 2) return hideDD();
     ddItems = diaryMatches(q, 8);
-    if (!ddItems.length) return hideDD();
+    if (!ddItems.length) { hideDD(); $("mealSearchHint").textContent = "No foods found. Try another name or change the source."; return; }
     ddIdx = 0;
-    dd.innerHTML = ddItems.map((f, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${i === 0}">
+    dd.innerHTML = ddItems.map((f, i) => `<button type="button" role="option" id="diary-option-${i}" data-i="${i}" aria-selected="${i === 0}">
       <span><span class="nm">${html(f.name)}</span>${stateTagHTML(f)}${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
       <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span></button>`).join("");
-    dd.hidden = false;
-    dd.querySelectorAll("button").forEach(b => b.addEventListener("mousedown", ev => { ev.preventDefault(); pick(ddItems[+b.dataset.i]); }));
+    dd.hidden = false; food.setAttribute("aria-expanded", "true"); food.setAttribute("aria-activedescendant", "diary-option-0");
+    dd.querySelectorAll("button").forEach(b => b.addEventListener("click", () => pick(ddItems[+b.dataset.i])));
   }
-  food.addEventListener("input", () => { clearTimeout(ddTimer); ddTimer = setTimeout(showDD, 60); });
-  food.addEventListener("focus", showDD);
-  $("diaryFoodSource").addEventListener("change", () => { hideDD(); food.focus(); showDD(); });
+  food.addEventListener("input", () => { clearFoodSelection(); err.hidden = true; clearTimeout(ddTimer); ddTimer = setTimeout(showDD, 60); });
+  food.addEventListener("focus", () => { if (!selectedFood) showDD(); });
+  $("diaryFoodSource").addEventListener("change", () => { clearFoodSelection(); hideDD(); food.focus(); showDD(); });
   food.addEventListener("keydown", e => {
     if (dd.hidden) return;
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       ddIdx = (ddIdx + (e.key === "ArrowDown" ? 1 : -1) + ddItems.length) % ddItems.length;
       dd.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-selected", String(i === ddIdx)));
+      food.setAttribute("aria-activedescendant", "diary-option-" + ddIdx);
+      dd.children[ddIdx].scrollIntoView({ block: "nearest" });
     } else if (e.key === "Escape") { hideDD(); }
     else if (e.key === "Enter") { e.preventDefault(); pick(ddItems[ddIdx >= 0 ? ddIdx : 0]); }
   });
@@ -4524,9 +4592,14 @@ window.addEventListener("popstate", () => {
   });
   $("v2Form").addEventListener("submit", e => {
     e.preventDefault();
-    const f = diaryMatches(food.value, 1)[0];
-    if (!f) { err.hidden = false; food.focus(); return; }
-    pick(f);
+    if (!selectedFood || !editingMeal) { err.hidden = false; food.focus(); return; }
+    const unit = portionUnits(selectedFood).find(u => u[0] === $("v2Unit").value);
+    const amount = Math.min(2000, clamp(grams.value, unit ? 0.01 : 0.1, 2000, 100) * (unit ? unit[1] : 1));
+    if (!addToDay(selectedFood.name, amount, editingMeal, unit ? unit[0] : undefined)) return;
+    const addedName = selectedFood.name;
+    food.value = ""; grams.value = "100"; err.hidden = true; clearFoodSelection();
+    hideDD(); render(); food.focus();
+    $("mealSearchHint").textContent = addedName + " added. Search for another food or choose Done.";
   });
 
   function fmtDay(iso) {
@@ -4619,27 +4692,32 @@ window.addEventListener("popstate", () => {
       const unitUI = units.length
         ? `<select class="unit-sel" data-i="${i}" aria-label="Unit for ${name}"><option value="">g</option>${units.map(([n]) => `<option value="${n}"${e.unit === n ? " selected" : ""}>${n}</option>`).join("")}</select>${u ? `<small class="unit-g">≈ ${Math.round(e.g)} g</small>` : ""}`
         : " g";
-      return `<div class="v2-item"><div><span class="nm">${name}</span><span class="food-nutrition-source">${f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
-        <span class="qty"><input type="number" min="0.1" max="2000" step="any" value="${qty}" data-i="${i}" aria-label="Amount of ${name}">${unitUI}</span></div>
-        <span class="cal">${f.kcal == null ? "—" : (f.kcal * e.g / 100).toFixed(1)}<small>${f.kcal == null ? "kcal unavailable" : "kcal"}</small></span>
+      return `<div class="v2-item"><div class="food-info"><span class="nm">${name}</span><span class="food-nutrition-source">${f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
+        </div><div class="qty"><span class="portion-label">Portion</span><input type="number" min="0.1" max="2000" step="any" value="${qty}" data-i="${i}" aria-label="Amount of ${name}">${unitUI}</div>
+        <div class="food-macros"><strong>${(f.protein_g_per_100g * e.g / 100).toFixed(1)} g protein</strong><span>${f.kcal == null ? "Calories unavailable" : Math.round(f.kcal * e.g / 100) + " kcal"}</span></div>
         <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button></div>`;
     };
     list.innerHTML = MEALS.map(([mk, ml]) => {
       const idxs = day.map((e, i) => [e, i]).filter(([e]) => e.meal === mk);
       const key = mealKey(mk);
       const expanded = expandedMeals.has(key) ? expandedMeals.get(key) : idxs.length > 0;
-      /* the meal's own macro line, always visible: athletes tune meal by meal */
+      /* Summarise each meal independently; collapsed headers retain protein and food count. */
       const mt = idxs.reduce((a, [e]) => {
         const f = foodByName(e.name);
         a.prot += f.protein_g_per_100g * e.g / 100;
         if (f.kcal != null) { a.kcal += f.kcal * e.g / 100; a.carb += (f.carb || 0) * e.g / 100; a.fat += (f.fat || 0) * e.g / 100; } else a.miss++;
         return a;
       }, { prot: 0, kcal: 0, carb: 0, fat: 0, miss: 0 });
-      const mealTotals = idxs.length ? `<p class="meal-totals">${ml} total · <b>${mt.prot.toFixed(0)} g protein</b> · ${Math.round(mt.kcal)} kcal · ${mt.carb.toFixed(0)} g carbs · ${mt.fat.toFixed(0)} g fat${mt.miss ? ` <span>(macros unknown for ${mt.miss} item${mt.miss === 1 ? "" : "s"})</span>` : ""}</p>` : "";
+      const mealTotals = idxs.length ? `<dl class="meal-totals" aria-label="${ml} totals">
+        <div><dt>Protein</dt><dd>${mt.prot.toFixed(0)} <small>g</small></dd></div>
+        <div><dt>Calories</dt><dd>${Math.round(mt.kcal)} <small>kcal</small></dd></div>
+        <div><dt>Carbs</dt><dd>${mt.carb.toFixed(0)} <small>g</small></dd></div>
+        <div><dt>Fat</dt><dd>${mt.fat.toFixed(0)} <small>g</small></dd></div>
+      </dl>${mt.miss ? `<p class="meal-missing">Partial totals: calories, carbs and fat unavailable for ${mt.miss} food${mt.miss === 1 ? "" : "s"}.</p>` : ""}` : "";
       return `<div class="meal-group meal-${mk}">
         <div class="meal-header">
-          <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span>${ml}</span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
-          ${idxs.length ? `<button type="button" class="meal-save" data-save-meal="${mk}" title="Save ${ml} as a favourite meal">☆<span class="ms-txt"> Save meal</span></button>` : ""}
+          <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span class="meal-heading">${ml}<small>${idxs.length ? idxs.length + (idxs.length === 1 ? " food" : " foods") + " · " + mt.prot.toFixed(0) + " g protein" : "No foods added"}</small></span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
+          ${idxs.length ? `<button type="button" class="meal-save" data-save-meal="${mk}" title="Save ${ml} as a favourite meal" aria-label="Save ${ml} as a favourite meal">☆</button>` : ""}
           <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="Add food to ${ml}">Add food</button>
         </div>
         <div class="meal-panel" id="meal-panel-${mk}" role="region" aria-labelledby="meal-toggle-${mk}" ${expanded ? "" : "hidden"}>
@@ -4649,7 +4727,7 @@ window.addEventListener("popstate", () => {
             <button type="button" class="linkish" id="smCancel">Cancel</button>
             <span class="auth-note sm-note">Saved meals appear when you add food, and sync to your other devices.</span>
           </div>` : ""}
-          ${idxs.length ? idxs.map(([e, i]) => rowHtml(e, i)).join("") : '<p class="meal-empty">No foods yet. Choose the meal name or Add food to start searching.</p>'}
+          ${idxs.length ? idxs.map(([e, i]) => rowHtml(e, i)).join("") : '<p class="meal-empty">Choose Add food to start this meal.</p>'}
           ${mealTotals}
         </div>
       </div>`;
@@ -4679,7 +4757,6 @@ window.addEventListener("popstate", () => {
     }
     list.querySelectorAll(".meal-toggle").forEach(b => b.addEventListener("click", () => {
       const m = b.dataset.meal;
-      if (editingMeal !== m) { openMeal(m); return; }
       const expanded = b.getAttribute("aria-expanded") !== "true";
       expandedMeals.set(mealKey(m), expanded);
       if (!expanded && editingMeal === m) { editingMeal = null; hideDD(); }
@@ -4707,6 +4784,7 @@ window.addEventListener("popstate", () => {
       const panel = $("meal-panel-" + editingMeal);
       panel.appendChild(editor); editor.hidden = false;
       $("mealEditorLabel").textContent = "Add to " + MEAL_LABEL[editingMeal];
+      $("mealAddConfirm").textContent = "Add to " + MEAL_LABEL[editingMeal];
       const empty = panel.querySelector(".meal-empty"); if (empty) empty.hidden = true;
       renderSavedMealRow();
     }
