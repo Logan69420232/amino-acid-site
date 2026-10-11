@@ -568,6 +568,21 @@
   .nutrition-meter { display: block; height: 7px; margin-top: 8px; background: var(--line); border-radius: 8px; overflow: hidden; }
   .nutrition-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--c-bcaa); }
   .nutrition-meter.is-partial > span { background: repeating-linear-gradient(135deg,var(--c-bcaa) 0 4px,var(--ink-3) 4px 7px); }
+  .omega-target { margin: 18px 0; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); }
+  .omega-target-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .omega-target-eyebrow { margin: 0 0 5px; font-size: 12px; color: var(--ink-2); }
+  .omega-target h3 { margin: 0; font-size: 21px; }
+  .omega-target-goal { padding: 7px 10px; border-radius: 8px; background: var(--surface); font-size: 14px; font-weight: 600; color: var(--c-bcaa); }
+  .omega-target-amount { margin: 16px 0 10px; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .omega-target-amount span { font-size: 13px; font-weight: 400; color: var(--ink-2); }
+  .omega-target-progress { margin: 8px 0 14px; font-size: 13px; color: var(--c-bcaa); }
+  .omega-target-components { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 14px; }
+  .omega-target-components b { margin-right: 6px; }
+  .omega-target-note, .omega-target details { font-size: 12px; line-height: 1.6; color: var(--ink-2); }
+  .omega-target details { margin-top: 14px; }
+  .omega-target summary { cursor: pointer; }
+  .omega-target details p { margin-bottom: 0; }
+  @media(max-width:480px) { .omega-target { padding: 16px; } .omega-target-amount span { display: block; margin-top: 4px; } }
   .nutrition-lipids { grid-column: 1 / -1; }
   .nutrition-lipids .nutrition-row:nth-child(2n) { background: var(--surface-2); }
   .nutrition-panel-note { padding: 10px 16px; margin: 0; font-size: 12px; color: var(--ink-2); }
