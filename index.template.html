@@ -1365,7 +1365,7 @@
   .mobile-more .mobile-more-signout { border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; margin-top: 8px; padding-top: 14px; color: var(--ink-2); }
   @media (max-width:1079px) {
     body.bottom-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
-    body.bottom-nav .topbar .menu-wrap, body.bottom-nav #authSlot { display: none; }
+    body.bottom-nav #authSlot { display: none; }
     body.bottom-nav .tray { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
   }
   @media (min-width:1080px) {
@@ -2861,7 +2861,7 @@ function navigateApp(act) {
   const mobileNav = document.getElementById("mobileNav"), more = document.getElementById("mobileMore"), moreToggle = document.getElementById("mobileMoreToggle");
   const database = document.getElementById("mobileDatabase"), databaseToggle = document.getElementById("mobileDatabaseToggle"), sidebarDatabase = document.getElementById("sidebarDatabase");
   const desktop = matchMedia("(min-width: 1080px)");
-  let collapsed = false;
+  let collapsed = false, moreOpener = moreToggle;
   const close = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); more.hidden = true; moreToggle.setAttribute("aria-expanded", "false"); database.hidden = true; databaseToggle.setAttribute("aria-expanded", "false"); };
   function sync() {
     const desktopApp = document.body.classList.contains("authed") && desktop.matches;
@@ -2877,7 +2877,7 @@ function navigateApp(act) {
     toggle.setAttribute("aria-label", collapsed ? "Expand navigation" : "Collapse navigation");
     toggle.title = collapsed ? "Expand navigation" : "Collapse navigation";
     if (desktopApp) { pop.hidden = true; btn.setAttribute("aria-expanded", String(!collapsed)); }
-    btn.setAttribute("aria-controls", desktopApp ? "appSidebar" : "mobileMenu");
+    btn.setAttribute("aria-controls", desktopApp ? "appSidebar" : mobileApp ? "mobileMore" : "mobileMenu");
     btn.setAttribute("aria-label", desktopApp ? "Expand navigation" : "Menu");
     const active = document.body.dataset.view === "compare" ? "comparefoods" : document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : document.body.dataset.view === "history" ? "history" : document.body.dataset.view === "meals" ? "meals" : document.body.dataset.view === "faq" ? "faq" : "diary";
     for (const nav of [sidebar, mobileNav, more]) nav.querySelectorAll("[data-act], [data-section]").forEach(b => { if((b.dataset.act || b.dataset.section) === (b.dataset.section === "atlas" && active === "comparefoods" ? "atlas" : active)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
@@ -2887,11 +2887,12 @@ function navigateApp(act) {
   btn.addEventListener("click", e => {
     e.stopPropagation();
     if (document.body.classList.contains("authed") && desktop.matches) { collapsed = !collapsed; sync(); if(!sidebar.hidden) document.getElementById("sidebarToggle").focus(); }
+    else if (document.body.classList.contains("authed")) { moreOpener = btn; const open = more.hidden; close(); more.hidden = !open; btn.setAttribute("aria-expanded", String(open)); moreToggle.setAttribute("aria-expanded", String(open)); if(open)document.getElementById("mobileMoreClose").focus(); }
     else { const open = pop.hidden; pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); }
   });
   toggle.addEventListener("click", () => { collapsed = !collapsed; sync(); toggle.focus(); });
-  moreToggle.addEventListener("click", () => { const open = more.hidden; close(); more.hidden = !open; moreToggle.setAttribute("aria-expanded", String(open)); if (open) document.getElementById("mobileMoreClose").focus(); });
-  document.getElementById("mobileMoreClose").addEventListener("click", () => { close(); moreToggle.focus(); });
+  moreToggle.addEventListener("click", () => { moreOpener = moreToggle; const open = more.hidden; close(); more.hidden = !open; moreToggle.setAttribute("aria-expanded", String(open)); btn.setAttribute("aria-expanded", String(open)); if (open) document.getElementById("mobileMoreClose").focus(); });
+  document.getElementById("mobileMoreClose").addEventListener("click", () => { close(); moreOpener.focus(); });
   databaseToggle.addEventListener("click", () => { const open = database.hidden; database.hidden = !open; databaseToggle.setAttribute("aria-expanded", String(open)); });
   sidebarDatabase.querySelector("summary").addEventListener("click", e => { if (collapsed) { e.preventDefault(); collapsed = false; sidebarDatabase.open = true; sync(); } });
   for (const nav of [pop, sidebar, mobileNav, more]) nav.addEventListener("click", e => {
@@ -2900,7 +2901,7 @@ function navigateApp(act) {
     if (nav === more && !overlay.hidden) lastFocus = moreToggle;
   });
   document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap, #mobileNav, #mobileMore, #mobileDatabase")) close(); });
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && (!pop.hidden || !more.hidden || !database.hidden)) { const trigger = more.hidden ? btn : moreToggle; close(); trigger.focus(); } });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && (!pop.hidden || !more.hidden || !database.hidden)) { const trigger = more.hidden ? btn : moreOpener; close(); trigger.focus(); } });
   desktop.addEventListener("change", () => {close(); sync();});
   window.__syncShell = sync; sync();
 })();
