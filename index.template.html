@@ -3570,24 +3570,39 @@ function mealItemsIntake(items) {
     return a;
   }, { prot: 0, kcal: 0, carb: 0, fat: 0, miss: 0 });
 }
-function renderMealsPage() {
+function renderMealsPage({ preserve = false, openIndex = null, removedIndex = null } = {}) {
   const page = document.getElementById("mealsPage");
+  // UI state is kept only during edits, never written into synced meal data.
+  const query = preserve ? (page.querySelector('#smFilter')?.value || '') : '';
+  const remap = i => removedIndex === null ? i : (i === removedIndex ? null : i > removedIndex ? i - 1 : i);
+  const expanded = new Set(preserve ? Array.from(page.querySelectorAll('.sm-details[open]'), d => remap(+d.dataset.i)).filter(i => i !== null) : []);
+  const slots = new Map(preserve ? Array.from(page.querySelectorAll('.sm-slot'), s => [remap(+s.dataset.i), s.value]) : []);
+  if (!preserve) _mealsAddOpen = null;
+  else _mealsAddOpen = _mealsAddOpen === null ? null : remap(_mealsAddOpen);
+  if (openIndex !== null) { expanded.add(openIndex); _mealsAddOpen = openIndex; }
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const meals = loadSavedMeals();
   page.innerHTML = `
-    <h1 id="mealsTitle" tabindex="-1">Saved meals</h1>
-    <p class="sub">Name a meal once, add it to any day in one tap. Everything here syncs to your account.</p>
-    <p class="hist-summary">${meals.length ? "" : "No saved meals yet. Build one here, or add foods to a meal in the diary and tap ☆ Save meal. "}<button type="button" class="v2-share-sec" id="smNew">＋ New meal</button></p>
-    ${meals.map((m, i) => {
+    <div class="sm-page-heading"><div><h1 id="mealsTitle" tabindex="-1">Saved meals</h1>
+    <p class="sub">Your favourites, ready to log again.</p></div>
+    <button type="button" class="v2-share-sec" id="smNew">＋ New meal</button></div>
+    ${meals.length ? `<div class="sm-filter-wrap"><label for="smFilter">Find a saved meal</label><div class="sm-filter-row"><input type="search" id="smFilter" value="${esc(query)}" placeholder="Search meals or ingredients…" autocomplete="off"><button type="button" class="linkish" id="smClear"${query ? '' : ' hidden'}>Clear</button></div></div>
+    <p id="smCount" class="sm-count" role="status" aria-live="polite"></p>
+    <p id="smNoResults" class="sm-empty" hidden>No meals match your search. Try another name or ingredient.</p>` : '<p class="sm-empty">No saved meals yet. Create one here, or choose Save meal in your food diary.</p>'}
+    <div class="sm-library">${meals.map((m, i) => {
       const t = mealItemsIntake(m.items);
-      return `<div class="hist-card">
-        <div class="hist-h">
-          <input class="sm-name" data-i="${i}" value="${esc(m.name)}" maxlength="40" aria-label="Meal name">
-          <select class="sm-slot" data-i="${i}" aria-label="Which meal to add it to">${MEALS.slice(0, 4).map(([k, l]) => `<option value="${k}"${k === currentMeal ? " selected" : ""}>${l}</option>`).join("")}</select>
-          <button type="button" class="v2-share-sec sm-add" data-i="${i}">Add to diary</button>
-          <button type="button" class="dm-del sm-del" data-i="${i}">Delete</button>
-        </div>
-        ${m.items.length ? `<p class="hist-stats"><b>${t.prot.toFixed(0)} g protein</b> · ${Math.round(t.kcal)} kcal · ${t.carb.toFixed(0)} g carbs · ${t.fat.toFixed(0)} g fat${t.miss ? ' <span class="sm-hint">(some macros unknown)</span>' : ""}</p>` : '<p class="hist-stats sm-hint">Empty meal. Search below to add foods.</p>'}
+      return `<article class="sm-card" data-i="${i}" aria-labelledby="smTitle${i}">
+        <div class="sm-card-main"><div class="sm-card-info">
+          <h2 id="smTitle${i}">${esc(m.name)}</h2>
+          ${m.items.length ? `<dl class="sm-macros"><div><dt>Protein</dt><dd>${t.prot.toFixed(0)} <small>g</small></dd></div><div><dt>Calories</dt><dd>${Math.round(t.kcal)} <small>kcal</small></dd></div><div><dt>Carbs</dt><dd>${t.carb.toFixed(0)} <small>g</small></dd></div><div><dt>Fat</dt><dd>${t.fat.toFixed(0)} <small>g</small></dd></div></dl>${t.miss ? '<p class="sm-hint">Some macros are unknown.</p>' : ''}` : '<p class="sm-hint">Add ingredients in the details below.</p>'}
+        </div><div class="sm-card-actions">
+          <label for="smSlot${i}">Add to</label>
+          <select id="smSlot${i}" class="sm-slot" data-i="${i}">${MEALS.slice(0, 4).map(([k, l]) => `<option value="${k}"${k === (slots.get(i) || currentMeal) ? " selected" : ""}>${l}</option>`).join("")}</select>
+          <button type="button" class="v2-share-sec sm-add" data-i="${i}"${m.items.length ? '' : ' disabled'}>Add to diary</button>
+        </div></div>
+        <details class="sm-details" data-i="${i}"${expanded.has(i) ? ' open' : ''}>
+          <summary><span class="sm-view">View details</span><span class="sm-hide">Hide details</span><span class="sm-food-count">${m.items.length} ${m.items.length === 1 ? 'food' : 'foods'}</span></summary>
+          <div class="sm-detail-body"><label class="sm-name-label">Meal name<input class="sm-name" data-i="${i}" value="${esc(m.name)}" maxlength="40"></label>
         <div class="sm-items">${m.items.map((it, j) => `<div class="sm-item">
           <span class="nm">${esc(it.name)}</span>
           <input type="number" min="0.1" max="2000" step="any" value="${it.g}" data-i="${i}" data-j="${j}" aria-label="Grams of ${esc(it.name)}"> g
@@ -3599,28 +3614,55 @@ function renderMealsPage() {
           <button type="button" class="linkish sm-addclose" data-i="${i}">Done</button>
           <div class="sm-dd" data-i="${i}" hidden></div>
         </div>` : `<button type="button" class="linkish sm-addfood" data-i="${i}">＋ Add food to this meal</button>`}
-      </div>`;
-    }).join("")}`;
+          <button type="button" class="dm-del sm-del" data-i="${i}">Delete meal</button>
+          </div></details>
+      </article>`;
+    }).join("")}</div>`;
+  const normalize = value => value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const filter = page.querySelector('#smFilter');
+  function filterMeals() {
+    const words = normalize(filter?.value || '').trim().split(/\s+/).filter(Boolean);
+    const list = loadSavedMeals();
+    let count = 0;
+    page.querySelectorAll('.sm-card').forEach(card => {
+      const meal = list[+card.dataset.i];
+      const text = normalize([meal.name, ...meal.items.map(it => it.name)].join(' '));
+      card.hidden = !words.every(word => text.includes(word));
+      if (!card.hidden) count++;
+    });
+    if (filter) {
+      page.querySelector('#smCount').textContent = words.length ? `${count} of ${list.length} meals` : `${list.length} saved ${list.length === 1 ? 'meal' : 'meals'}`;
+      page.querySelector('#smNoResults').hidden = count !== 0;
+      page.querySelector('#smClear').hidden = !filter.value;
+    }
+  }
+  filter?.addEventListener('input', filterMeals);
+  page.querySelector('#smClear')?.addEventListener('click', () => { filter.value = ''; filterMeals(); filter.focus(); });
+  filterMeals();
   page.querySelectorAll(".sm-name").forEach(inp => inp.addEventListener("change", () => {
     const l = loadSavedMeals();
     const name = inp.value.trim().slice(0, 40);
     if (!name) { inp.value = l[+inp.dataset.i].name; return; }
     l[+inp.dataset.i].name = name;
     saveSavedMeals(l);
+    page.querySelector(`#smTitle${inp.dataset.i}`).textContent = name;
+    filterMeals();
+    if (window.__v2Render) window.__v2Render();
   }));
   page.querySelectorAll(".sm-item input").forEach(inp => inp.addEventListener("change", () => {
     const l = loadSavedMeals();
     const v = +inp.value;
     l[+inp.dataset.i].items[+inp.dataset.j].g = v > 0 ? Math.min(2000, v) : 100;
     saveSavedMeals(l);
-    renderMealsPage();
+    renderMealsPage({ preserve: true });
   }));
   page.querySelectorAll(".sm-rm").forEach(b => b.addEventListener("click", () => {
     const l = loadSavedMeals();
     l[+b.dataset.i].items.splice(+b.dataset.j, 1);
-    if (!l[+b.dataset.i].items.length) l.splice(+b.dataset.i, 1); // an empty meal has nothing left to save
+    const emptied = !l[+b.dataset.i].items.length;
+    if (emptied) l.splice(+b.dataset.i, 1); // an empty meal has nothing left to save
     saveSavedMeals(l);
-    renderMealsPage();
+    renderMealsPage({ preserve: true, removedIndex: emptied ? +b.dataset.i : null });
     if (window.__v2Render) window.__v2Render(); // the diary's saved-meal pickers must not go stale
   }));
   page.querySelectorAll(".sm-del").forEach(b => b.addEventListener("click", () => {
@@ -3628,7 +3670,7 @@ function renderMealsPage() {
     const l = loadSavedMeals();
     l.splice(+b.dataset.i, 1);
     saveSavedMeals(l);
-    renderMealsPage();
+    renderMealsPage({ preserve: true, removedIndex: +b.dataset.i });
     if (window.__v2Render) window.__v2Render();
   }));
   page.querySelectorAll(".sm-add").forEach(b => b.addEventListener("click", () => {
@@ -3645,20 +3687,19 @@ function renderMealsPage() {
     const l = loadSavedMeals();
     l.unshift({ name: "New meal", items: [] });
     saveSavedMeals(l);
-    _mealsAddOpen = 0;
-    renderMealsPage();
+    renderMealsPage({ openIndex: 0 });
     const nm = page.querySelector('.sm-name[data-i="0"]');
     if (nm) { nm.focus(); nm.select(); }
   });
   page.querySelectorAll(".sm-addfood").forEach(b => b.addEventListener("click", () => {
     _mealsAddOpen = +b.dataset.i;
-    renderMealsPage();
+    renderMealsPage({ preserve: true });
     const s = page.querySelector(".sm-search");
     if (s) s.focus();
   }));
   page.querySelectorAll(".sm-addclose").forEach(b => b.addEventListener("click", () => {
     _mealsAddOpen = null;
-    renderMealsPage();
+    renderMealsPage({ preserve: true });
   }));
   const search = page.querySelector(".sm-search");
   if (search) {
@@ -3685,7 +3726,7 @@ function renderMealsPage() {
           const hit = meal.items.find(it => it.name === f.name);
           if (hit) hit.g += g; else meal.items.push({ name: f.name, g });
           saveSavedMeals(l);
-          renderMealsPage();
+          renderMealsPage({ preserve: true });
           if (window.__v2Render) window.__v2Render();
           const s2 = page.querySelector(".sm-search");
           if (s2) s2.focus();
