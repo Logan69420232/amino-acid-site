@@ -768,13 +768,13 @@
   .history-scale span:nth-child(1) { top: 33px; }
   .history-scale span:nth-child(2) { top: 108px; }
   .history-scale span:nth-child(3) { top: 183px; }
-  .history-bars { height: 222px; display: flex; align-items: stretch; position: relative; gap: 8px; padding: 20px 8px 0; background: linear-gradient(var(--line),var(--line)) left 33px / 100% 1px no-repeat, linear-gradient(var(--line),var(--line)) left 108px / 100% 1px no-repeat, linear-gradient(var(--line),var(--line)) left 183px / 100% 1px no-repeat; }
-  .history-bar-day { flex: 1; position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px; min-width: 44px; padding: 0 0 2px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; font: inherit; }
+  .history-bars { height: 222px; display: flex; align-items: stretch; position: relative; gap: 3px; padding: 20px 2px 0; background: linear-gradient(var(--line),var(--line)) left 33px / 100% 1px no-repeat, linear-gradient(var(--line),var(--line)) left 108px / 100% 1px no-repeat, linear-gradient(var(--line),var(--line)) left 183px / 100% 1px no-repeat; }
+  .history-bar-day { flex: 1; position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px; min-width: 0; padding: 0 0 2px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; font: inherit; }
   .history-bar-value { font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .history-bar { width: 65%; max-width: 52px; border-radius: 5px 5px 0 0; background: var(--c-bcaa); opacity: .45; flex-shrink: 0; }
   .history-bar.is-met { opacity: 1; }
   .history-bar-day:hover .history-bar { opacity: .85; }
-  .history-bar-date { min-height: 32px; padding-top: 5px; font-size: 11px; white-space: nowrap; }
+  .history-bar-date { height: 32px; padding-top: 2px; font-size: 11px; line-height: 14px; white-space: nowrap; display: flex; flex-direction: column; align-items: center; }
   .history-goal-line { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--ink-2); pointer-events: none; z-index: 1; }
   .history-chart-caption { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-2); font-size: 12px; line-height: 1.5; margin: 10px 0 0; }
   .history-chart-caption .goal-key::before { content: ''; display: inline-block; width: 20px; border-top: 1px dashed var(--ink-2); vertical-align: middle; margin-right: 6px; }
@@ -2988,6 +2988,10 @@ function saveAccountType(atype, role) {
 }
 let onboardAfterAuth = false;
 let _pushTimer = null, _lastPushed = "", _accountEpoch = 0, _syncReadyOwner = null;
+let _historySyncError = false;
+function refreshHistoryIfVisible() {
+  if (document.body.dataset.view === "history") renderHistoryPage({focus:false});
+}
 function isCurrentAccount(userId, epoch) {
   return !!userId && authedUser?.id === userId && store.owner === userId && _accountEpoch === epoch;
 }
@@ -3032,7 +3036,10 @@ function schedulePush() {
           store.setItem("aa_sync_base", JSON.stringify(payload));
           store.setItem("aa_log", JSON.stringify(current));
           _lastPushed = JSON.stringify(payload);
-          if (JSON.stringify(current) !== JSON.stringify(before) && window.__v2Render) window.__v2Render();
+          if (JSON.stringify(current) !== JSON.stringify(before)) {
+            if (window.__v2Render) window.__v2Render();
+            refreshHistoryIfVisible();
+          }
           syncMessage("");uiSetSaveState("Saved to your account","saved");
           if (JSON.stringify(current) !== JSON.stringify(merged)) schedulePush();
           return;
@@ -3093,9 +3100,12 @@ async function syncOnLogin(userId, epoch) {
   const c = sbReady();
   if (!c || !isCurrentAccount(userId, epoch)) return;
   const revision = store.revision;
+  _historySyncError = false;
+  refreshHistoryIfVisible();
   try {
     const { data, error } = await c.from("logs").select("data").eq("user_id", userId).maybeSingle();
-    if (error || !isCurrentAccount(userId, epoch)) return undefined;
+    if (!isCurrentAccount(userId, epoch)) return undefined;
+    if (error) throw error;
     const remote = data && data.data;
     if (remote && revision === store.revision) applySettings(remote.settings);
     /* Even when the full apply is skipped because this device wrote during the
@@ -3108,9 +3118,13 @@ async function syncOnLogin(userId, epoch) {
     store.setItem("aa_sync_base", JSON.stringify(remote || {days:[],active:0}));
     saveLog(merged);
     if (window.__v2Render) window.__v2Render();
+    refreshHistoryIfVisible();
     schedulePush();
     return remote || null;
-  } catch (e) { return undefined; }
+  } catch (e) {
+    if (isCurrentAccount(userId, epoch)) { _historySyncError = true; refreshHistoryIfVisible(); }
+    return undefined;
+  }
 }
 function renderAuthSlot(session) {
   if (document.body.dataset.view === "account" && (!session || !document.getElementById("acctSave"))) renderAccountPage();
@@ -3445,7 +3459,7 @@ function historyCSV(chrono) {
   return lines.join("\n");
 }
 let uiHistoryMonth="";
-function renderHistoryPage() {
+function renderHistoryPage({focus = true} = {}) {
   const page = document.getElementById("historyPage");
   const log = loadLog();
   const target = getThriveG(getWeight());
@@ -3454,8 +3468,15 @@ function renderHistoryPage() {
   const fmt = iso => dateFormat(iso, { weekday: "short", day: "numeric", month: "short" });
   const shortDate = iso => dateFormat(iso, { day: "numeric", month: "short" });
   const allDays=log.days.map((d,i)=>({d,i,...dayIntake(d)}));
+  const allLogged=allDays.filter(x=>x.d.entries.length);
+  const loggedMonths=new Set(allLogged.map(x=>x.d.date.slice(0,7)));
+  const waitingForSync=!!authedUser && _syncReadyOwner!==authedUser.id;
+  const syncPending=waitingForSync && !_historySyncError;
+  const syncFailed=!!authedUser && _historySyncError;
+  const latestLoggedMonth=allLogged.map(x=>x.d.date.slice(0,7)).sort().at(-1);
+  const countLabel=`${allLogged.length} logged ${allLogged.length===1?'day':'days'} across ${loggedMonths.size} ${loggedMonths.size===1?'month':'months'}`;
   const months=[...new Set(allDays.map(x=>x.d.date.slice(0,7)))].sort().reverse();
-  if(!months.includes(uiHistoryMonth))uiHistoryMonth=months[0]||todayISO().slice(0,7);
+  if(!months.includes(uiHistoryMonth))uiHistoryMonth=latestLoggedMonth||months[0]||todayISO().slice(0,7);
   const days=allDays.filter(x=>x.d.date.startsWith(uiHistoryMonth));
   const logged = days.filter(x => x.d.entries.length);
   const chrono = days.slice().sort((a, b) => a.d.date.localeCompare(b.d.date));
@@ -3464,7 +3485,7 @@ function renderHistoryPage() {
   const avg = logged.length ? logged.reduce((s, x) => s + x.prot, 0) / logged.length : 0;
   const dayTarget = x => x.d.t || target;
   const hit = logged.filter(x => x.prot >= dayTarget(x)).length;
-  const weekEnd=chrono.at(-1)?.d.date||todayISO();
+  const weekEnd=chartDays.at(-1)?.d.date||todayISO();
   const weekStartDate=new Date(weekEnd+'T12:00:00');weekStartDate.setDate(weekStartDate.getDate()-6);
   const weekStart=weekStartDate.getFullYear()+'-'+String(weekStartDate.getMonth()+1).padStart(2,'0')+'-'+String(weekStartDate.getDate()).padStart(2,'0');
   const recentWeek=allDays.filter(x=>x.d.entries.length&&x.d.date>=weekStart&&x.d.date<=weekEnd);
@@ -3475,7 +3496,8 @@ function renderHistoryPage() {
       <div><h1 id="historyTitle" tabindex="-1">Progress</h1><p class="sub">Your diary over time. Every saved month stays available.</p></div>
       ${logged.length ? `<button type="button" class="history-export" id="histCsv" aria-label="Download CSV" title="Download CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/></svg><span class="history-export-text">Download CSV</span></button>` : ""}
     </div>
-    <div class="history-month"><label for="historyMonth">Month</label><select id="historyMonth">${months.map(m=>`<option value="${m}"${m===uiHistoryMonth?' selected':''}>${new Date(m+'-02T12:00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'})}</option>`).join('')}</select><span>${allDays.length} saved days across ${months.length} months</span></div>
+    <div class="history-month"><label for="historyMonth">Month</label><select id="historyMonth">${months.map(m=>`<option value="${m}"${m===uiHistoryMonth?' selected':''}>${new Date(m+'-02T12:00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'})}</option>`).join('')}</select><span>${syncPending ? "Loading saved days…" : countLabel}</span></div>
+    ${syncPending?'<p class="history-sync-status" role="status">Loading your saved diary from your account…</p>':syncFailed?'<p class="history-sync-status" role="status">Could not load your latest diary. Only days available on this device are shown. <button type="button" class="linkish" id="historyRetrySync">Retry sync</button></p>':''}
     ${logged.length ? `
     <dl class="history-overview" aria-label="Your overview">
       <div class="history-stat"><dt>Avg. protein</dt><dd>${avg.toFixed(0)} <small>g</small></dd><p>per logged day</p></div>
@@ -3484,10 +3506,10 @@ function renderHistoryPage() {
     </dl>
     <p class="weekly-insight"><b>Your latest week in this month</b><span>${Math.round(weekAverage)} g protein per logged day · ${recentWeek.length} of 7 days logged · week ending ${esc(fmt(weekEnd))}</span></p>
     <section class="history-trends" aria-labelledby="histTrendsTitle">
-      <div class="history-section-head"><div><h2 id="histTrendsTitle">Your trends</h2><p>Logged days, oldest to newest</p></div>
+      <div class="history-section-head"><div><h2 id="histTrendsTitle">Your trends</h2><p>${chartDays.length} logged ${chartDays.length===1?'day':'days'} · oldest to newest</p></div>
         <label class="history-metric"><span>Metric</span><select id="histMetric">${metrics.map(([k,l])=>`<option value="${k}"${_histMetric===k?' selected':''}>${l}</option>`).join("")}</select></label>
-      </div><div id="histChart"></div>
-    </section>` : `<div class="history-empty"><h2>Your progress starts with a meal</h2><p>Add food to your diary to see your daily totals and trends here.</p><button type="button" class="history-export" id="historyStart">Open food diary</button></div>`}
+      </div>${chartDays.length>7?'<p class="hist-chart-note">All logged days are included. Swipe or scroll sideways to see earlier dates.</p>':''}<div id="histChart"></div>
+    </section>` : syncPending||syncFailed ? '' : allLogged.length ? `<div class="history-empty"><h2>No food logged in this month</h2><p>Your ${allLogged.length} logged ${allLogged.length===1?'day is':'days are'} available in the other months above.</p><button type="button" class="history-export" id="historyLatestMonth">View latest logged month</button></div>` : `<div class="history-empty"><h2>Your progress starts with a meal</h2><p>Add food to your diary to see your daily totals and trends here.</p><button type="button" class="history-export" id="historyStart">Open food diary</button></div>`}
     <div class="history-section-head"><div><h2>Your days</h2><p>Newest first · open a day to view or edit</p></div></div>
     <div class="history-day-grid">${newestFirst.map(x => {
       const percent = Math.round(x.prot / dayTarget(x) * 100);
@@ -3507,6 +3529,8 @@ function renderHistoryPage() {
     }).join("")}</div>
     ${logged.length ? `<details class="history-export-notes"><summary>About your data &amp; CSV download</summary><p>The overview uses days with food entries. Each day is compared with its saved protein target, or your current target if none was saved. Trends show one point per logged day; gaps between dates are not empty days.</p><p>CSV includes all saved days, with each food and day total, with macros, amino acids, vitamins and minerals. Units appear in the column headings (ug = micrograms). Status columns flag partial, trace or unknown nutrient amounts; blank amounts mean no numeric data, not zero.</p></details>` : ""}`;
   page.querySelector("#historyMonth").onchange=e=>{uiHistoryMonth=e.target.value;renderHistoryPage();};
+  page.querySelector('#historyRetrySync')?.addEventListener('click',()=>{if(authedUser) syncOnLogin(authedUser.id,_accountEpoch);});
+  page.querySelector('#historyLatestMonth')?.addEventListener('click',()=>{uiHistoryMonth=latestLoggedMonth;renderHistoryPage();});
   function openDay(index) {
     if (!overlay.hidden) closeDetail(false);
     const l = loadLog(); l.active = index; saveLog(l);
@@ -3522,7 +3546,7 @@ function renderHistoryPage() {
       const n = chartDays.length;
       const rawMax = Math.max(1, ...series.flatMap(([k]) => chartDays.map(x => x[k] ?? 0)));
       const step = niceStep(rawMax, 4), maxV = Math.ceil(rawMax / step) * step;
-      const W = Math.max(360,n*64), H = 230, padL = 42, padR = 24, padT = 16, padB = 32;
+      const W = Math.max(360,n*44), H = 230, padL = 42, padR = 24, padT = 16, padB = 32;
       const X = i => n===1 ? (padL+W-padR)/2 : padL+i*(W-padL-padR)/(n-1);
       const Y = v => padT+(H-padT-padB)*(1-v/maxV);
       let grid = "";
@@ -3534,16 +3558,16 @@ function renderHistoryPage() {
         if(points.length) segments.push(points);
         return segments.map(p=>`<polyline points="${p.join(' ')}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>`).join('')+chartDays.map((x,i)=>x[k]===null?'':`<circle cx="${X(i)}" cy="${Y(x[k])}" r="3.5" fill="${color}"><title>${label}: ${x[k].toFixed(0)} g · ${esc(fmt(x.d.date))}</title></circle>`).join('');
       }).join('');
-      return `<div class="history-chart-scroll" tabindex="0" role="region" aria-label="Macro trend chart, scroll for all dates"><svg viewBox="0 0 ${W} ${H}" style="display:block;width:100%;min-width:${W}px" role="img" aria-label="Protein, carbs and fat in grams per logged day">${grid}${lines}${chartDays.map((x,i)=>`<text x="${X(i)}" y="${H-8}" text-anchor="middle" class="hl-x">${esc(shortDate(x.d.date))}</text>`).join('')}</svg></div>
-        <p class="hist-legend">${series.map(([,l,c])=>`<span><span class="dot" style="background:${c}"></span>${l}</span>`).join('')}</p><p class="hist-chart-note">Grams per logged day. Scroll for all dates. Totals use available data; some foods may have missing macros.</p>`;
+      return `<div class="history-chart-scroll" tabindex="0" role="region" aria-label="Macro trend chart${n>7?', scroll for all dates':''}"><svg viewBox="0 0 ${W} ${H}" style="display:block;width:100%;min-width:${n<=7?0:W}px" role="img" aria-label="Protein, carbs and fat in grams per logged day">${grid}${lines}${chartDays.map((x,i)=>`<text x="${X(i)}" y="${H-8}" text-anchor="middle" class="hl-x">${esc(shortDate(x.d.date))}</text>`).join('')}</svg></div>
+        <p class="hist-legend">${series.map(([,l,c])=>`<span><span class="dot" style="background:${c}"></span>${l}</span>`).join('')}</p><p class="hist-chart-note">Grams per logged day.${n>7?' Swipe or scroll sideways for all dates.':''} Totals use available data; some foods may have missing macros.</p>`;
     }
     const unit = m==='kcal'?'kcal':'g', label = metrics.find(([k])=>k===m)[1];
     const maxV = Math.max(m==='prot'?target:1,...chartDays.map(x=>x[m]??0),1);
     const height = v => v/maxV*150;
-    return `<div class="history-chart-frame"><div class="history-scale" aria-hidden="true"><span>${Math.round(maxV)}</span><span>${Math.round(maxV/2)}</span><span>0</span></div><div class="history-chart-scroll" tabindex="0" role="region" aria-label="${label} chart, scroll for all dates"><div class="history-bars" style="min-width:${chartDays.length*56}px">
+    return `<div class="history-chart-frame"><div class="history-scale" aria-hidden="true"><span>${Math.round(maxV)}</span><span>${Math.round(maxV/2)}</span><span>0</span></div><div class="history-chart-scroll" tabindex="0" role="region" aria-label="${label} chart${chartDays.length>7?', scroll for all dates':''}"><div class="history-bars" style="min-width:${chartDays.length<=7?0:chartDays.length*40}px">
       ${m==='prot'?`<span class="history-goal-line" style="bottom:${39+height(target)}px" aria-hidden="true"></span>`:''}
-      ${chartDays.map(x=>{const v=x[m];return `<button type="button" class="history-bar-day" data-i="${x.i}" aria-label="${esc(fmt(x.d.date))}: ${v===null?'unavailable':v.toFixed(0)+' '+unit} ${label.toLowerCase()}. Open day."><span class="history-bar-value">${m==='prot'&&v>=dayTarget(x)?'✓ ':''}${v===null?'—':v.toFixed(0)}</span><span class="history-bar${m==='prot'&&v>=dayTarget(x)?' is-met':''}" style="height:${v===null?0:Math.max(height(v),v>0?2:0)}px"></span><span class="history-bar-date">${esc(shortDate(x.d.date))}</span></button>`;}).join('')}
-    </div></div></div><p class="history-chart-caption"><span>${label} · ${unit} per day</span>${m==='prot'?`<span class="goal-key">Current target: ${target.toFixed(0)} g</span><span class="bar-key">✓ Target reached</span><span>Light bars: below target</span>`:''}</p><p class="hist-chart-note">Tap a bar to open that day.${chartDays.length>5?' Scroll for all dates.':''}${m!=='prot'?' Totals use available food data.':''}</p>`;
+      ${chartDays.map(x=>{const v=x[m];return `<button type="button" class="history-bar-day" data-i="${x.i}" aria-label="${esc(fmt(x.d.date))}: ${v===null?'unavailable':v.toFixed(0)+' '+unit} ${label.toLowerCase()}. Open day."><span class="history-bar-value">${v===null?'—':v.toFixed(0)}</span><span class="history-bar${m==='prot'&&v>=dayTarget(x)?' is-met':''}" style="height:${v===null?0:Math.max(height(v),v>0?2:0)}px"></span><span class="history-bar-date">${shortDate(x.d.date).split(' ').map(part=>`<span>${esc(part)}</span>`).join('')}</span></button>`;}).join('')}
+    </div></div></div><p class="history-chart-caption"><span>${label} · ${unit} per day</span>${m==='prot'?`<span class="goal-key">Current target: ${target.toFixed(0)} g</span><span class="bar-key">Target reached</span><span>Light bars: below target</span>`:''}</p><p class="hist-chart-note">Tap a bar to open that day.${chartDays.length>7?' Swipe or scroll sideways for all dates.':''}${m!=='prot'?' Totals use available food data.':''}</p>`;
   }
   const chartEl = page.querySelector("#histChart");
   function renderChart() {
@@ -3557,7 +3581,7 @@ function renderHistoryPage() {
     page.querySelector('#histMetric').addEventListener('change',e=>{_histMetric=e.target.value;renderChart();});
   }
   page.querySelector('#histCsv')?.addEventListener('click',()=>downloadCSV('aminodata-diary-'+todayISO()+'.csv',historyCSV(allDays)));
-  page.querySelector('#historyTitle').focus();
+  if(focus) page.querySelector('#historyTitle').focus();
 }
 
 /* ================= saved meals: the library page ================= */
@@ -3814,6 +3838,9 @@ function applyAccountSession(session) {
     _accountEpoch++;
     _lastPushed = "";
     _syncReadyOwner = null;
+    _historySyncError = false;
+    uiHistoryMonth = "";
+    document.getElementById("historyPage").innerHTML = "";
     intakeSyncUser = null;
     uiResetAccountState();
     store.setOwner(user?.id);
@@ -3829,6 +3856,7 @@ function applyAccountSession(session) {
   }
   renderAuthSlot(session);
   if (window.__v2Render) window.__v2Render();
+  refreshHistoryIfVisible();
   if (session) syncSignedInSession(session);
 }
 function syncSignedInSession(session) {

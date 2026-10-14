@@ -25,17 +25,20 @@ function nutritionDashboard(day, {epaDhaGoalMg} = {}) {
       return `<li class="${r.value===null?'is-unknown':''}"><span class="ns-name">${esc(r.name)} <small>${Nutrition.format(r.g)} g</small></span><span class="ns-bar" aria-hidden="true"><span style="width:${r.share===null?0:Math.min(100,r.share*100).toFixed(2)}%"></span></span><span class="ns-amt">${amt}</span><span class="ns-pct">${pct}</span></li>`;
     }).join('')}</ul></div>`;
   }
+  const omegaComponents = {omega_3:['ala','dha','epa','dpa'], omega_6:['la','aa_fat']};
+  const omegaChildren = new Set(Object.values(omegaComponents).flat());
   function row(d) {
-    const t=total(d.key), lipid=d.group==='Lipids';
+    const t=total(d.key), lipid=d.group==='Lipids', components=omegaComponents[d.key];
     const dv=lipid ? Nutrition.lipidGuidance(d.key,t,combinedOmega) : Nutrition.dailyValue(d.key,t);
     const mg=lipid && ['epa','dha'].includes(d.key);
     const shown=mg?{...t,value:t.value===null?null:t.value*1000}:t;
     const label=lipid ? `<span class="lipid-reference">${esc(dv.label)}</span>${dv.progress?`<small class="lipid-progress${dv.over?' is-over':''}">${esc(dv.progress)}${dv.over?' · limit reached or exceeded':''}</small>`:''}` : esc(dv.label)+(dv.percent!==null&&dv.partial?'<small>Partial reference %</small>':'');
-    return `<details class="nutrition-row${lipid?' lipid-row':''}" data-nutrient="${d.key}"><summary><span class="nutrition-label" style="--nutrient-depth:${lipidDepth[d.key]||0}">${esc(d.label)}${d.key==='epa'?'<small class="lipid-shared-note">Progress includes DHA</small>':''}${meter(dv)}</span><span class="nutrition-amount">${display(shown,mg?'mg':d.unit)}${(t.missing||t.derived)&&t.value!==null?'<small>Partial amount</small>':''}<span class="nutrition-dv" data-dv="${d.key}">${label}</span></span></summary>
+    return `<details class="nutrition-row${lipid?' lipid-row':''}${components?' omega-group':''}" data-nutrient="${d.key}"${components?` data-diary-section="${d.key.replace('_','-')}"`:''}><summary><span class="nutrition-label" style="--nutrient-depth:${components?1:lipidDepth[d.key]||0}">${components?'<span class="omega-chevron" aria-hidden="true">›</span>':''}${components?'Total ':''}${esc(d.label)}${components?'<small class="omega-open-label">View targets &amp; breakdown</small><small class="omega-close-label">Hide targets &amp; breakdown</small>':''}${d.key==='epa'?'<small class="lipid-shared-note">Progress includes DHA</small>':''}${meter(dv)}</span><span class="nutrition-amount">${display(shown,mg?'mg':d.unit)}${(t.missing||t.derived)&&t.value!==null?'<small>Partial amount</small>':''}${components?'':`<span class="nutrition-dv" data-dv="${d.key}">${label}</span>`}</span></summary>
+      ${components?`<div class="omega-components"><p class="omega-family-note">${d.key==='omega_3'?'ALA and EPA + DHA have separate targets. ALA does not count towards your EPA + DHA goal.':'The target below applies to linoleic acid (LA), the main omega-6 fat.'}</p>${components.map(key=>row(Nutrition.definitions.find(def=>def.key===key))).join('')}</div><details class="omega-total-sources"><summary>How this total is calculated</summary>`:''}
       ${sourcesList(d)}
       <p>${dv.reference?'100% DV = '+Nutrition.format(dv.reference)+' '+esc(d.unit)+'. ':''}${esc(dv.reason)}${d.key==='sodium'?' This is a limit reference, not a goal to fill.':''}${lipid&&dv.source?' <a href="'+dv.source+'" target="_blank" rel="noopener">Reference guidance</a>':''}</p>
       ${t.derived?`<p>${t.derived} entr${t.derived===1?'y uses':'ies use'} a partial component sum because no omega total was reported: ${d.key==='omega_3'?'ALA + DHA + EPA + DPA':'LA + arachidonic acid'}, where known. Other or unidentified fatty acids may be missing. A reported total takes priority and is never added to its components.</p>`:''}
-      <p>Measured or reported amounts available for ${t.known} of ${day.length} logged entries.${t.trace?' '+t.trace+' report a trace amount, not included in the numeric total.':''}${t.missing?' Missing data for: '+t.missingFoods.map(esc).join('; ')+'.':''}</p></details>`;
+      <p>Measured or reported amounts available for ${t.known} of ${day.length} logged entries.${t.trace?' '+t.trace+' report a trace amount, not included in the numeric total.':''}${t.missing?' Missing data for: '+t.missingFoods.map(esc).join('; ')+'.':''}</p>${components?'</details>':''}</details>`;
   }
   const sources=day.map(e=>foodByName(e.name)).filter((f,i,a)=>a.findIndex(x=>x.key===f.key)===i);
   return `<section class="nutrition-dashboard" aria-labelledby="nutritionTitle">
@@ -47,8 +50,8 @@ function nutritionDashboard(day, {epaDhaGoalMg} = {}) {
     }).join('')}</div>
     <div class="nutrition-panels">${['Vitamins','Minerals','Lipids','More nutrition'].map(group=>`<details class="nutrition-panel${group==='Lipids'?' nutrition-lipids':''}" data-diary-section="${group.toLowerCase().replaceAll(' ','-')}" >
       <summary>${group==='More nutrition'?'Carbohydrates, sugars & fibre':group}</summary>
-      ${group==='Lipids'?'<p class="nutrition-panel-note">Adult guidance · fat, ALA, LA and saturated/trans-fat figures use a 2,000 kcal reference diet. Targets, ranges and limits are labelled separately. EPA and DHA share one target. Indented fats are included in the totals above; do not add them again. Tap a row for sources and data coverage.</p>':''}
-      ${Nutrition.definitions.filter(d=>d.group===group&&(!d.basis||datasets.has(d.basis))).map(row).join('')}
+      ${group==='Lipids'?'<p class="nutrition-panel-note">Adult guidance · fat, ALA, LA and saturated/trans-fat figures use a 2,000 kcal reference diet. Targets, ranges and limits are labelled separately. Open Omega-3 or Omega-6 for their targets and breakdown. These fats are already included in total fat. Tap any other row for sources and data coverage.</p>':''}
+      ${Nutrition.definitions.filter(d=>d.group===group&&!omegaChildren.has(d.key)&&(!d.basis||datasets.has(d.basis))).map(row).join('')}
     </details>`).join('')}</div>
     <details class="nutrition-sources" data-diary-section="nutrition-sources"><summary>Food sources and measurement notes</summary>
       <p>All values are scaled from 100 g of edible food. USDA carbohydrate by difference and CoFID available carbohydrate (monosaccharide equivalents) are shown separately, as are sugars and the different vitamin A, D and E definitions. A trace amount is preserved as trace, never treated as a measured zero. Vitamin K here is K1; folate is total folate, not dietary folate equivalents.</p>
