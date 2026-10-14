@@ -148,11 +148,11 @@ test('DV bars cap visually, retain percentage text, mark partial coverage and om
   const context=vm.createContext({Nutrition,foodByName:()=>food});
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../nutrition-ui.js'),'utf8'),context);
   const html=context.nutritionDashboard([{name:'a',g:100}]);
-  const section=key=>html.match(new RegExp('data-nutrient="'+key+'"[\\s\\S]*?</details>'))[0];
+  const section=key=>lipidSection(html,key);
   assert.match(section('vitamin_c'),/width:100.00%/);assert.match(section('vitamin_c'),/200% DV/);
   assert.match(section('iron'),/width:0.00%/);
   assert.doesNotMatch(section('iodine'),/nutrition-meter/);
-  assert.doesNotMatch(section('omega_3'),/nutrition-meter/);
+  assert.doesNotMatch(section('omega_3').split('</summary>')[0],/nutrition-meter/);
   assert.match(section('omega_3'),/Partial amount/);
   assert.match(section('omega_3'),/partial component sum/);
   assert.match(html,/<summary>Lipids<\/summary>/);
@@ -278,13 +278,23 @@ test('EPA + DHA target preserves zero, missing components, trace and empty logs'
   assert.ok(Math.abs(p.valueMg-300)<1e-9);assert.equal(p.partial,true);
 });
 
-function renderLipidTest(nutrients) {
+function renderLipidTest(nutrients, options) {
   const vm=require('node:vm'),fs=require('node:fs');
   const context=vm.createContext({Nutrition,foodByName:()=>({key:'f',name:'Food',nutrients})});
   vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../nutrition-ui.js'),'utf8'),context);
-  return context.nutritionDashboard([{name:'f',g:100}]);
+  return context.nutritionDashboard([{name:'f',g:100}], options);
 }
-const lipidSection=(html,key)=>html.match(new RegExp('data-nutrient="'+key+'"[\\s\\S]*?</details>'))[0];
+function lipidSection(html,key) {
+  const marker=html.indexOf('data-nutrient="'+key+'"');
+  assert.notEqual(marker,-1);
+  const start=html.lastIndexOf('<details',marker);
+  let depth=0;
+  for(const match of html.slice(start).matchAll(/<\/?details\b[^>]*>/g)) {
+    depth+=match[0].startsWith('</')?-1:1;
+    if(depth===0)return html.slice(start,start+match.index+match[0].length);
+  }
+  assert.fail('Unclosed nutrient section: '+key);
+}
 
 test('existing EPA/DHA rows share one combined target without a duplicate card', () => {
   const html=renderLipidTest({epa:0.1,dha:0.4});
@@ -322,4 +332,21 @@ test('every lipid has guidance with target, range and limit semantics distinct f
   assert.match(lipidSection(html,'saturated_fat'),/is-limit is-over/);assert.match(lipidSection(html,'trans_fat'),/Limit: &lt;2.2 g/);
   assert.match(lipidSection(html,'ala'),/Target: 1.1 g/);assert.match(lipidSection(html,'la'),/Target: 8.9 g/);
   assert.doesNotMatch(lipidSection(html,'mono_fat'),/nutrition-meter/);
+});
+
+
+test('omega groups preserve total arithmetic and keep the chosen component targets inside the correct family',()=>{
+  const html=renderLipidTest({omega_3:4,ala:3,epa:0.1,dha:0.2,dpa:0.4,omega_6:12,la:8,aa_fat:0.5},{epaDhaGoalMg:1500});
+  const three=lipidSection(html,'omega_3'),six=lipidSection(html,'omega_6');
+  assert.match(three.split('</summary>')[0],/4 g/);
+  assert.match(six.split('</summary>')[0],/12 g/);
+  assert.doesNotMatch(three.split('</summary>')[0],/nutrition-meter|100%|target reached/i);
+  assert.match(three,/EPA \+ DHA goal: 1,500 mg/);
+  assert.match(three,/20% of combined target/); // Abundant ALA does not cover the EPA/DHA gap.
+  assert.match(six,/Target: 8.9 g/);
+  for(const key of ['ala','epa','dha','dpa'])assert.match(three,new RegExp('data-nutrient="'+key+'"'));
+  for(const key of ['la','aa_fat'])assert.match(six,new RegExp('data-nutrient="'+key+'"'));
+  for(const key of ['omega_3','omega_6','ala','epa','dha','dpa','la','aa_fat'])assert.equal(html.split('data-nutrient="'+key+'"').length-1,1);
+  const unknown=lipidSection(renderLipidTest({}),'omega_3').split('</summary>')[0];
+  assert.match(unknown,/Unknown/);assert.doesNotMatch(unknown,/0 g|nutrition-meter/);
 });
