@@ -43,3 +43,11 @@ Supplement names are prefilled from parsed ingredients (for example Omega-3 fish
 Label capture requests a higher-resolution back-camera image and retains up to 3200 pixels on the longest edge. Weak OCR retries with alternate whole-table segmentation and threshold settings, up to three passes. The most useful coherent result is chosen; values from different passes are never merged. Unreadable results display a prominent Retake photo action and explain how to frame the table. This improves the general food-label path; the reported sunflower-seed photo has not been provided, so that specific failure remains unverified.
 
 106 automated tests pass; build passes. Browser-tested automatic Omega-3 fish oil naming and adding without a checkbox in the isolated local sample diary.
+
+### Local follow-up: mobile notices and difficult food labels
+
+Notifications now share a vertical stack above the measured mobile navigation height. The update notice says “An update is ready.” and keeps its Refresh button visible. The standalone iPhone status-bar style is explicitly set to default; physical iPhone verification is still needed.
+
+Food parsing supports UK `Energy kJ/kcal 2815/660` rows, table-border separators and parenthesised “of which sugars” rows. Food OCR only counts a read as usable when all four main macro fields are present and basic amount checks pass. Failed scans can optionally select a rectangular nutrition-table crop with touch, mouse or keyboard-accessible edge sliders. Cropping and OCR remain on-device; the photo is kept in memory and discarded when the scanner closes. No AI fallback or photo upload was added, per the user's preference.
+
+Validation: 108 tests pass; production build passes. At 320 px and 390 px, both notices fit horizontally and remain separated from each other and the bottom navigation. Actual sunflower-seed photo tested through the browser, including crop selection: OCR still fails to recover all values reliably (cropped read recovered fat). Do not describe this specific photo as fixed. Manual entry or a clearer, closer photo is still needed. The manually verified values per 100 g are 660 kcal, 21 g protein, 4.5 g carbohydrate, 60 g fat, 7 g saturates, 2.6 g sugars, 8.9 g fibre and 0 g salt. These values are not hardcoded into the scanner.

@@ -14,3 +14,8 @@ test('unreadable labels return an honest weak result and stop after bounded atte
 test('closing scanner prevents recognition retries and stale results',async()=>{
  let active=true,calls=0;const r=await R.read({setParameters:async()=>{},recognize:async()=>{calls++;active=false;return {data:{text:good}};}},{},{active:()=>active});assert.equal(r,null);assert.equal(calls,1);
 });
+
+test('incomplete macros and implausible OCR digits stay flagged for review',()=>{
+ assert.equal(R.assess('Energy 660 kcal\nFat 60 g\nProtein 21 g').readable,false);
+ assert.equal(R.assess('Energy 660 kcal\nFat 60 g\nCarbohydrate 45 g\nProtein 21 g').readable,false);
+});

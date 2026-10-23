@@ -19,3 +19,5 @@
 .v2-item .supplement-ingredients small { display:block; color:var(--ink-3); }
 .food-scan-dialog .scan-read-notice { margin:0 0 16px; padding:14px; border:1px solid #dfcba4; background:#fff8ec; border-radius:10px; color:#58452b; }
 .food-scan-dialog .scan-read-notice p { margin:0 0 10px; }
+
+#scanCropCanvas{display:block;width:auto;height:auto;max-width:100%;max-height:55dvh;margin:0 auto;touch-action:none;cursor:crosshair;border-radius:8px;background:#211b2b}#scanCropEdges{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.scan-read-notice button{margin:4px 8px 0 0}
