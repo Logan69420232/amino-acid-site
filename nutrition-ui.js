@@ -1,10 +1,11 @@
 function nutritionDashboard(day, {epaDhaGoalMg} = {}) {
   const esc = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const datasets = new Set(day.map(e=>foodByName(e.name)?.nutritionSource?.dataset).filter(Boolean));
+  const datasets = new Set(day.map(e=>foodByName(e.name, e)?.nutritionSource?.dataset).filter(Boolean));
   const total = key => Nutrition.total(day,foodByName,key);
   const combinedOmega = Nutrition.epaDhaProgress(day,foodByName,epaDhaGoalMg);
+  const scanned=day.some(e=>e.food);
   const macros = [['kcal','Calories','kcal'],['protein','Protein','g']];
-  if(datasets.has('USDA') || !datasets.has('CoFID')) macros.push(['carb','Carbs · USDA total','g']);
+  if(datasets.has('USDA') || !datasets.has('CoFID')) macros.push(['carb',scanned?'Carbs · label / database':'Carbs · USDA total','g']);
   if(datasets.has('CoFID')) macros.push(['carb_uk','Carbs · UK available','g']);
   macros.push(['fat','Fat','g'],['fibre','Fibre','g']);
   function display(t, unit) {
@@ -40,7 +41,7 @@ function nutritionDashboard(day, {epaDhaGoalMg} = {}) {
       ${t.derived?`<p>${t.derived} entr${t.derived===1?'y uses':'ies use'} a partial component sum because no omega total was reported: ${d.key==='omega_3'?'ALA + DHA + EPA + DPA':'LA + arachidonic acid'}, where known. Other or unidentified fatty acids may be missing. A reported total takes priority and is never added to its components.</p>`:''}
       <p>Measured or reported amounts available for ${t.known} of ${day.length} logged entries.${t.trace?' '+t.trace+' report a trace amount, not included in the numeric total.':''}${t.missing?' Missing data for: '+t.missingFoods.map(esc).join('; ')+'.':''}</p>${components?'</details>':''}</details>`;
   }
-  const sources=day.map(e=>foodByName(e.name)).filter((f,i,a)=>a.findIndex(x=>x.key===f.key)===i);
+  const sources=day.map(e=>foodByName(e.name, e)).filter((f,i,a)=>a.findIndex(x=>(x.scanId||x.key)===(f.scanId||f.key))===i);
   return `<section class="nutrition-dashboard" aria-labelledby="nutritionTitle">
     <h2 class="v2-sec" id="nutritionTitle">Vitamins, minerals &amp; fats</h2><details class="nutrition-reading"><summary>About targets and missing data</summary>
     <p class="v2-note">Amounts from the foods and portions you logged. <b>Partial</b> means some foods have no value recorded; <b>Unknown</b> is not zero. References are general unless labelled as your chosen goal; totals are not a deficiency assessment.</p>
@@ -56,7 +57,7 @@ function nutritionDashboard(day, {epaDhaGoalMg} = {}) {
     <details class="nutrition-sources" data-diary-section="nutrition-sources"><summary>Food sources and measurement notes</summary>
       <p>All values are scaled from 100 g of edible food. USDA carbohydrate by difference and CoFID available carbohydrate (monosaccharide equivalents) are shown separately, as are sugars and the different vitamin A, D and E definitions. A trace amount is preserved as trace, never treated as a measured zero. Vitamin K here is K1; folate is total folate, not dietary folate equivalents.</p>
       <p>DV bars fill to 100%; the percentage text keeps values above 100%. Striped bars indicate partial coverage. Lipid bars compare against their labelled target, limit or reference. Amber bars show limits, not goals to fill. No bar is shown without a numeric reference and amount. Fatty-acid subtypes use specifically identified forms; undifferentiated 18:2, 18:3 and 20:4 are not relabelled as LA, ALA or arachidonic acid. Phytosterols use the reported total only.</p>
-      <ul>${sources.map(f=>{const s=f.nutritionSource;return `<li><b>${esc(f.name)}</b>: ${s?`<a href="${s.dataset==='USDA'?'https://fdc.nal.usda.gov/food-details/'+encodeURIComponent(s.id)+'/nutrients':'https://www.gov.uk/government/publications/composition-of-foods-integrated-dataset-cofid'}" target="_blank" rel="noopener">${s.dataset==='USDA'?'USDA SR Legacy':'UK CoFID 2021'} · ${esc(s.id)}</a> — ${esc(s.name)}`:'No micronutrient record matched; existing protein and macro estimates only.'}</li>`;}).join('')}</ul>
+      <ul>${sources.map(f=>{const s=f.nutritionSource;return `<li><b>${esc(f.name)}</b>: ${f.scanVersion?`${esc(f.source)} · confirmed label values. ${f.source==='Open Food Facts'?'<a href="https://world.openfoodfacts.org/product/'+encodeURIComponent(f.barcode)+'" target="_blank" rel="noopener">Product source</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL</a>':'Photo read on your device.'}`:s?`<a href="${s.dataset==='USDA'?'https://fdc.nal.usda.gov/food-details/'+encodeURIComponent(s.id)+'/nutrients':'https://www.gov.uk/government/publications/composition-of-foods-integrated-dataset-cofid'}" target="_blank" rel="noopener">${s.dataset==='USDA'?'USDA SR Legacy':'UK CoFID 2021'} · ${esc(s.id)}</a> — ${esc(s.name)}`:'No micronutrient record matched; existing protein and macro estimates only.'}</li>`;}).join('')}</ul>
       <p>USDA data are public domain. UK data: contains public sector information licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noopener">Open Government Licence v3.0</a>, © Crown copyright 2021. Alcoholic drinks measured per 100 ml in CoFID are excluded from this gram-based diary.</p>
     </details>
   </section>`;
