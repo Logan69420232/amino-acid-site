@@ -24,7 +24,7 @@ function uiResetAccountState() {
 function uiToast(message,keepUndo=false) {
   if(!keepUndo)uiUndoState=null;
   let toast=document.getElementById('diaryToast');
-  if(!toast){toast=document.createElement('div');toast.id='diaryToast';toast.className='diary-toast';toast.innerHTML='<span role="status"></span><button type="button" data-undo>Undo</button><button type="button" data-dismiss aria-label="Dismiss notification">×</button>';document.body.appendChild(toast);
+  if(!toast){toast=document.createElement('div');toast.id='diaryToast';toast.className='diary-toast';toast.innerHTML='<span role="status"></span><button type="button" data-undo>Undo</button><button type="button" data-dismiss aria-label="Dismiss notification">×</button>';(document.getElementById('siteNotices')||document.body).appendChild(toast);
     toast.querySelector('[data-dismiss]').onclick=()=>{toast.hidden=true;};
     toast.querySelector('[data-undo]').onclick=()=>{
       const undo=uiUndoState;if(!undo)return;
@@ -67,4 +67,10 @@ function uiAccountTabs(account) {
  account.querySelector('.sheet-top').after(nav);
  const apply=index=>{blocks.forEach((b,i)=>b.hidden=index===0?i!==0:i===0);nav.querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-pressed',String(i===index)));};
  nav.querySelectorAll('button').forEach((b,i)=>b.onclick=()=>apply(i));apply(0);
+}
+
+// Keep notices clear of the actual bottom navigation, including iPhone insets.
+if(typeof ResizeObserver!=='undefined'){
+ const nav=document.getElementById('mobileNav'),notices=document.getElementById('siteNotices');
+ if(nav&&notices){const update=()=>notices.style.setProperty('--notice-nav-height',nav.getBoundingClientRect().height+'px');new ResizeObserver(update).observe(nav);update();}
 }

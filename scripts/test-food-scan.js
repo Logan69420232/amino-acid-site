@@ -36,3 +36,8 @@ test('a camera permission response arriving after close never leaves the camera 
 test('denied camera permission gives a usable manual fallback and enables retry',async()=>{
  const {ctx,elements,messages}=cameraHarness(async()=>{throw Object.assign(Error('Denied'),{name:'NotAllowedError'});});await ctx.camera('label');assert.match(messages.at(-1),/enter the values manually/);assert.equal(elements.scanCamera.disabled,false);assert.equal(elements.scanCapture.hidden,true);
 });
+
+test('UK table units before paired energy amounts and bracketed subnutrients',()=>{
+ const d=F.parseLabel('NUTRITION PER 100 g\n| Energy kJ/kcal | 2815/660 |\n| Fat 60 g\n(of which saturates) 7.0 g\nCarbohydrate 4.5 g\n(of which sugars) 2.6 g\nFibre 8.9 g\nProtein 21 g\nSalt 0 g');
+ assert.deepEqual(d.values,{energy:660,protein:21,carb:4.5,fat:60,saturated_fat:7,sugars:2.6,fibre:8.9,salt:0});
+});
