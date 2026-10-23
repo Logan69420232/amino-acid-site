@@ -28,7 +28,7 @@
     try{const url='https://world.openfoodfacts.org/api/v2/product/'+code+'.json?fields=product_name,product_name_en,brands,nutriments,quantity,serving_size,nutrition_data_per&app_name=Aminodata';const r=await fetch(url,{signal:abort.signal,credentials:'omit',referrerPolicy:'no-referrer'});if(!r.ok)throw Error(r.status===429?'Too many lookups. Please wait a minute, or scan the label.':'Product lookup is temporarily unavailable. Try the label scanner.');const data=await r.json();if(!valid(t))return;if(!data.product||data.status===0){status('Product not found. Scan its nutrition label or enter the values yourself.',true);return;}review(FoodScan.fromProduct(data.product,code));}catch(e){if(valid(t))status(e.name==='AbortError'?'Lookup timed out. Try again or scan the label.':e.message,true);}finally{clearTimeout(timer);if(valid(t)&&$('scanLookup'))$('scanLookup').disabled=false;}
   }
   async function camera(mode){stop();const t=epoch;status('Opening your back camera…');$('scanCamera').disabled=true;try{
-    if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera access needs HTTPS and a supported browser. Use a photo instead.');
+    if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera access needs HTTPS and a supported browser. You can enter the values manually.');
     const v=$('scanVideo');v.hidden=false;
     if(mode==='label'){
       const stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}});
@@ -41,7 +41,7 @@
       const c=await reader.decodeFromConstraints({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280}}},v,result=>{if(result&&valid(t)){const code=FoodScan.barcode(result.getText());if(code)lookup(code);}});
       if(valid(t)){controls=c;status('Hold the barcode inside the camera view. It scans automatically.');}else c.stop();
     }
-  }catch(e){if(valid(t)){stop();status(e.name==='NotAllowedError'?'Camera permission was denied. Allow it in browser settings or choose a photo.':e.name==='NotFoundError'?'No camera found. Choose a photo instead.':e.message,true);}}
+  }catch(e){if(valid(t)){stop();status(e.name==='NotAllowedError'?'Camera permission was denied. Allow it in browser settings or enter the values manually.':e.name==='NotFoundError'?'No camera found. You can enter the values manually.':e.message,true);}}
   finally{if($('scanCamera'))$('scanCamera').disabled=false;}}
   function captureLabel(){const v=$('scanVideo');if(!v?.videoWidth||!v.srcObject){status('Start the camera and wait for the picture before capturing.',true);return;}const t=epoch;const canvas=document.createElement('canvas');canvas.width=v.videoWidth;canvas.height=v.videoHeight;canvas.getContext('2d').drawImage(v,0,0);$('scanCapture').disabled=true;canvas.toBlob(blob=>{if(!valid(t))return;if(blob)photo(new File([blob],'nutrition-label.jpg',{type:'image/jpeg'}),'label');else{status('Could not capture the picture. Try again.',true);$('scanCapture').disabled=false;}},'image/jpeg',0.95);}
   async function photo(file,mode){if(!file)return;stop();const t=epoch;if(file.size>12*1024*1024||!/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type)){status('Choose a JPG, PNG or WebP photo up to 12 MB. If HEIC will not open, use a screenshot.',true);return;}status(mode==='barcode'?'Reading barcode…':'Reading the label on your device…');try{const image=new Image();photoURL=URL.createObjectURL(file);image.src=photoURL;await image.decode();if(!valid(t))return;const canvas=document.createElement('canvas'),scale=Math.min(1,2200/Math.max(image.width,image.height));canvas.width=Math.round(image.width*scale);canvas.height=Math.round(image.height*scale);canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
@@ -53,7 +53,7 @@
   }
   document.querySelectorAll('[data-food-scan]').forEach(b=>b.addEventListener('click',()=>{opener=b;context={owner:store.owner,date:activeLogDay().date,meal:currentMeal,mode:b.dataset.foodScan};if(!dialog.open)dialog.showModal();openMode(context.mode);}));
   dialog.addEventListener('close',()=>{stop();dialog.innerHTML='';opener?.focus();});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden&&!$('scanReview')){stop();if(dialog.open)status('Scanner paused. Restart the camera or choose a photo to continue.');}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&!$('scanReview')){stop();if(dialog.open)status('Scanner paused. Restart the camera to continue.');}});
   window.addEventListener('pagehide',stop);
   new MutationObserver(()=>{if(dialog.open&&(store.owner!==context?.owner||document.body.dataset.view!=='day'))dialog.close();}).observe(document.body,{attributes:true,attributeFilter:['class','data-view']});
 })();

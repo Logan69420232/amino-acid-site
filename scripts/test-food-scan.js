@@ -33,6 +33,6 @@ test('label camera requests rear video only and releases every track on stop',as
 test('a camera permission response arriving after close never leaves the camera on',async()=>{
  let resolve,stops=0;const {ctx,elements}=cameraHarness(()=>new Promise(r=>{resolve=r;}));const pending=ctx.camera('label');ctx.active=false;resolve({getTracks:()=>[{stop(){stops++;}}]});await pending;assert.equal(stops,1);assert.equal(elements.scanVideo.srcObject,null);assert.equal(elements.scanCapture.hidden,true);
 });
-test('denied camera permission gives a usable photo fallback and enables retry',async()=>{
- const {ctx,elements,messages}=cameraHarness(async()=>{throw Object.assign(Error('Denied'),{name:'NotAllowedError'});});await ctx.camera('label');assert.match(messages.at(-1),/choose a photo/);assert.equal(elements.scanCamera.disabled,false);assert.equal(elements.scanCapture.hidden,true);
+test('denied camera permission gives a usable manual fallback and enables retry',async()=>{
+ const {ctx,elements,messages}=cameraHarness(async()=>{throw Object.assign(Error('Denied'),{name:'NotAllowedError'});});await ctx.camera('label');assert.match(messages.at(-1),/enter the values manually/);assert.equal(elements.scanCamera.disabled,false);assert.equal(elements.scanCapture.hidden,true);
 });
