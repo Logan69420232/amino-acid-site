@@ -3,11 +3,14 @@
   "version": "1.3.0",
   "private": true,
   "scripts": {
-    "test": "node --test scripts/test-intake.js scripts/test-account-isolation.js scripts/test-nutrition.js scripts/test-pwa.js scripts/test-diary-sync.js scripts/test-diary-panels.js scripts/test-history-retention.js scripts/test-diary-undo.js scripts/test-recommendations.js scripts/test-history-refresh.js",
+    "test": "node --test scripts/test-intake.js scripts/test-account-isolation.js scripts/test-nutrition.js scripts/test-pwa.js scripts/test-diary-sync.js scripts/test-diary-panels.js scripts/test-history-retention.js scripts/test-diary-undo.js scripts/test-recommendations.js scripts/test-history-refresh.js scripts/test-food-scan.js",
     "build": "node build.js",
     "refresh-data": "node scripts/fetch_usda.js && node scripts/import_usda.js usda_csv/FoodData_Central_sr_legacy_food_csv_2018-04 && node scripts/import_nutrition_usda.js usda_csv/FoodData_Central_sr_legacy_food_csv_2018-04"
   },
   "dependencies": {
-    "adm-zip": "^0.5.16"
+    "@tesseract.js-data/eng": "1.0.0",
+    "@zxing/browser": "0.2.1",
+    "adm-zip": "^0.5.16",
+    "tesseract.js": "7.0.0"
   }
 }
