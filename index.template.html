@@ -85,7 +85,14 @@
   }
 
   * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; overflow-x: clip; }
+  html { -webkit-text-size-adjust: 100%; }
+  /* Keep the page anchored during sideways swipes, including standalone iOS.
+     Clip does not create a second vertical scroll container; charts and tables
+     retain their own horizontal scrolling, and pinch zoom stays available. */
+  html, body { max-width: 100%; overflow-x: hidden; overscroll-behavior-x: none; }
+  @supports (overflow: clip) {
+    html, body { overflow-x: clip; }
+  }
   /* iOS Safari zooms the page in when a focused field is under 16px and never
      zooms back out, leaving the layout cropped at the right edge. On phones,
      every field stays at 16px so that zoom never fires. */
