@@ -49,3 +49,12 @@ test('unreadable units are not guessed, combined ingredients do not count as EPA
 test('supplement-only diary does not display missing macro amounts as zero',()=>{
  const source=fs.readFileSync(require('node:path').join(__dirname,'../index.template.html'),'utf8');const f=oil();const ctx=vm.createContext({foodByName:()=>f});vm.runInContext(source.slice(source.indexOf('function mealItemsIntake('),source.indexOf('function renderMealsPage(')),ctx);const result=ctx.mealItemsIntake([{name:f.name,g:3}]);assert.equal(ctx.macroDisplay(result,'prot'),'Unknown');assert.equal(ctx.macroDisplay(result,'kcal'),'Unknown');
 });
+test('automatic names describe parsed supplement ingredients without inventing brands',()=>{
+ assert.equal(S.parse(label).name,'Omega-3 fish oil');
+ assert.equal(S.parse('Supplement Facts\nServing Size: 1 Tablet\nVitamin D3 25 mcg').name,'Vitamin D3');
+ assert.equal(S.parse('Supplement Facts\nServing Size: 1 Tablet\nMagnesium (as citrate) 100 mg').name,'Magnesium');
+ assert.equal(S.parse('Serving Size: 1 scoop\nCreatine monohydrate 3 g').name,'Creatine monohydrate');
+ assert.equal(S.parse('Serving Size: 1 tablet\nVitamin C 100 mg\nVitamin D3 10 mcg\nZinc 5 mg').name,'Multivitamin & mineral supplement');
+ assert.equal(S.parse('').name,'Scanned supplement');
+ const draft=S.parse(label);const custom=S.makeFood({...draft,name:'My preferred fish oil'},'custom-name-123');assert.equal(F.snapshot(custom).name,'My preferred fish oil');
+});

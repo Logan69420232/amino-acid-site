@@ -35,3 +35,11 @@ Storage contract: for `food.supplement === true`, the legacy `entry.g` scalar re
 USDA SR Legacy food_portion records now provide food-specific household measures for matching food IDs, including spoons, cups and slices. No global tablespoon-to-gram assumption is used. Existing portions are not changed when the displayed unit changes; legacy saved unit selections remain supported. Source/provenance and regeneration instructions are in scripts/import-portions.py and data/portions_usda.json.
 
 Actual supplied omega-3 photo: adaptive threshold OCR read serving size 3 softgels and amounts 3600/2160/1300/860. Faint unit text was unreadable and was left blank for explicit review. Browser review confirmed mg, then logged 3 softgels with 1300 mg EPA and 860 mg DHA. Editing to 1 softgel and reloading preserved 433.3 mg EPA, 286.7 mg DHA and 720 mg total omega-3. Fish oil is retained separately as a label ingredient; it is not added to its fatty-acid components or fabricated into total fat/calories. No photograph or OCR text is stored with entries.
+
+## Local scan review improvements (pending release)
+
+Supplement names are prefilled from parsed ingredients (for example Omega-3 fish oil, Vitamin D3 or Creatine monohydrate), with a generic fallback when nothing readable is available. Users can edit the name; a previously entered product name is retained. Brand names and health claims are not invented. The separate confirmation checkbox has been removed from both food and supplement review; Add remains the explicit save action, and existing amount/unit validation remains in place.
+
+Label capture requests a higher-resolution back-camera image and retains up to 3200 pixels on the longest edge. Weak OCR retries with alternate whole-table segmentation and threshold settings, up to three passes. The most useful coherent result is chosen; values from different passes are never merged. Unreadable results display a prominent Retake photo action and explain how to frame the table. This improves the general food-label path; the reported sunflower-seed photo has not been provided, so that specific failure remains unverified.
+
+106 automated tests pass; build passes. Browser-tested automatic Omega-3 fish oil naming and adding without a checkbox in the isolated local sample diary.

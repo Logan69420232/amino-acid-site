@@ -314,7 +314,7 @@ fs.mkdirSync(path.join(root, "dist"), { recursive: true });
 fs.writeFileSync(path.join(root, "dist", "version.json"), JSON.stringify({ v: BUILD_ID }));
 const out = template.replace("__BUILD_ID__", BUILD_ID)
   .replace("__INJECT_DATA__", () => JSON.stringify(atlas))
-  .replace("__INJECT_FOOD_SCAN__", () => fs.readFileSync(path.join(root,"lib/supplement-scan.js"),"utf8")+"\n"+fs.readFileSync(path.join(root,"lib/food-scan.js"),"utf8"))
+  .replace("__INJECT_FOOD_SCAN__", () => fs.readFileSync(path.join(root,"lib/supplement-scan.js"),"utf8")+"\n"+fs.readFileSync(path.join(root,"lib/food-scan.js"),"utf8")+"\n"+fs.readFileSync(path.join(root,"lib/label-reader.js"),"utf8"))
   .replace("__INJECT_SCAN_UI__", () => fs.readFileSync(path.join(root,"scan-ui.js"),"utf8"))
   .replace("__INJECT_NUTRITION__", () => fs.readFileSync(path.join(root, "lib", "nutrition.js"), "utf8"))
   .replace("__INJECT_RECOMMENDATIONS__", () => fs.readFileSync(path.join(root, "lib/recommendations.js"), "utf8"))

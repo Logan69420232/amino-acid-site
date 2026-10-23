@@ -17,3 +17,5 @@
 .v2-item .supplement-ingredients li span { min-width:0; overflow-wrap:anywhere; }
 .v2-item .supplement-ingredients li strong { flex-shrink:0; font-weight:600; }
 .v2-item .supplement-ingredients small { display:block; color:var(--ink-3); }
+.food-scan-dialog .scan-read-notice { margin:0 0 16px; padding:14px; border:1px solid #dfcba4; background:#fff8ec; border-radius:10px; color:#58452b; }
+.food-scan-dialog .scan-read-notice p { margin:0 0 10px; }
