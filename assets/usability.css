@@ -49,3 +49,14 @@ body[data-view="day"] #method{display:none}.v2-note{font-size:13px}.meal-totals 
 .site-notices:empty{display:none}
 .diary-toast>span,#updateBar>span{flex:1;min-width:0;overflow-wrap:anywhere}
 .diary-toast button,#updateBar button{flex-shrink:0;min-height:44px}
+
+/* Long supplement values must fit the card instead of widening the page. */
+.meal-totals>div,.daily-other>div{min-width:0}
+.meal-totals dd{overflow-wrap:anywhere}
+.daily-other{grid-template-columns:minmax(0,1.25fr) repeat(2,minmax(0,1fr))}
+.daily-other strong{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:420px){
+  .meal-totals{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .daily-other{gap:10px}
+  .daily-other strong{font-size:20px}
+}
