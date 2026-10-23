@@ -178,6 +178,7 @@ function historyExport(foods, days) {
   const code = source.slice(source.indexOf('function historyCSV('), source.indexOf('function renderHistoryPage('));
   const context = vm.createContext({Nutrition, foodByName: name => foods[name],
     AA_META: [['leucine']], MEAL_LABEL: {breakfast: 'Breakfast', lunch: 'Lunch'}});
+  vm.runInContext(source.slice(source.indexOf('function quantityUnit('),source.indexOf('function quantityText(')),context);
   vm.runInContext(code, context);
   const csv = context.historyCSV(days.map(d => ({d, prot: 10, kcal: 100, carb: 15, fat: 2})));
   // Parse quoted fields, doubled quotes and embedded CR/LF just as a spreadsheet does.
