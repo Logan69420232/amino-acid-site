@@ -15,6 +15,10 @@ test('supplement label keeps serving count, thousands, oil and fatty acids disti
  const f=oil();assert.equal(f.kcal,null);assert.equal(f.protein_g_per_100g,null);assert.equal(f.nutrients.fat,undefined);
  for(const q of [1,3]) {const es=[{name:f.name,g:q,food:f}],lookup=(n,e)=>F.snapshot(e.food);near(N.total(es,lookup,'epa').value,1.3*q/3);near(N.total(es,lookup,'dha').value,.86*q/3);near(N.total(es,lookup,'omega_3').value,2.16*q/3);assert.equal(N.total(es,lookup,'kcal').value,null);assert.equal(N.breakdown(es,lookup,'epa')[0].unit,'softgels');}
 });
+test('table rule fragments beside supplement names are removed without changing amounts or units',()=>{
+ const d=S.parse(label.replace('Omega-3 2,160','Omega-3 "| 2,160'));
+ assert.deepEqual(d.ingredients,S.parse(label).ingredients);
+});
 test('vitamins, minerals and custom ingredients retain units without ambiguous conversions',()=>{
  const d=S.parse('Supplement Facts\nServing Size: 2 Tablets\nVitamin C 500 mg\nVitamin D3 25 mcg\nVitamin A 5000 IU\nVitamin K2 100 mcg\nFolate 400 mcg DFE\nMagnesium (as citrate) 100 mg\nMagnesium citrate 800 mg\nProbiotic blend 10 billion CFU\nCreatine 3 g');
  const f=S.makeFood({...d,name:'Mixed supplement'},'test-mixed-123');near(f.nutrients.vitamin_c*2/100,500);near(f.nutrients.vitamin_d*2/100,25);near(f.nutrients.magnesium*2/100,100);assert.equal(f.nutrients.folate,undefined);assert.equal(f.nutrients.vitamin_k,undefined);assert.equal(f.nutrients.vitamin_a_rae,undefined);assert.equal(f.ingredients.length,9);assert.equal(f.ingredients.at(-2).unit,'billion CFU');
