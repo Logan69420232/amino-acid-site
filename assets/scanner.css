@@ -4,3 +4,16 @@
 
 /* Phone scanners use the camera directly; keep uploads on desktop. */
 @media (max-width:700px), (hover:none) and (pointer:coarse){.food-scan-dialog .scan-upload{display:none}}
+
+.food-scan-dialog .scan-ingredient { min-width:0; margin:16px 0; padding:16px; border:1px solid #ded6e7; border-radius:12px; background:#faf8fc; }
+.food-scan-dialog .scan-ingredient legend { font-size:13px; color:#655376; padding:0 6px; }
+.food-scan-dialog .scan-ingredient label { margin-bottom:12px; }
+.food-scan-dialog .scan-remove { font-size:13px; padding:8px 12px; }
+.food-scan-dialog #scanSupplement { margin:8px 0 18px; }
+.v2-item .supplement-ingredients { grid-column:1 / -1; min-width:0; text-align:left; padding-top:6px; border-top:1px solid var(--line); font-size:13px; }
+.v2-item .supplement-ingredients summary { cursor:pointer; color:var(--c-bcaa); padding:8px 0; }
+.v2-item .supplement-ingredients ul { list-style:none; padding:0; margin:4px 0 0; }
+.v2-item .supplement-ingredients li { display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:8px 0; }
+.v2-item .supplement-ingredients li span { min-width:0; overflow-wrap:anywhere; }
+.v2-item .supplement-ingredients li strong { flex-shrink:0; font-weight:600; }
+.v2-item .supplement-ingredients small { display:block; color:var(--ink-3); }

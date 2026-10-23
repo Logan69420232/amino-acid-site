@@ -23,3 +23,15 @@ Physical camera capture on iPhone and Android is not yet verified. Mobile testin
 ## Release and device follow-up
 
 Recheck current main and merge these changes onto it, preserving changes from other devices. Test actual iPhone Safari and Android Chrome camera permission, capture, backgrounding and retry. Verify cloud saved-meal sync in a test account, hosting of WASM/language files and Open Food Facts request limits. No subscription/billing gate is implemented. Review ODbL obligations for the intended public integration; the current approach keeps reviewed entries separate from the shared atlas and retains attribution.
+
+## Local supplement / portion update (2026-10-23, not released)
+
+Scan label now opens the camera immediately, followed by Take photo. Mobile file upload controls are hidden; desktop retains photo selection. Manual entry is still available when camera access fails.
+
+Supplement labels use an editable review form for serving count/unit and ingredient rows. Recognised vitamins, minerals, fats and macros map to existing nutrient definitions. Other ingredients remain label-only, visible in the diary and CSV, with no invented target. Users can add/remove rows or correct any match. IU values, vitamin K2, DFE folate, mineral compound weights and other ambiguous definitions do not silently convert to existing targets. This is English OCR with mandatory review, not guaranteed recognition of every label or a dosage recommendation.
+
+Storage contract: for `food.supplement === true`, the legacy `entry.g` scalar represents the quantity in `food.doseUnit`, NOT physical grams. `serving_g` is the label serving count. Nutrients are normalized per 100 of that unit for compatibility with existing arithmetic, and validated from the original reviewed ingredients on reload. All food snapshots remain gram-based. Supplement quantity labels, source breakdown, saved-meal editor, recent foods and CSV use the declared unit. CSV preserves existing columns and appends quantity/unit/label ingredients; its grams column stays blank for non-gram supplements. Unlisted macros remain null and are marked unknown/partial.
+
+USDA SR Legacy food_portion records now provide food-specific household measures for matching food IDs, including spoons, cups and slices. No global tablespoon-to-gram assumption is used. Existing portions are not changed when the displayed unit changes; legacy saved unit selections remain supported. Source/provenance and regeneration instructions are in scripts/import-portions.py and data/portions_usda.json.
+
+Actual supplied omega-3 photo: adaptive threshold OCR read serving size 3 softgels and amounts 3600/2160/1300/860. Faint unit text was unreadable and was left blank for explicit review. Browser review confirmed mg, then logged 3 softgels with 1300 mg EPA and 860 mg DHA. Editing to 1 softgel and reloading preserved 433.3 mg EPA, 286.7 mg DHA and 720 mg total omega-3. Fish oil is retained separately as a label ingredient; it is not added to its fatty-acid components or fabricated into total fat/calories. No photograph or OCR text is stored with entries.

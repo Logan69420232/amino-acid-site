@@ -2132,11 +2132,23 @@ const ITEM_UNITS = [
   [/^tofu\b/i, [["half blocks", 175]]],
   [/^potato(es)?\b|^sweet potato/i, [["medium potatoes", 170]]]
 ];
-function portionUnits(f) {
+function portionUnits(f, storedUnit) {
   if (!f) return [];
+  if (f.supplement) return []; // quantity is already in its declared label unit
   if (f.scanVersion) return [["servings", f.serving_g || 100]];
-  for (const [re, list] of ITEM_UNITS) if (re.test(f.name)) return list;
-  return [];
+  const exact=(f.portions||[]).map(([id,g,label])=>[id,g,label]);
+  const legacy=ITEM_UNITS.find(([re])=>re.test(f.name))?.[1]||[];
+  return exact.length ? [...exact,...legacy.filter(u=>u[0]===storedUnit)] : legacy;
+}
+function quantityUnit(f) { return f?.supplement ? f.doseUnit : 'g'; }
+function quantityText(e) { return Nutrition.format(e.g)+' '+quantityUnit(foodByName(e.name,e)); }
+function supplementIngredients(f,quantity) {
+  if(!f?.supplement)return '';
+  return '<details class="supplement-ingredients"><summary>Label ingredients</summary><ul>'+f.ingredients.map(r=>'<li><span>'+uiEsc(r.label)+(r.key?'':' <small>label only</small>')+'</span><strong>'+Nutrition.format(r.amount*quantity/f.serving_g)+' '+uiEsc(r.unit)+'</strong></li>').join('')+'</ul></details>';
+}
+function portionUnitLabel(unit) {
+  const label=unit[2]||({tbsp:'tablespoon',slices:'slice',eggs:'egg',cups:'cup',scoops:'scoop',pots:'pot',glasses:'glass',rashers:'rasher',sausages:'sausage'}[unit[0]]||unit[0]);
+  return label+' (≈ '+Number(unit[1].toFixed(2))+' g)';
 }
 function practicalPortions(f) {
   for (const [re, list] of PORTION_HINTS) if (re.test(f.name)) return list;
@@ -3408,19 +3420,20 @@ function renderAccountPage() {
 
 /* ================= data over time: the week in review ================= */
 function dayIntake(d) {
-  let prot = 0, kcal = 0, fat = 0, carb = 0, kcalKnown = false;
+  let prot = 0, kcal = 0, fat = 0, carb = 0, kcalKnown = false, fatKnown = false, carbKnown = false;
   const totals = {}; AA_META.forEach(m => totals[m[0]] = 0);
   (d.entries || []).forEach(e => {
     const f = foodByName(e.name, e);
     if (!f) return;
     prot += f.protein_g_per_100g * e.g / 100;
-    if (f.kcal != null) { kcal += f.kcal * e.g / 100; fat += (f.fat || 0) * e.g / 100; carb += (f.carb || 0) * e.g / 100; kcalKnown = true; }
+    if (f.kcal != null) { kcal += f.kcal * e.g / 100; kcalKnown = true; }
+    if(f.fat != null){fat += f.fat * e.g / 100;fatKnown=true;} if(f.carb != null){carb += f.carb * e.g / 100;carbKnown=true;}
     AA_META.forEach(m => totals[m[0]] += (f.aa[m[0]] || 0) * e.g / 100);
   });
   const balance = !(d.entries || []).every(e=>Nutrition.hasAminoAcids(foodByName(e.name, e))) ? null : prot > 0
     ? Math.min(...SCORE_ROWS.map(([id, , keys]) => keys.reduce((s, k) => s + totals[k], 0) / prot * 1000 / WHO[id]))
     : 0;
-  return { prot, kcal: kcalKnown ? kcal : null, fat: kcalKnown ? fat : null, carb: kcalKnown ? carb : null, balance };
+  return { prot, kcal: kcalKnown ? kcal : null, fat: fatKnown ? fat : null, carb: carbKnown ? carb : null, balance };
 }
 let _histMetric = "prot";
 let _mealsAddOpen = null;
@@ -3441,24 +3454,24 @@ function historyCSV(chrono) {
   const escC = v => { v = String(v == null ? "" : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   const lines = [["date", "meal", "food", "grams", "protein_g", "kcal", "carb_g", "fat_g", ...aaKeys.map(k => k + "_g"),
     ...nutrients.map(d => d.key + "_" + (d.unit === "µg" ? "ug" : d.unit)),
-    ...nutrients.map(d => d.key + "_status")].join(",")];
+    ...nutrients.map(d => d.key + "_status"), "quantity", "quantity_unit", "label_ingredients"].join(",")];
   chrono.forEach(x => {
     x.d.entries.forEach(e => {
       const f = foodByName(e.name, e);
       if (!f) return;
       const g = e.g;
-      lines.push([x.d.date, MEAL_LABEL[e.meal] || e.meal, f.name, g,
-        (f.protein_g_per_100g * g / 100).toFixed(2),
+      lines.push([x.d.date, MEAL_LABEL[e.meal] || e.meal, f.name, quantityUnit(f) === "g" ? g : "",
+        f.protein_g_per_100g == null ? "" : (f.protein_g_per_100g * g / 100).toFixed(2),
         f.kcal != null ? (f.kcal * g / 100).toFixed(1) : "",
         f.carb != null ? (f.carb * g / 100).toFixed(2) : "",
         f.fat != null ? (f.fat * g / 100).toFixed(2) : "",
         ...aaKeys.map(k => Nutrition.hasAminoAcids(f) ? ((f.aa[k] || 0) * g / 100).toFixed(3) : ""),
-        ...nutrientCells([e])
+        ...nutrientCells([e]), g, quantityUnit(f), f.supplement ? f.ingredients.map(r=>r.label+": "+Number((r.amount*g/f.serving_g).toPrecision(10))+" "+r.unit+(r.key?"":" (label only)")).join("; ") : ""
       ].map(escC).join(","));
     });
     if (x.d.entries.length) lines.push([x.d.date, "", "DAY TOTAL", "", x.prot.toFixed(1),
       x.kcal != null ? x.kcal.toFixed(0) : "", x.carb != null ? x.carb.toFixed(1) : "", x.fat != null ? x.fat.toFixed(1) : "",
-      ...aaKeys.map(() => ""), ...nutrientCells(x.d.entries)].map(escC).join(","));
+      ...aaKeys.map(() => ""), ...nutrientCells(x.d.entries), "", "", ""].map(escC).join(","));
   });
   return lines.join("\n");
 }
@@ -3526,7 +3539,7 @@ function renderHistoryPage({focus = true} = {}) {
           <p class="history-goal-note">${x.prot>=dayTarget(x)?'Goal reached':'Working towards goal'} · ${dayTarget(x).toFixed(0)} g protein target</p>
           <details class="history-food-details"><summary>${x.d.entries.length} food entr${x.d.entries.length===1?'y':'ies'} · view details</summary>
             <p>Carbs: ${x.carb===null?'unavailable':x.carb.toFixed(0)+' g'} · Fat: ${x.fat===null?'unavailable':x.fat.toFixed(0)+' g'}<br>Amino acid balance: ${x.balance===null?'unavailable':Math.round(x.balance*100)+'%'}</p>
-            <ul>${x.d.entries.map(e=>`<li><span>${esc(e.name)}</span><span>${esc(e.g)} g</span></li>`).join("")}</ul>
+            <ul>${x.d.entries.map(e=>`<li><span>${esc(e.name)}</span><span>${esc(quantityText(e))}</span></li>`).join("")}</ul>
           </details>` : '<p class="hist-stats">No food logged yet.</p>'}
         ${x.d.note ? `<p class="hist-note">${esc(x.d.note)}</p>` : ""}
       </article>`;
@@ -3590,14 +3603,16 @@ function renderHistoryPage({focus = true} = {}) {
 
 /* ================= saved meals: the library page ================= */
 function mealItemsIntake(items) {
-  return (items || []).reduce((a, it) => {
-    const f = foodByName(it.name, it);
-    if (!f) return a;
-    a.prot += f.protein_g_per_100g * it.g / 100;
-    if (f.kcal != null) { a.kcal += f.kcal * it.g / 100; a.carb += (f.carb || 0) * it.g / 100; a.fat += (f.fat || 0) * it.g / 100; } else a.miss++;
-    return a;
-  }, { prot: 0, kcal: 0, carb: 0, fat: 0, miss: 0 });
+  const result={prot:0,kcal:0,carb:0,fat:0,miss:0,known:{prot:0,kcal:0,carb:0,fat:0},count:0};
+  for(const it of items||[]) { const f=foodByName(it.name,it); if(!f)continue; result.count++;
+    for(const [key,field] of [['prot','protein_g_per_100g'],['kcal','kcal'],['carb','carb'],['fat','fat']]) {
+      if(f[field]!=null){result[key]+=f[field]*it.g/100;result.known[key]++;}
+    }
+    if(['protein_g_per_100g','kcal','carb','fat'].some(k=>f[k]==null))result.miss++;
+  }
+  return result;
 }
+function macroDisplay(t,key) { return t.count && !t.known[key] ? 'Unknown' : Math.round(t[key]).toLocaleString(); }
 function renderMealsPage({ preserve = false, openIndex = null, removedIndex = null } = {}) {
   const page = document.getElementById("mealsPage");
   // UI state is kept only during edits, never written into synced meal data.
@@ -3622,7 +3637,7 @@ function renderMealsPage({ preserve = false, openIndex = null, removedIndex = nu
       return `<article class="sm-card" data-i="${i}" aria-labelledby="smTitle${i}">
         <div class="sm-card-main"><div class="sm-card-info">
           <h2 id="smTitle${i}">${esc(m.name)}</h2>
-          ${m.items.length ? `<dl class="sm-macros"><div><dt>Protein</dt><dd>${t.prot.toFixed(0)} <small>g</small></dd></div><div><dt>Calories</dt><dd>${Math.round(t.kcal)} <small>kcal</small></dd></div><div><dt>Carbs</dt><dd>${t.carb.toFixed(0)} <small>g</small></dd></div><div><dt>Fat</dt><dd>${t.fat.toFixed(0)} <small>g</small></dd></div></dl>${t.miss ? '<p class="sm-hint">Some macros are unknown.</p>' : ''}` : '<p class="sm-hint">Add ingredients in the details below.</p>'}
+          ${m.items.length ? `<dl class="sm-macros"><div><dt>Protein</dt><dd>${macroDisplay(t,"prot")} <small>g</small></dd></div><div><dt>Calories</dt><dd>${macroDisplay(t,"kcal")} <small>kcal</small></dd></div><div><dt>Carbs</dt><dd>${macroDisplay(t,"carb")} <small>g</small></dd></div><div><dt>Fat</dt><dd>${macroDisplay(t,"fat")} <small>g</small></dd></div></dl>${t.miss ? '<p class="sm-hint">Some macros are unknown.</p>' : ''}` : '<p class="sm-hint">Add ingredients in the details below.</p>'}
         </div><div class="sm-card-actions">
           <label for="smSlot${i}">Add to</label>
           <select id="smSlot${i}" class="sm-slot" data-i="${i}">${MEALS.slice(0, 4).map(([k, l]) => `<option value="${k}"${k === (slots.get(i) || currentMeal) ? " selected" : ""}>${l}</option>`).join("")}</select>
@@ -3633,7 +3648,7 @@ function renderMealsPage({ preserve = false, openIndex = null, removedIndex = nu
           <div class="sm-detail-body"><label class="sm-name-label">Meal name<input class="sm-name" data-i="${i}" value="${esc(m.name)}" maxlength="40"></label>
         <div class="sm-items">${m.items.map((it, j) => `<div class="sm-item">
           <span class="nm">${esc(it.name)}</span>
-          <input type="number" min="0.1" max="2000" step="any" value="${it.g}" data-i="${i}" data-j="${j}" aria-label="Grams of ${esc(it.name)}"> g
+          <input type="number" min="0.1" max="2000" step="any" value="${it.g}" data-i="${i}" data-j="${j}" aria-label="Amount of ${esc(it.name)} in ${esc(quantityUnit(foodByName(it.name,it)))}"> ${esc(quantityUnit(foodByName(it.name,it)))}
           <button type="button" class="sm-rm" data-i="${i}" data-j="${j}" aria-label="Remove ${esc(it.name)}">✕</button>
         </div>`).join("")}</div>
         ${_mealsAddOpen === i ? `<div class="sm-addrow">
@@ -4154,8 +4169,8 @@ function renderDay() {
     const f = foodByName(e.name, e);
     return `<div class="day-row">
       <span class="nm">${e.name}</span>
-      <label>Portion <input data-idx="${i}" class="day-g" type="number" min="0.1" max="2000" step="any" value="${e.g}" aria-label="Portion of ${e.name} in grams"> g</label>
-      <span class="sub">${(f.protein_g_per_100g * e.g / 100).toFixed(1)} g protein</span>
+      <label>Portion <input data-idx="${i}" class="day-g" type="number" min="0.1" max="2000" step="any" value="${e.g}" aria-label="Portion of ${e.name}"> ${quantityUnit(f)}</label>
+      <span class="sub">${f.protein_g_per_100g == null ? "Protein unavailable" : (f.protein_g_per_100g * e.g / 100).toFixed(1)+" g protein"}</span>
       <button class="rm" data-idx="${i}" aria-label="Remove ${e.name}">✕</button></div>`;
   }).join("");
 
@@ -4482,7 +4497,7 @@ window.addEventListener("popstate", () => {
         .filter(({ m }) => !ql || m.name.toLowerCase().includes(ql) || m.items.some(it => it.name.toLowerCase().includes(ql)));
       listEl.innerHTML = hits.length ? hits.map(({ m, i }) => {
         const t = mealItemsIntake(m.items);
-        return `<button type="button" role="option" data-i="${i}">${html(m.name)}<small>${t.prot.toFixed(0)} g protein · ${Math.round(t.kcal)} kcal · ${m.items.length} food${m.items.length === 1 ? "" : "s"}</small></button>`;
+        return `<button type="button" role="option" data-i="${i}">${html(m.name)}<small>${macroDisplay(t,"prot")} g protein · ${macroDisplay(t,"kcal")} kcal · ${m.items.length} food${m.items.length === 1 ? "" : "s"}</small></button>`;
       }).join("") : '<span class="sm-hint sm-pick-none">No saved meal matches.</span>';
       listEl.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
         const m = loadSavedMeals()[+b.dataset.i];
@@ -4512,7 +4527,7 @@ window.addEventListener("popstate", () => {
     if(pickerMode==='recent'){
       const seen=new Set(),recent=[];
       loadLog().days.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(d=>d.entries.forEach(e=>{if(!seen.has(e.food?.scanId||e.name)){seen.add(e.food?.scanId||e.name);recent.push(e);}}));
-      panel.innerHTML=recent.length?'<p class="picker-help">Choose a food, then check your portion.</p>'+recent.slice(0,8).map((e,i)=>`<button type="button" class="quick-food" data-recent="${i}"><span>${html(uiFoodName(e.name))}<small>Last portion: ${e.g} g</small></span><span aria-hidden="true">＋</span></button>`).join(''):'<p class="picker-help">Your recent foods will appear here. Choose Search foods to add your first meal.</p>';
+      panel.innerHTML=recent.length?'<p class="picker-help">Choose a food, then check your portion.</p>'+recent.slice(0,8).map((e,i)=>`<button type="button" class="quick-food" data-recent="${i}"><span>${html(uiFoodName(e.name))}<small>Last portion: ${html(quantityText(e))}</small></span><span aria-hidden="true">＋</span></button>`).join(''):'<p class="picker-help">Your recent foods will appear here. Choose Search foods to add your first meal.</p>';
       panel.querySelectorAll('[data-recent]').forEach(b=>b.onclick=()=>{const e=recent[+b.dataset.recent];pick(foodByName(e.name, e));grams.value=e.g;previewPortion();});
     }else if(pickerMode==='saved'){
       const meals=loadSavedMeals();panel.innerHTML=meals.length?'<p class="picker-help">Add a whole meal to '+MEAL_LABEL[editingMeal]+'.</p>'+meals.map((m,i)=>`<button type="button" class="quick-food" data-quick-meal="${i}"><span>${html(m.name)}<small>${m.items.length} foods · ${Math.round(mealItemsIntake(m.items).prot)} g protein</small></span><span aria-hidden="true">＋</span></button>`).join(''):'<p class="picker-help">No saved meals yet. Save a meal using the star beside its name.</p>';
@@ -4614,8 +4629,8 @@ window.addEventListener("popstate", () => {
       if (i % 2 === 0) { x.fillStyle = col.surf; x.beginPath(); x.roundRect(60, y - 32, W - 120, ROW_H - 4, 8); x.fill(); }
       x.fillStyle = col.ink; x.font = "500 25px " + sans; x.fillText(fit(e.name, cG - 150 - 72), 72, y);
       x.textAlign = "right"; x.fillStyle = col.ink2; x.font = "500 24px " + sans;
-      x.fillText(num(e.g, 1) + " g", cG, y);
-      x.fillText(num(f.protein_g_per_100g * e.g / 100, 1) + " g", cP, y);
+      x.fillText(quantityText(e), cG, y);
+      x.fillText(f.protein_g_per_100g == null ? "n/a" : num(f.protein_g_per_100g * e.g / 100, 1) + " g", cP, y);
       x.fillText(f.kcal != null ? num(f.kcal * e.g / 100, 0) : "n/a", cK, y);
       x.textAlign = "left";
     });
@@ -4650,12 +4665,12 @@ window.addEventListener("popstate", () => {
     if (!selectedFood) return;
     const unit = portionUnits(selectedFood).find(u => u[0] === $("v2Unit").value);
     const amount = Math.min(2000, clamp(grams.value, unit ? 0.01 : 0.1, 2000, 100) * (unit ? unit[1] : 1));
-    $("mealPortionPreview").innerHTML = `<strong>${(selectedFood.protein_g_per_100g * amount / 100).toFixed(1)} g protein</strong>${selectedFood.kcal == null ? "Calories unavailable" : Math.round(selectedFood.kcal * amount / 100) + " kcal"}${unit ? " · " + Math.round(amount) + " g" : ""}`;
+    $("mealPortionPreview").innerHTML = `<strong>${selectedFood.protein_g_per_100g == null ? "Protein unavailable" : (selectedFood.protein_g_per_100g * amount / 100).toFixed(1)+" g protein"}</strong>${selectedFood.kcal == null ? "Calories unavailable" : Math.round(selectedFood.kcal * amount / 100) + " kcal"}${unit ? " · " + Math.round(amount) + " g · household measures are approximate" : ""}`;
   }
   function pick(f) {
     pickerMode="search";renderQuickPicker();hideDD(); selectedFood = f; food.value = f.name; err.hidden = true;
     const units = portionUnits(f);
-    $("v2Unit").innerHTML = '<option value="">g</option>' + units.map(([name]) => `<option value="${html(name)}">${html(name)}</option>`).join("");
+    $("v2Unit").innerHTML = '<option value="">'+html(quantityUnit(f))+'</option>' + units.map(u => `<option value="${html(u[0])}">${html(portionUnitLabel(u))}</option>`).join("");
     selectedUnit = ""; $("v2Unit").value = "";
     grams.min = "0.1"; grams.max = "2000"; grams.value = String(f.serving_g || 100);
     $("mealPortion").hidden = false; $("mealAddConfirm").disabled = false;
@@ -4824,37 +4839,32 @@ window.addEventListener("popstate", () => {
     const rowHtml = (e, i) => {
       const f = foodByName(e.name, e);
       const name = html(e.name);
-      const units = portionUnits(f);
+      const units = portionUnits(f,e.unit);
       const u = units.find(x => x[0] === e.unit);
       const qty = u ? +(e.g / u[1]).toFixed(2) : e.g;
       const unitUI = units.length
-        ? `<select class="unit-sel" data-i="${i}" aria-label="Unit for ${name}"><option value="">g</option>${units.map(([n]) => `<option value="${n}"${e.unit === n ? " selected" : ""}>${n}</option>`).join("")}</select>${u ? `<small class="unit-g">≈ ${Math.round(e.g)} g</small>` : ""}`
-        : " g";
+        ? `<select class="unit-sel" data-i="${i}" aria-label="Unit for ${name}"><option value="">g</option>${units.map(u => `<option value="${html(u[0])}"${e.unit === u[0] ? " selected" : ""}>${html(portionUnitLabel(u))}</option>`).join("")}</select>${u ? `<small class="unit-g">≈ ${Math.round(e.g)} g</small>` : ""}`
+        : " "+html(quantityUnit(f));
       return `<div class="v2-item"><div class="food-info"><span class="nm">${name}</span><span class="food-nutrition-source">${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
         </div><div class="qty"><span class="portion-label">Portion</span><input type="number" min="0.1" max="2000" step="any" value="${qty}" data-i="${i}" aria-label="Amount of ${name}">${unitUI}</div>
-        <div class="food-macros"><strong>${(f.protein_g_per_100g * e.g / 100).toFixed(1)} g protein</strong><span>${f.kcal == null ? "Calories unavailable" : Math.round(f.kcal * e.g / 100) + " kcal"}</span></div>
-        <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button></div>`;
+        <div class="food-macros"><strong>${f.protein_g_per_100g == null ? "Protein unavailable" : (f.protein_g_per_100g * e.g / 100).toFixed(1)+" g protein"}</strong><span>${f.kcal == null ? "Calories unavailable" : Math.round(f.kcal * e.g / 100) + " kcal"}</span></div>
+        <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button>${supplementIngredients(f,e.g)}</div>`;
     };
     list.innerHTML = MEALS.filter(([mk])=>mk!=="other"||day.some(e=>e.meal==="other")).map(([mk, ml]) => {
       const idxs = day.map((e, i) => [e, i]).filter(([e]) => e.meal === mk);
       const key = mealKey(mk);
       const expanded = expandedMeals.has(key) ? expandedMeals.get(key) : idxs.length > 0;
       /* Summarise each meal independently; collapsed headers retain protein and food count. */
-      const mt = idxs.reduce((a, [e]) => {
-        const f = foodByName(e.name, e);
-        a.prot += f.protein_g_per_100g * e.g / 100;
-        if (f.kcal != null) { a.kcal += f.kcal * e.g / 100; a.carb += (f.carb || 0) * e.g / 100; a.fat += (f.fat || 0) * e.g / 100; } else a.miss++;
-        return a;
-      }, { prot: 0, kcal: 0, carb: 0, fat: 0, miss: 0 });
+      const mt = mealItemsIntake(idxs.map(([e])=>e));
       const mealTotals = idxs.length ? `<dl class="meal-totals" aria-label="${ml} totals">
-        <div><dt>Protein</dt><dd>${mt.prot.toFixed(0)} <small>g</small></dd></div>
-        <div><dt>Calories</dt><dd>${Math.round(mt.kcal)} <small>kcal</small></dd></div>
-        <div><dt>Carbs</dt><dd>${mt.carb.toFixed(0)} <small>g</small></dd></div>
-        <div><dt>Fat</dt><dd>${mt.fat.toFixed(0)} <small>g</small></dd></div>
-      </dl>${mt.miss ? `<p class="meal-missing">Partial totals: calories, carbs and fat unavailable for ${mt.miss} food${mt.miss === 1 ? "" : "s"}.</p>` : ""}` : "";
+        <div><dt>Protein</dt><dd>${macroDisplay(mt,"prot")} <small>g</small></dd></div>
+        <div><dt>Calories</dt><dd>${macroDisplay(mt,"kcal")} <small>kcal</small></dd></div>
+        <div><dt>Carbs</dt><dd>${macroDisplay(mt,"carb")} <small>g</small></dd></div>
+        <div><dt>Fat</dt><dd>${macroDisplay(mt,"fat")} <small>g</small></dd></div>
+      </dl>${mt.miss ? `<p class="meal-missing">Partial totals: some macro amounts unavailable for ${mt.miss} food${mt.miss === 1 ? "" : "s"}.</p>` : ""}` : "";
       return `<div class="meal-group meal-${mk}">
         <div class="meal-header">
-          <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span class="meal-heading">${ml}<small>${idxs.length ? idxs.length + (idxs.length === 1 ? " food" : " foods") + " · " + mt.prot.toFixed(0) + " g protein" : "No foods added"}</small></span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
+          <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span class="meal-heading">${ml}<small>${idxs.length ? idxs.length + (idxs.length === 1 ? " food" : " foods") + " · " + (mt.known.prot ? mt.prot.toFixed(0) + " g protein" : "protein unknown") : "No foods added"}</small></span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
           ${uiPreviousMeal(mk)?`<button type="button" class="meal-repeat" data-repeat-meal="${mk}" aria-label="Repeat last ${ml}">Repeat</button>`:""}
           ${idxs.length ? `<button type="button" class="meal-save" data-save-meal="${mk}" title="Save ${ml} as a favourite meal" aria-label="Save ${ml} as a favourite meal">☆</button>` : ""}
           <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="Add food to ${ml}">Add food</button>
@@ -4908,7 +4918,7 @@ window.addEventListener("popstate", () => {
     list.querySelectorAll(".v2-item input").forEach(inp => inp.addEventListener("change", ev => {
       const i = +ev.target.dataset.i;
       const d = loadDay();
-      const u = portionUnits(foodByName(d[i].name, d[i])).find(x => x[0] === d[i].unit);
+      const u = portionUnits(foodByName(d[i].name, d[i]),d[i].unit).find(x => x[0] === d[i].unit);
       const q = clamp(ev.target.value, 0.01, 2000, u ? 1 : 100);
       d[i].g = u ? Math.min(2000, Math.round(q * u[1] * 10) / 10) : q;
       saveDay(d); render();

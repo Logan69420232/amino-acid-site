@@ -10,13 +10,14 @@ function harness(initial=[day('2026-10-14',false)]) {
   const chart={innerHTML:'',querySelector:()=>null,querySelectorAll:()=>[]};
   const page={innerHTML:'',querySelector:id=>id==='#histChart'?chart:element(id),querySelectorAll:()=>[]};
   const store={owner:'a',revision:0,setItem:()=>{}};
-  const context=vm.createContext({console,Set,Map,Date,store,authedUser:{id:'a'},_accountEpoch:1,_syncReadyOwner:null,_historySyncError:false,
+  const context=vm.createContext({console,Set,Map,Date,store,Nutrition:require('../lib/nutrition'),foodByName:(name,e)=>e?.food||{name},authedUser:{id:'a'},_accountEpoch:1,_syncReadyOwner:null,_historySyncError:false,
     document:{body:{dataset:{view:'history'}},getElementById:()=>page},window:{__v2Render:()=>{diaryRenders++;}},
     sbReady:()=>({from:()=>({select:()=>({eq:()=>({maybeSingle:()=>read})})})}),
     loadLog:()=>log,saveLog:value=>{log=value;},mergeLogs:(remote,local)=>Sync.merge(remote,local).log,applySettings:()=>{},schedulePush:()=>{},
     dayIntake:d=>({prot:d.entries.length?10:0,kcal:100,carb:1,fat:1,balance:1}),getWeight:()=>75,getThriveG:()=>120,
     niceStep:()=>50,todayISO:()=> '2026-10-14',_histMetric:'prot',overlay:{hidden:true},downloadCSV:()=>{},historyCSV:()=>'',navigateApp:()=>{},showView:()=>{},closeDetail:()=>{}});
   for(const [start,end] of [
+    ['function quantityUnit(', 'function supplementIngredients('],
     ['function isCurrentAccount(', 'let _pushJob'],
     ['function refreshHistoryIfVisible(', 'function isCurrentAccount('],
     ['async function syncOnLogin(', 'function renderAuthSlot('],
