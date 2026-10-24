@@ -4922,6 +4922,7 @@ window.addEventListener("popstate", () => {
           <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span class="meal-heading">${ml}<small>${mk === "supplements" ? (idxs.length ? idxs.length + (idxs.length === 1 ? " supplement" : " supplements") : "No supplements added") : (idxs.length ? idxs.length + (idxs.length === 1 ? " food" : " foods") + " · " + (mt.known.prot ? mt.prot.toFixed(0) + " g protein" : "protein unknown") : "No foods added")}</small></span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
           ${uiPreviousMeal(mk)?`<button type="button" class="meal-repeat" data-repeat-meal="${mk}" aria-label="Repeat last ${ml}">Repeat</button>`:""}
           ${idxs.length ? `<button type="button" class="meal-save" data-save-meal="${mk}" title="Save ${ml} as a favourite meal" aria-label="Save ${ml} as a favourite meal">☆</button>` : ""}
+          ${mk === "supplements" ? `<button type="button" class="meal-scan" data-scan-supplement aria-label="Scan supplement label">Scan label</button>` : ""}
           <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="${mk === "supplements" ? "Add supplement" : "Add food to " + ml}">${mk === "supplements" ? "Add supplement" : "Add food"}</button>
         </div>
         <div class="meal-panel" id="meal-panel-${mk}" role="region" aria-labelledby="meal-toggle-${mk}" ${expanded ? "" : "hidden"}>
@@ -4940,6 +4941,7 @@ window.addEventListener("popstate", () => {
       const meal=b.dataset.repeatMeal,previous=uiPreviousMeal(meal);if(!previous)return;
       uiMutateDay(()=>previous.entries.filter(e=>e.meal===meal).forEach(e=>addToDay(e.name,e.g,meal,e.unit,e.food)),MEAL_LABEL[meal]+' repeated.');render();
     });
+    list.querySelectorAll("[data-scan-supplement]").forEach(b=>b.addEventListener("click",()=>window.__openSupplementScan(b)));
     list.querySelectorAll("[data-add-meal]").forEach(b => b.addEventListener("click", () => { if (b.dataset.addMeal === "supplements") window.__openSupplementSearch(b); else openMeal(b.dataset.addMeal); }));
     list.querySelectorAll("[data-save-meal]").forEach(b => b.addEventListener("click", () => {
       if (!requireAccount("Save your favourite meals once and add them again in one tap, synced across your devices.")) return;

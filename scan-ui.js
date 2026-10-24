@@ -3,7 +3,7 @@
   const dialog=document.createElement('dialog');dialog.id='foodScanDialog';dialog.className='food-scan-dialog';dialog.setAttribute('aria-labelledby','scanTitle');document.body.appendChild(dialog);
   const escape=uiEsc, scriptJobs=new Map();let epoch=0,controls=null,worker=null,abort=null,photoURL=null,opener=null,context=null,reader=null,labelCanvas=null;
   const $=id=>dialog.querySelector('#'+id);
-  function stop(){epoch++;controls?.stop();controls=null;const start=$('scanCamera');if(start)start.hidden=false;const capture=$('scanCapture');if(capture){capture.hidden=true;capture.disabled=false;}const v=$('scanVideo');if(v?.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null;}worker?.terminate();worker=null;abort?.abort();abort=null;if(photoURL){URL.revokeObjectURL(photoURL);photoURL=null;}}
+  function stop(){epoch++;resetTorch();controls?.stop();controls=null;const start=$('scanCamera');if(start)start.hidden=false;const capture=$('scanCapture');if(capture){capture.hidden=true;capture.disabled=false;}const v=$('scanVideo');if(v?.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null;}worker?.terminate();worker=null;abort?.abort();abort=null;if(photoURL){URL.revokeObjectURL(photoURL);photoURL=null;}}
   function valid(t){return dialog.open&&epoch===t&&store.owner===context?.owner&&activeLogDay().date===context?.date;}
   function status(text,error=false){const el=$('scanStatus');if(el){el.textContent=text;el.classList.toggle('is-error',error);}}
   function script(src,global){if(window[global])return Promise.resolve();if(scriptJobs.has(src))return scriptJobs.get(src);const job=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>{scriptJobs.delete(src);s.remove();reject(Error('Scanner could not load. Check your connection and try again.'));};document.head.appendChild(s);});scriptJobs.set(src,job);return job;}
@@ -17,15 +17,16 @@
   function supplementDose(key){
     const d=SupplementScan.catalog.find(d=>d.key===key);if(!d)return;
     frame(d.label);const t=epoch;
-    const note=d.group==='Minerals'?'Use the elemental '+d.label.toLowerCase()+' amount, not the weight of the compound.':key==='omega_3'?'Enter total omega-3, not total fish oil. Scan the label if you want separate EPA and DHA amounts.':key==='vitamin_d'?'Use the mcg (µg) amount on your label. For IU-only labels, use the label entry option.': 'Match the nutrient and units printed on your label. For blends or other forms, scan the label.';
-    $('scanBody').innerHTML=`<p class="scan-lead">${escape(note)}</p><form id="supplementDoseForm"><label>Total dose you took<input id="supplementDose" type="number" min="0.000001" step="any" required placeholder="Enter amount" inputmode="decimal"></label><label>Unit<select id="supplementUnit"><option value="mg">mg</option><option value="µg">mcg (µg)</option><option value="g">g</option></select></label><p class="scan-hint">Enter the total nutrient amount you took today, not the number of tablets. This records your intake; it does not suggest a dose.</p><p id="supplementDoseSummary" aria-live="polite"></p><div class="scan-actions"><button class="scan-primary" type="submit">Add to Supplements</button><button type="button" id="supplementBack">Back to search</button></div></form>`;
+    const note=d.group==='Minerals'?'Use the elemental '+d.label.toLowerCase()+' amount, not the weight of the compound.':key==='omega_3'?'Enter total omega-3, not total fish oil. Scan the label if you want separate EPA and DHA amounts.':key==='vitamin_d'?'Use mcg (µg) or IU from your label.':key==='vitamin_e'||key==='vitamin_a_rae'?'For IU, choose the form printed on your supplement label. If unsure, use its mg or mcg amount.': 'Match the nutrient and units printed on your label. For blends or other forms, scan the label.';
+    $('scanBody').innerHTML=`<p class="scan-lead">${escape(note)}</p><form id="supplementDoseForm"><label>Total dose you took<input id="supplementDose" type="number" min="0.000001" step="any" required placeholder="Enter amount" inputmode="decimal"></label><label>Unit<select id="supplementUnit">${SupplementScan.doseUnits(key).map(([value,label])=>`<option value="${value}">${escape(label)}</option>`).join('')}</select></label><p class="scan-hint">Enter the total nutrient amount you took today, not the number of tablets. This records your intake; it does not suggest a dose.</p><p id="supplementDoseSummary" aria-live="polite"></p><div class="scan-actions"><button class="scan-primary" type="submit">Add to Supplements</button><button type="button" id="supplementBack">Back to search</button></div></form>`;
     $('supplementUnit').value=d.doseUnit;
-    const preview=()=>{$('supplementDoseSummary').textContent='';try{const f=SupplementScan.fromDose(key,$('supplementDose').value,$('supplementUnit').value,'dose-preview');$('supplementDoseSummary').textContent='Will add '+f.name;}catch{}};
+    const preview=()=>{$('supplementDoseSummary').textContent='';try{const f=SupplementScan.fromDose(key,$('supplementDose').value,$('supplementUnit').value,'dose-preview');$('supplementDoseSummary').textContent='Will add '+f.name+($('supplementUnit').value.startsWith('IU')?' = '+Nutrition.format(f.nutrients[key]/100)+' '+d.unit:'');}catch{}};
     $('supplementDoseForm').oninput=preview;$('supplementBack').onclick=supplementSearch;
     $('supplementDoseForm').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}try{const f=SupplementScan.fromDose(key,$('supplementDose').value,$('supplementUnit').value,crypto.randomUUID());let added=false;uiMutateDay(()=>{added=addToDay(f.name,1,'supplements',undefined,f);},'Supplement added.');if(added){dialog.close();window.__v2Render?.();}}catch(e){status(e.message,true);}};
     $('supplementDose').focus();
   }
   window.__openSupplementSearch=button=>{opener=button;context={owner:store.owner,date:activeLogDay().date,meal:'supplements',mode:'label'};if(!dialog.open)dialog.showModal();supplementSearch();};
+  window.__openSupplementScan=button=>{opener=button;context={owner:store.owner,date:activeLogDay().date,meal:'supplements',mode:'label'};if(!dialog.open)dialog.showModal();openMode('label');};
   document.getElementById('supplementSearchEntry').onclick=e=>window.__openSupplementSearch(e.currentTarget);
   function supplementReview(draft){
     draft={...draft,name:String(draft.name||'').trim()||SupplementScan.suggestName(draft.ingredients)};
@@ -106,6 +107,34 @@
   async function lookup(raw){const code=FoodScan.barcode(raw);if(!code){status('Enter a valid 8, 12, 13 or 14 digit product barcode.',true);return;}stop();const t=epoch;status('Finding this product…');$('scanLookup').disabled=true;abort=new AbortController();const timer=setTimeout(()=>abort?.abort(),12000);
     try{const url='https://world.openfoodfacts.org/api/v2/product/'+code+'.json?fields=product_name,product_name_en,brands,nutriments,quantity,serving_size,nutrition_data_per&app_name=Aminodata';const r=await fetch(url,{signal:abort.signal,credentials:'omit',referrerPolicy:'no-referrer'});if(!r.ok)throw Error(r.status===429?'Too many lookups. Please wait a minute, or scan the label.':'Product lookup is temporarily unavailable. Try the label scanner.');const data=await r.json();if(!valid(t))return;if(!data.product||data.status===0){status('Product not found. Scan its nutrition label or enter the values yourself.',true);return;}review(FoodScan.fromProduct(data.product,code));}catch(e){if(valid(t))status(e.name==='AbortError'?'Lookup timed out. Try again or scan the label.':e.message,true);}finally{clearTimeout(timer);if(valid(t)&&$('scanLookup'))$('scanLookup').disabled=false;}
   }
+  // Torch is optional hardware; never block scanning when it is unavailable.
+  let torchTrack=null,torchOn=false;
+  function resetTorch(){
+    const old=torchTrack;torchTrack=null;torchOn=false;
+    if(old)old.stop();
+    const b=$('scanTorch');if(b){b.hidden=true;b.disabled=false;b.setAttribute('aria-pressed','false');b.textContent='Flash off';}
+  }
+  function setupTorch(video,t){
+    const b=$('scanTorch'),track=video.srcObject?.getVideoTracks?.()[0];
+    if(!b||!track||!valid(t))return;
+    let supports=false;try{const cap=track.getCapabilities?.().torch;supports=cap===true||(Array.isArray(cap)&&cap.includes(true));}catch{}
+    if(!supports||typeof track.applyConstraints!=='function')return;
+    torchTrack=track;torchOn=track.getSettings?.().torch===true;b.hidden=false;
+    const render=()=>{b.textContent=torchOn?'Flash on':'Flash off';b.setAttribute('aria-pressed',String(torchOn));};render();
+    b.onclick=async()=>{
+      if(!valid(t)||torchTrack!==track||track.readyState==='ended')return;
+      b.disabled=true;const next=!torchOn;
+      try{
+        const constraints=track.getConstraints?.()||{};
+        await track.applyConstraints({...constraints,advanced:[...(constraints.advanced||[]).map(c=>{const {torch,...rest}=c;return rest;}),{torch:next}]});
+        if(!valid(t)||torchTrack!==track)return;
+        const actual=track.getSettings?.().torch;
+        if(typeof actual==='boolean'&&actual!==next)throw Error('Flash unavailable');
+        torchOn=next;render();
+      }catch{if(valid(t)&&torchTrack===track)status('Could not change the flash. Try moving to brighter light.',true);}
+      finally{if(valid(t)&&torchTrack===track)b.disabled=false;}
+    };
+  }
   async function camera(mode){stop();const t=epoch;status('Opening your back camera…');$('scanCamera').disabled=true;if(mode==='label')$('scanCamera').hidden=true;try{
     if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera access needs HTTPS and a supported browser. You can enter the values manually.');
     const v=$('scanVideo');v.hidden=false;if($('scanCameraView'))$('scanCameraView').hidden=false;
@@ -113,12 +142,12 @@
       const stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:2560},height:{ideal:1920}}});
       if(!valid(t)){stream.getTracks().forEach(track=>track.stop());return;}
       v.srcObject=stream;await v.play();if(!valid(t))return;
-      $('scanCapture').hidden=false;status('Fit the table and serving size inside the frame, then tap Take photo.');
+      setupTorch(v,t);$('scanCapture').hidden=false;status('Fit the table and serving size inside the frame, then tap Take photo.');
     }else{
       await script('/assets/scanner/zxing.min.js','ZXingBrowser');if(!valid(t))return;
       reader=new ZXingBrowser.BrowserMultiFormatReader();
       const c=await reader.decodeFromConstraints({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280}}},v,result=>{if(result&&valid(t)){const code=FoodScan.barcode(result.getText());if(code)lookup(code);}});
-      if(valid(t)){controls=c;status('Hold the barcode inside the camera view. It scans automatically.');}else c.stop();
+      if(valid(t)){controls=c;setupTorch(v,t);status('Hold the barcode inside the camera view. It scans automatically.');}else c.stop();
     }
   }catch(e){if(valid(t)){stop();status(e.name==='NotAllowedError'?'Camera permission was denied. Allow it in browser settings or enter the values manually.':e.name==='NotFoundError'?'No camera found. You can enter the values manually.':e.message,true);}}
   finally{if($('scanCamera'))$('scanCamera').disabled=false;}}
@@ -128,6 +157,7 @@
       else{labelCanvas=canvas;await script('/assets/scanner/tesseract.min.js','Tesseract');if(!valid(t))return;const w=await Tesseract.createWorker('eng',1,{workerPath:'/assets/scanner/worker.min.js',corePath:'/assets/scanner',langPath:'/assets/scanner',workerBlobURL:false,logger:m=>{if(valid(t)&&m.status==='recognizing text')status('Reading label… '+Math.round(m.progress*100)+'%');}});if(!valid(t)){await w.terminate();return;}worker=w;const result=await LabelReader.read(w,canvas,{active:()=>valid(t),retrying:()=>status('Taking another look at the label…')});await w.terminate();worker=null;if(valid(t)&&result){const draft=FoodScan.parseLabel(result.text);draft.weakRead=!result.readable;draft.issues=result.issues||[];draft.previewImage=canvas.toDataURL("image/jpeg",0.85);review(draft);if(!Object.keys(draft.values).length&&!SupplementScan.parse(draft.text).ingredients.length)status('No clear nutrition amounts were found. You can enter them below or try a sharper photo.',true);}}
     }catch(e){if(valid(t))status(mode==='barcode'?'Could not read a barcode. Try a clearer photo or type its digits.':'Could not read this image. Try a clearer JPG/PNG photo, or enter the label values yourself.',true);}}
   function openMode(mode){context.mode=mode;frame(mode==='barcode'?'Scan a barcode':'Scan a nutrition label');$('scanBody').innerHTML=mode==='barcode'?`<p class="scan-lead">Find a packaged food, then check it before adding.</p><video id="scanVideo" playsinline muted hidden></video><button type="button" class="scan-primary" id="scanCamera">Start camera</button><label class="scan-upload">Use a barcode photo<input id="scanPhoto" type="file" accept="image/*" capture="environment"></label><form id="scanCodeForm"><label>Or type the barcode<input id="scanCode" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="Numbers under the barcode" required></label><button type="submit" id="scanLookup">Find product</button></form><p class="scan-hint">Camera frames stay on your device. Only the barcode is sent to Open Food Facts for lookup.</p><div class="scan-actions"><button type="button" id="scanSwitch">Scan a nutrition label instead</button><button type="button" id="scanManual">Enter values myself</button></div>`:`<p class="scan-lead">Fit the nutrition table and serving size inside the frame. Keep the bottle straight and avoid glare.</p><div class="scan-camera-view" id="scanCameraView" hidden><video id="scanVideo" playsinline muted hidden></video><div class="scan-camera-guide" aria-hidden="true"></div></div><div class="scan-actions"><button type="button" class="scan-primary" id="scanCamera">Start camera</button><button type="button" class="scan-primary" id="scanCapture" hidden>Take photo</button></div><label class="scan-upload">Choose a label photo<input id="scanPhoto" type="file" accept="image/*" capture="environment"></label><p class="scan-hint">English labels · read on your device. Your photo is not uploaded or saved. The first scan downloads the reader; it may take a moment.</p><div class="scan-actions"><button type="button" id="scanManual">Enter values myself</button><button type="button" id="scanSwitch">Scan a barcode instead</button></div>`;
+    const flash=document.createElement('button');flash.type='button';flash.id='scanTorch';flash.hidden=true;flash.textContent='Flash off';flash.setAttribute('aria-pressed','false');$('scanCamera').after(flash);
     $('scanPhoto').onchange=e=>photo(e.target.files[0],mode);$('scanManual').onclick=()=>review(FoodScan.parseLabel(''));$('scanSwitch').onclick=()=>openMode(mode==='barcode'?'label':'barcode');$('scanCamera').onclick=()=>camera(mode);if(mode==='label'){$('scanCapture').onclick=captureLabel;camera('label');}if(mode==='barcode'){$('scanCodeForm').onsubmit=e=>{e.preventDefault();lookup($('scanCode').value);};}$('scanClose').focus();
   }
   document.querySelectorAll('[data-food-scan]').forEach(b=>b.addEventListener('click',()=>{opener=b;context={owner:store.owner,date:activeLogDay().date,meal:currentMeal,mode:b.dataset.foodScan};if(!dialog.open)dialog.showModal();openMode(context.mode);}));

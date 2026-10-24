@@ -131,3 +131,14 @@ test('review distinguishes missing serving, incomplete amounts, conflicting colu
  assert.equal(S.reviewState(S.parse('Serving Size: 3 Capsules\nMagnesium 253')).missingAmounts,true);
  assert.match(S.reviewState(S.parse('')).message,/No ingredient amounts/);
 });
+
+test('IU doses use vitamin and form-specific factors and survive saved snapshots',()=>{
+ for(const [key,amount,unit,want] of [['vitamin_d',1000,'IU',25],['vitamin_a_rae',5000,'IU-retinol',1500],['vitamin_a_rae',5000,'IU-beta',1500],['vitamin_e',400,'IU-natural',268],['vitamin_e',400,'IU-synthetic',180]]){
+  const f=F.snapshot(S.fromDose(key,amount,unit,'iu-test-123'));
+  near(N.total([{name:f.name,g:1,food:f}],(n,e)=>e.food,key).value,want);
+  assert.equal(f.ingredients[0].amount,amount);assert.equal(f.ingredients[0].unit,'IU');
+ }
+ for(const key of ['iron','vitamin_c','vitamin_a_re','vitamin_e','vitamin_a_rae'])assert.throws(()=>S.fromDose(key,1000,'IU','bad'));
+ const d=S.parse('Serving Size: 1 tablet\nVitamin D3 1000 IU');assert.equal(d.ingredients[0].key,'vitamin_d');near(S.makeFood(d,'scanned-d').nutrients.vitamin_d/100,25);
+ assert.equal(S.parse('Serving Size: 1 capsule\nVitamin E 400 IU').ingredients[0].key,'');
+});

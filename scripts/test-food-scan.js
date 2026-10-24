@@ -21,6 +21,7 @@ function cameraHarness(getUserMedia){
  const source=fs.readFileSync(require('node:path').join(__dirname,'../scan-ui.js'),'utf8');
  const elements={scanCamera:{disabled:false},scanCapture:{hidden:true,disabled:false},scanVideo:{hidden:true,srcObject:null,play:async()=>{}}};
  const messages=[];const ctx=vm.createContext({navigator:{mediaDevices:{getUserMedia}},$:(id)=>elements[id],status:(message)=>messages.push(message),valid:()=>ctx.active,active:true,controls:null,worker:null,abort:null,photoURL:null,epoch:0});
+ vm.runInContext(source.slice(source.indexOf('  let torchTrack='),source.indexOf('  async function camera(mode)')),ctx);
  vm.runInContext(source.slice(source.indexOf('  function stop()'),source.indexOf('  function valid(')),ctx);
  vm.runInContext(source.slice(source.indexOf('  async function camera('),source.indexOf('  function captureLabel(')),ctx);
  return {ctx,elements,messages};
