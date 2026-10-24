@@ -41,3 +41,20 @@ test('UK table units before paired energy amounts and bracketed subnutrients',()
  const d=F.parseLabel('NUTRITION PER 100 g\n| Energy kJ/kcal | 2815/660 |\n| Fat 60 g\n(of which saturates) 7.0 g\nCarbohydrate 4.5 g\n(of which sugars) 2.6 g\nFibre 8.9 g\nProtein 21 g\nSalt 0 g');
  assert.deepEqual(d.values,{energy:660,protein:21,carb:4.5,fat:60,saturated_fat:7,sugars:2.6,fibre:8.9,salt:0});
 });
+
+test('camera capture uses exactly the central frame despite video aspect-ratio differences',()=>{
+ const source=fs.readFileSync(require('node:path').join(__dirname,'../scan-ui.js'),'utf8');let drawn;
+ const canvas={getContext:()=>({drawImage:(...args)=>{drawn=args;}}),toBlob:()=>{}};
+ const video={videoWidth:1920,videoHeight:1080,srcObject:{},getBoundingClientRect:()=>({width:400,height:300})},capture={};
+ const ctx=vm.createContext({$:(id)=>id==='scanVideo'?video:capture,document:{createElement:()=>canvas},epoch:1});
+ vm.runInContext(source.slice(source.indexOf('  function captureLabel('),source.indexOf('  async function photo(')),ctx);ctx.captureLabel();
+ assert.equal(drawn[0],video);assert.ok(Math.abs(drawn[1]-355.2)<.001);assert.ok(Math.abs(drawn[2]-86.4)<.001);assert.ok(Math.abs(drawn[3]-1209.6)<.001);assert.ok(Math.abs(drawn[4]-907.2)<.001);assert.equal(canvas.width,1210);assert.equal(canvas.height,907);
+});
+test('recent picker puts latest confirmed snapshot first without changing diary order',()=>{
+ const source=fs.readFileSync(require('node:path').join(__dirname,'../index.template.html'),'utf8');
+ const nodes=Object.fromEntries(['foodPickerTabs','quickFoodPanel','v2Form','savedMealRow'].map(id=>[id,{innerHTML:'',querySelectorAll:()=>[]}]));
+ const log={days:[{date:'2026-10-24',entries:[{name:'Magnesium',g:3,food:{scanId:'mag'}},...Array.from({length:9},(_,i)=>({name:'Food '+i,g:100})),{name:'Magnesium',g:1,food:{scanId:'mag'}}]}]},before=JSON.stringify(log);
+ const ctx=vm.createContext({$:(id)=>nodes[id],pickerMode:'recent',loadLog:()=>log,html:s=>s,uiFoodName:s=>s,quantityText:e=>e.g+' capsules'});
+ vm.runInContext(source.slice(source.indexOf('  function renderQuickPicker('),source.indexOf('  /* ----- share link:',source.indexOf('  function renderQuickPicker('))),ctx);ctx.renderQuickPicker();
+ assert.match(nodes.quickFoodPanel.innerHTML,/data-recent="0"><span>Magnesium<small>Last portion: 1 capsules/);assert.equal(JSON.stringify(log),before);
+});

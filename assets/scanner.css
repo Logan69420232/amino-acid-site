@@ -21,3 +21,14 @@
 .food-scan-dialog .scan-read-notice p { margin:0 0 10px; }
 
 #scanCropCanvas{display:block;width:auto;height:auto;max-width:100%;max-height:55dvh;margin:0 auto;touch-action:none;cursor:crosshair;border-radius:8px;background:#211b2b}#scanCropEdges{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.scan-read-notice button{margin:4px 8px 0 0}
+
+/* This frame matches the portion captured by captureLabel, including object-fit. */
+.scan-camera-view{position:relative;overflow:hidden;border-radius:12px;background:#211b27;margin:12px 0}
+.scan-camera-view #scanVideo{display:block;width:100%;height:auto;aspect-ratio:4/3;max-height:none;object-fit:cover;margin:0;border-radius:0}
+.scan-camera-guide{position:absolute;inset:8%;border:2px solid #fff;border-radius:8px;box-shadow:0 0 0 1000px #15101a55;pointer-events:none}
+.scan-read-notice ul{padding-left:20px;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+
+.scan-label-summary{background:#f4eef9;border:1px solid #ded2ea;border-radius:12px;padding:14px 16px;margin:12px 0 18px;font-size:15px}
+.scan-label-summary>strong{display:block;font-size:13px;color:#706477;margin-bottom:8px}
+.scan-label-summary>div{display:flex;justify-content:space-between;gap:16px;padding:4px 0;color:#51327b}
+.scan-label-summary b{white-space:nowrap}
