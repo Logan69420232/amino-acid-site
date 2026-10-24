@@ -1627,6 +1627,7 @@
     <div class="day-nav" id="dayTabs" role="group" aria-label="Diary day navigation"></div>
     <div class="meal-editor" id="mealEditor" hidden>
     <div class="meal-editor-head"><span id="mealEditorLabel">Add food</span><button type="button" class="meal-close" id="mealEditorClose">Done</button></div>
+    <button type="button" id="supplementSearchEntry" class="linkish">Search supplements</button>
     <div class="scan-entry-actions"><button type="button" data-food-scan="barcode">▥ Scan barcode</button><button type="button" data-food-scan="label">▤ Scan label</button></div>
     <div class="food-picker-tabs" id="foodPickerTabs" role="group" aria-label="Choose how to add food"></div><div id="quickFoodPanel"></div>
     <form class="v2-form" id="v2Form" autocomplete="off">
@@ -3689,7 +3690,7 @@ function renderMealsPage({ preserve = false, openIndex = null, removedIndex = nu
           ${m.items.length ? `<dl class="sm-macros"><div><dt>Protein</dt><dd>${macroDisplay(t,"prot")} <small>g</small></dd></div><div><dt>Calories</dt><dd>${macroDisplay(t,"kcal")} <small>kcal</small></dd></div><div><dt>Carbs</dt><dd>${macroDisplay(t,"carb")} <small>g</small></dd></div><div><dt>Fat</dt><dd>${macroDisplay(t,"fat")} <small>g</small></dd></div></dl>${t.miss ? '<p class="sm-hint">Some macros are unknown.</p>' : ''}` : '<p class="sm-hint">Add ingredients in the details below.</p>'}
         </div><div class="sm-card-actions">
           <label for="smSlot${i}">Add to</label>
-          <select id="smSlot${i}" class="sm-slot" data-i="${i}">${MEALS.slice(0, 4).map(([k, l]) => `<option value="${k}"${k === (slots.get(i) || currentMeal) ? " selected" : ""}>${l}</option>`).join("")}</select>
+          <select id="smSlot${i}" class="sm-slot" data-i="${i}">${MEALS.filter(([k]) => k !== "other").map(([k, l]) => `<option value="${k}"${k === (slots.get(i) || currentMeal) ? " selected" : ""}>${l}</option>`).join("")}</select>
           <button type="button" class="v2-share-sec sm-add" data-i="${i}"${m.items.length ? '' : ' disabled'}>Add to diary</button>
         </div></div>
         <details class="sm-details" data-i="${i}"${expanded.has(i) ? ' open' : ''}>
@@ -3962,7 +3963,7 @@ else window.addEventListener("load", initAuth);
    Storage is aa_log { days: [{date, note, entries: [{name, g, meal}]}], active }.
    Everything downstream still reads the ACTIVE day as a flat list via loadDay(),
    so totals, bars, suggestions and share links are untouched. */
-const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"], ["snacks", "Snacks"], ["other", "Uncategorized"]];
+const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"], ["snacks", "Snacks"], ["supplements", "Supplements"], ["other", "Uncategorized"]];
 const MEAL_LABEL = Object.fromEntries(MEALS);
 function foodByName(n, entry) { return entry?.food ? FoodScan.snapshot(entry.food) : FOOD_BY_NAME.get(n); }
 function updateDayBtn() {}
@@ -4901,7 +4902,7 @@ window.addEventListener("popstate", () => {
         : " "+html(quantityUnit(f));
       return `<div class="v2-item"><div class="food-info"><span class="nm">${name}</span><span class="food-nutrition-source">${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
         </div><div class="qty"><span class="portion-label">Portion</span><input type="number" min="0.1" max="2000" step="any" value="${qty}" data-i="${i}" aria-label="Amount of ${name}">${unitUI}</div>
-        <div class="food-macros"><strong>${f.protein_g_per_100g == null ? "Protein unavailable" : (f.protein_g_per_100g * e.g / 100).toFixed(1)+" g protein"}</strong><span>${f.kcal == null ? "Calories unavailable" : Math.round(f.kcal * e.g / 100) + " kcal"}</span></div>
+        <div class="food-macros">${f.supplement ? f.ingredients.slice(0,2).map(r=>`<span>${html(r.label)} <strong>${Nutrition.format(r.amount*e.g/f.serving_g)} ${html(r.unit)}</strong></span>`).join("") : `<strong>${f.protein_g_per_100g == null ? "Protein unavailable" : (f.protein_g_per_100g * e.g / 100).toFixed(1)+" g protein"}</strong><span>${f.kcal == null ? "Calories unavailable" : Math.round(f.kcal * e.g / 100) + " kcal"}</span>`}</div>
         <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button>${supplementIngredients(f,e.g)}</div>`;
     };
     list.innerHTML = MEALS.filter(([mk])=>mk!=="other"||day.some(e=>e.meal==="other")).map(([mk, ml]) => {
@@ -4910,7 +4911,7 @@ window.addEventListener("popstate", () => {
       const expanded = expandedMeals.has(key) ? expandedMeals.get(key) : idxs.length > 0;
       /* Summarise each meal independently; collapsed headers retain protein and food count. */
       const mt = mealItemsIntake(idxs.map(([e])=>e));
-      const mealTotals = idxs.length ? `<dl class="meal-totals" aria-label="${ml} totals">
+      const mealTotals = idxs.length && mk !== "supplements" ? `<dl class="meal-totals" aria-label="${ml} totals">
         <div><dt>Protein</dt><dd>${macroDisplay(mt,"prot")} <small>g</small></dd></div>
         <div><dt>Calories</dt><dd>${macroDisplay(mt,"kcal")} <small>kcal</small></dd></div>
         <div><dt>Carbs</dt><dd>${macroDisplay(mt,"carb")} <small>g</small></dd></div>
@@ -4918,10 +4919,10 @@ window.addEventListener("popstate", () => {
       </dl>${mt.miss ? `<p class="meal-missing">Partial totals: some macro amounts unavailable for ${mt.miss} food${mt.miss === 1 ? "" : "s"}.</p>` : ""}` : "";
       return `<div class="meal-group meal-${mk}">
         <div class="meal-header">
-          <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span class="meal-heading">${ml}<small>${idxs.length ? idxs.length + (idxs.length === 1 ? " food" : " foods") + " · " + (mt.known.prot ? mt.prot.toFixed(0) + " g protein" : "protein unknown") : "No foods added"}</small></span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
+          <h3><button type="button" class="meal-toggle" id="meal-toggle-${mk}" data-meal="${mk}" aria-expanded="${expanded}" aria-controls="meal-panel-${mk}"><span class="meal-heading">${ml}<small>${mk === "supplements" ? (idxs.length ? idxs.length + (idxs.length === 1 ? " supplement" : " supplements") : "No supplements added") : (idxs.length ? idxs.length + (idxs.length === 1 ? " food" : " foods") + " · " + (mt.known.prot ? mt.prot.toFixed(0) + " g protein" : "protein unknown") : "No foods added")}</small></span><span class="meal-chevron" aria-hidden="true"></span></button></h3>
           ${uiPreviousMeal(mk)?`<button type="button" class="meal-repeat" data-repeat-meal="${mk}" aria-label="Repeat last ${ml}">Repeat</button>`:""}
           ${idxs.length ? `<button type="button" class="meal-save" data-save-meal="${mk}" title="Save ${ml} as a favourite meal" aria-label="Save ${ml} as a favourite meal">☆</button>` : ""}
-          <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="Add food to ${ml}">Add food</button>
+          <button type="button" class="meal-plus" data-add-meal="${mk}" aria-label="${mk === "supplements" ? "Add supplement" : "Add food to " + ml}">${mk === "supplements" ? "Add supplement" : "Add food"}</button>
         </div>
         <div class="meal-panel" id="meal-panel-${mk}" role="region" aria-labelledby="meal-toggle-${mk}" ${expanded ? "" : "hidden"}>
           ${savingMeal === mk ? `<div class="save-meal-form">
@@ -4930,7 +4931,7 @@ window.addEventListener("popstate", () => {
             <button type="button" class="linkish" id="smCancel">Cancel</button>
             <span class="auth-note sm-note">Saved meals appear when you add food, and sync to your other devices.</span>
           </div>` : ""}
-          ${idxs.length ? idxs.map(([e, i]) => rowHtml(e, i)).join("") : '<p class="meal-empty">Choose Add food to start this meal.</p>'}
+          ${idxs.length ? idxs.map(([e, i]) => rowHtml(e, i)).join("") : (mk === 'supplements' ? '<p class="meal-empty">Search a supplement and enter your dose, or scan its label.</p>' : '<p class="meal-empty">Choose Add food to start this meal.</p>')}
           ${mealTotals}
         </div>
       </div>`;
@@ -4939,7 +4940,7 @@ window.addEventListener("popstate", () => {
       const meal=b.dataset.repeatMeal,previous=uiPreviousMeal(meal);if(!previous)return;
       uiMutateDay(()=>previous.entries.filter(e=>e.meal===meal).forEach(e=>addToDay(e.name,e.g,meal,e.unit,e.food)),MEAL_LABEL[meal]+' repeated.');render();
     });
-    list.querySelectorAll("[data-add-meal]").forEach(b => b.addEventListener("click", () => openMeal(b.dataset.addMeal)));
+    list.querySelectorAll("[data-add-meal]").forEach(b => b.addEventListener("click", () => { if (b.dataset.addMeal === "supplements") window.__openSupplementSearch(b); else openMeal(b.dataset.addMeal); }));
     list.querySelectorAll("[data-save-meal]").forEach(b => b.addEventListener("click", () => {
       if (!requireAccount("Save your favourite meals once and add them again in one tap, synced across your devices.")) return;
       savingMeal = savingMeal === b.dataset.saveMeal ? null : b.dataset.saveMeal;

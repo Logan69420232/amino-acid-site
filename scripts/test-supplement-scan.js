@@ -81,3 +81,33 @@ test('explicit per-capsule headers work without confusing container counts',()=>
  const single=S.parse('Supplement Facts\nPer capsule\nZinc 10mg');assert.equal(single.servingCount,1);
  const blend=S.parse('Serving Size: 1 capsule\nZinc with elemental magnesium 500mg');assert.equal(blend.ingredients[0].key,'');
 });
+
+test('supplement search finds generic nutrients without assigning a dose',()=>{
+ assert.equal(S.search('iron supplements')[0].key,'iron');assert.deepEqual(S.search('vitamin C').map(d=>d.key),['vitamin_c']);assert.equal(S.search('vitamin d3')[0].key,'vitamin_d');assert.equal(S.search('magnesium glycinate')[0].key,'magnesium');assert.equal(S.search('unlisted product').length,0);
+ assert.ok(S.catalog.every(d=>d.amount===undefined));
+});
+test('manual doses convert units and retain exact amounts through saved snapshots',()=>{
+ for(const [key,amount,unit,want] of [['iron',14,'mg',14],['vitamin_c',.5,'g',500],['vitamin_d',25,'µg',25],['epa',600,'mg',.6]]){
+  const f=S.fromDose(key,amount,unit,'manual-'+key),snapshot=F.snapshot(f);
+  near(N.total([{name:f.name,g:1,meal:'supplements',food:snapshot}],(n,e)=>e.food,key).value,want);
+  near(N.total([{name:f.name,g:2,meal:'supplements',food:snapshot}],(n,e)=>e.food,key).value,want*2);
+  assert.equal(snapshot.protein_g_per_100g,null);assert.equal(snapshot.kcal,null);
+ }
+ for(const dose of ['',0,-1,'no',Infinity])assert.throws(()=>S.fromDose('iron',dose,'mg','bad'));
+ assert.throws(()=>S.fromDose('iron',14,'IU','bad'));assert.throws(()=>S.fromDose('unknown',14,'mg','bad'));
+});
+test('supplements category survives diary reload alongside existing meals',()=>{
+ const source=fs.readFileSync(require('node:path').join(__dirname,'../index.template.html'),'utf8');const f=S.fromDose('iron',14,'mg','iron-test');
+ const entry={name:f.name,g:1,meal:'supplements',food:f};const existing={...entry,meal:'snacks'};
+ const ctx=vm.createContext({FoodScan:F,FOOD_BY_NAME:new Map(),store:{getItem:()=>JSON.stringify({days:[{date:'2026-10-24',entries:[existing,entry]}],active:0})},dedupeDays:require('../lib/diary-sync').uniqueDays,todayISO:()=> '2026-10-24'});
+ vm.runInContext(source.slice(source.indexOf('const MEALS ='),source.indexOf('function updateDayBtn(')),ctx);
+ vm.runInContext(source.slice(source.indexOf('function loadLog('),source.indexOf('function saveLog(')),ctx);
+ const entries=ctx.loadLog().days[0].entries;assert.equal(entries[0].meal,'snacks');assert.equal(entries[1].meal,'supplements');assert.equal(entries[1].food.ingredients[0].amount,14);
+});
+
+
+test('each tablet provides and dotted leaders retain copper dose in micrograms',()=>{
+ const text='Nutrition Information %NRV*\nEach tablet provides:\nCopper........................2500 μg 250\n*NRV = Nutrient Reference Value\nIngredients: bulking agents';
+ const d=S.parse(text);assert.equal(S.detect(text),true);assert.equal(d.servingCount,1);assert.equal(d.doseUnit,'tablets');assert.equal(d.ingredients[0].key,'copper');assert.equal(d.ingredients[0].amount,2500);assert.equal(d.ingredients[0].unit,'µg');
+ const f=S.makeFood(d,'copper-tablet');near(N.total([{name:f.name,g:1,food:f}],(n,e)=>e.food,'copper').value,2.5);
+});
