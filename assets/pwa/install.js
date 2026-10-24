@@ -19,7 +19,7 @@
  const appleBrowser=detectAppleInstallBrowser(navigator);
  const icon='/assets/favicon.svg';
  const card=(id,dismiss=false)=>`<aside class="install-card" id="${id}" aria-label="Install Aminodata"><img src="${icon}" alt=""/><div class="install-card-copy"><strong>Your diary. One tap away.</strong><p>Add Aminodata to your home screen.</p></div><button type="button" data-open-install>Install Aminodata</button>${dismiss?'<button type="button" class="install-dismiss" aria-label="Dismiss installation suggestion">×</button>':''}</aside>`;
- document.querySelector('.land-benefits').insertAdjacentHTML('afterend',card('homeInstallCard'));
+ (document.querySelector('.home-install-slot') || document.querySelector('.land-benefits')).insertAdjacentHTML('afterend',card('homeInstallCard'));
  const menuButton='<button type="button" data-open-install class="install-menu-button"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5"/></svg><span class="nav-text">Install Aminodata</span></button>';
  document.querySelector('#appSidebar nav').insertAdjacentHTML('beforeend',menuButton);
  document.querySelector('#mobileMore .mobile-more-label').insertAdjacentHTML('beforebegin',menuButton);

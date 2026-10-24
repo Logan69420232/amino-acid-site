@@ -1418,7 +1418,7 @@
     .meal-plus { padding-inline: 10px; }
   }
 </style>
-<link rel="stylesheet" href="/assets/scanner.css"><link rel="stylesheet" href="/assets/usability.css">
+<link rel="stylesheet" href="/assets/scanner.css"><link rel="stylesheet" href="/assets/usability.css"><link rel="stylesheet" href="/assets/home.css">
 
 <div class="tip" id="tip" hidden role="status"></div>
 <aside id="appSidebar" class="app-sidebar" hidden aria-label="Main navigation">
@@ -1473,6 +1473,7 @@
 <div class="topbar">
   <div class="wrap topbar-inner">
     <span class="brand"><svg class="mark" width="13" height="20" viewBox="0 0 13 20" aria-hidden="true"><rect x="0.75" y="0.75" width="11.5" height="18.5" fill="none" stroke="currentColor" stroke-width="1"/><line x1="2.5" y1="4" x2="10.5" y2="4" stroke="currentColor" stroke-width="0.75" stroke-dasharray="1.6 1.4" opacity="0.45"/><circle cx="6.5" cy="7.6" r="2.3" fill="var(--c-bcaa)"/><circle cx="6.5" cy="12" r="1.7" fill="var(--c-bcaa)" opacity="0.6"/><circle cx="6.5" cy="15.4" r="1.2" fill="var(--c-bcaa)" opacity="0.35"/></svg>aminodata.org</span>
+    <nav class="home-nav home-only" aria-label="Homepage"><a href="#home-features">Features</a><a href="#home-steps">How it works</a><a href="#home-method">The data</a><a href="#home-faq">FAQ</a></nav>
     <span class="auth-slot" id="authSlot"></span>
     <div class="menu-wrap">
       <button class="burger menu-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">&#9776;</button>
@@ -1501,11 +1502,12 @@
 
 <header class="site">
   <div class="wrap">
-    <canvas id="heroAnim" aria-hidden="true"></canvas>
   <section class="landing" aria-labelledby="landTitle">
-    <p class="eyebrow">A clearer picture of your protein</p>
+    <div class="home-hero-copy">
+    <p class="eyebrow"><span class="home-status-dot"></span> Your nutrition. In full detail.</p>
     <h1 id="landTitle">Stop tracking protein.<br>Start tracking <em>amino acids.</em></h1>
-    <p class="land-description">Log what you eat. See your amino acid profile.<br>Find foods that help you reach your targets.</p>
+    <p class="land-description">You know how much protein you eat.<br><strong>Find out what it’s made of.</strong></p>
+    <p class="land-explanation">Log your meals, see your amino acid profile, and get food suggestions to help you reach your targets.</p>
     <form class="land-signup" id="landSignupForm">
       <label for="landEmail">Your email address</label>
       <div class="land-signup-row">
@@ -1513,11 +1515,20 @@
         <button type="submit">Sign up for free</button>
       </div>
     </form>
-    <p class="land-free" id="landFree">Free food diary. Your meals, synced across devices.</p>
+    <p class="land-free" id="landFree">Free to get started · Works on your phone and computer</p>
+    <a class="home-watch" href="#home-demo">See it in action <span aria-hidden="true">↘</span></a>
+    </div>
+    <aside class="home-profile" aria-label="Illustration of an amino acid profile">
+      <div class="home-profile-top"><span class="home-app-mark">a<span>•</span></span><span>YOUR DAY, DECODED</span><span class="home-live-dot"></span></div>
+      <div class="home-profile-heading"><span>Beyond the protein total.</span><small>AN ILLUSTRATED PROFILE</small></div>
+      <div class="home-profile-orbit"><canvas id="heroAnim" aria-hidden="true"></canvas><div class="home-orbit-caption"><span>THE BUILDING BLOCKS</span><strong>Amino acids.</strong></div></div>
+      <div class="home-profile-bottom"><span><i class="home-key-essential"></i> Essential</span><span><i class="home-key-other"></i> Non-essential</span></div>
+      <div class="home-profile-note">Different foods. Different profiles.<br><strong>See how yours add up.</strong></div>
+    </aside>
     <ul class="land-benefits">
       <li><span id="landFoodCount">4,000+</span> amino acid profiles</li>
-      <li>Your daily amino acid profile</li>
-      <li>Practical food suggestions</li>
+      <li>Food &amp; supplement scanning</li>
+      <li>Meals synced across devices</li>
     </ul>
   </section>
   <div class="reference-intro">
@@ -1567,21 +1578,48 @@
   <section id="historyPage" hidden aria-labelledby="historyTitle"></section>
   <section id="mealsPage" hidden aria-labelledby="mealsTitle"></section>
   <section id="faqPage" hidden aria-labelledby="faqTitle">__INJECT_FAQ__</section>
-  <section class="product-demo" aria-labelledby="demoTitle">
-    <div class="demo-intro"><h2 id="demoTitle">See your day in amino acids.</h2><p>From your first meal to the full picture.</p></div>
+  <section class="product-demo" id="home-demo" aria-labelledby="demoTitle">
+    <div class="demo-intro"><div><p class="eyebrow">MEET YOUR NEW FOOD DIARY</p><h2 id="demoTitle">A few meals.<br>A much clearer picture.</h2></div><p>From your first breakfast to your full daily profile. Here’s how it comes together.</p></div>
     <div class="demo-frame">
       <div class="demo-stage">
         <div class="demo-copy">
           <span class="demo-copy-brand">AMINODATA</span>
-          <div><h3>Enter your protein intake.</h3><p>See which amino acids you’re missing, optimise your diet, and support your health.</p></div>
+          <div><h3>Enter your protein intake.</h3><p>See your amino acid profile and discover foods that help you reach your targets.</p></div>
           <span class="demo-copy-domain">aminodata.org</span>
         </div>
         <div class="demo-video"><video id="diaryDemo" width="1280" height="800" muted loop playsinline preload="none" poster="/assets/diary-demo-poster.jpg" data-src="/assets/diary-demo.mp4" aria-label="Aminodata food diary walkthrough" aria-describedby="demoDescription"></video></div>
       </div>
       <div class="demo-controls"><span id="demoDescription">22-second demo · Add breakfast, edit portions, see your amino acid profile.</span><button type="button" id="demoToggle" aria-controls="diaryDemo">Play demo</button></div>
     </div>
-    <div class="demo-action"><a href="/?view=diary" id="tryDiary">Try the diary →</a></div>
+    <div class="demo-action"><a href="/?view=diary" id="tryDiary">Try the food diary <span aria-hidden="true">→</span></a><span>Start with one meal. Build from there.</span></div>
   </section>
+  <div class="home-only home-story">
+    <section class="home-section" id="home-features" aria-labelledby="homeFeaturesTitle">
+      <div class="home-section-heading"><p class="eyebrow">THE WHOLE PICTURE</p><h2 id="homeFeaturesTitle">More than a number<br>on a protein tracker.</h2><p>Your foods bring more than protein to the table. See the details together, in one diary.</p></div>
+      <div class="home-feature-grid">
+        <article class="home-feature home-feature-main"><span class="home-feature-symbol" aria-hidden="true">◎</span><span class="home-card-label">01 / UNDERSTAND</span><h3>Meet your amino acids.</h3><p>See how your foods combine across the day, and how your essential amino acid intake compares with your targets.</p><div class="home-mini-profile" aria-hidden="true"><span>Leucine<i style="--bar:88%"></i></span><span>Lysine<i style="--bar:65%"></i></span><span>Valine<i style="--bar:76%"></i></span></div><small class="home-example-label">Illustrative profile</small></article>
+        <article class="home-feature"><span class="home-feature-symbol" aria-hidden="true">⌁</span><span class="home-card-label">02 / FILL THE GAPS</span><h3>Know what could help.</h3><p>Get food suggestions based on your remaining nutrient targets, with an explanation of why each food is suggested.</p></article>
+        <article class="home-feature"><span class="home-feature-symbol" aria-hidden="true">▥</span><span class="home-card-label">03 / LOG YOUR WAY</span><h3>Search it. Scan it. Save it.</h3><p>Search foods, scan a barcode or photograph a label. Save your usual meals so tomorrow’s diary takes less effort.</p></article>
+        <article class="home-feature home-feature-wide"><div><span class="home-card-label">04 / LOOK BEYOND TODAY</span><h3>Make the everyday visible.</h3><p>Follow protein, calories and macros over time. Explore vitamins, minerals and fats in your diary, then export your data when you need it.</p></div><div class="home-mini-chart" aria-hidden="true"><i style="--bar:50%"></i><i style="--bar:72%"></i><i style="--bar:62%"></i><i style="--bar:87%"></i><i style="--bar:68%"></i><i style="--bar:94%"></i><i style="--bar:80%"></i><span>SMALL HABITS. A BIGGER PICTURE.</span></div></article>
+      </div>
+    </section>
+    <section class="home-section home-steps" id="home-steps" aria-labelledby="homeStepsTitle">
+      <div class="home-section-heading"><p class="eyebrow">HOW IT WORKS</p><h2 id="homeStepsTitle">Your next meal is<br>a good place to start.</h2></div>
+      <ol class="home-step-grid"><li><span class="home-step-number">01</span><h3>Set your goals.</h3><p>Enter your protein goal and personalise your daily targets.</p></li><li><span class="home-step-number">02</span><h3>Add what you eat.</h3><p>Log breakfast, lunch, dinner and snacks. Search, scan, or add a saved meal.</p></li><li><span class="home-step-number">03</span><h3>See. Adjust. Repeat.</h3><p>See your amino acid profile and get suggestions for ways to optimise your protein intake.</p></li></ol>
+    </section>
+    <section class="home-section home-data" id="home-method" aria-labelledby="homeDataTitle">
+      <div><p class="eyebrow">BUILT ON FOOD DATA</p><h2 id="homeDataTitle">Clear sources.<br>Honest limits.</h2><p>Good decisions start with knowing what the numbers mean. Aminodata shows where food data comes from and flags missing nutrient values.</p><a href="/database" class="home-text-link">Explore the food profiles <span aria-hidden="true">↗</span></a></div>
+      <dl class="home-source-list"><div><dt>Food composition</dt><dd>USDA FoodData Central &amp; UK CoFID</dd></div><div><dt>Amino acid reference</dt><dd>WHO / FAO / UNU adult requirements</dd></div><div><dt>Missing information</dt><dd>Shown as unavailable, never assumed to be zero.</dd></div><div><dt>Label scanning</dt><dd>Text is read on your device. Review the numbers before adding.</dd></div></dl>
+    </section>
+    <section class="home-section home-faq" id="home-faq" aria-labelledby="homeFaqTitle"><div><p class="eyebrow">A FEW GOOD QUESTIONS</p><h2 id="homeFaqTitle">Before your<br>first meal.</h2></div><div class="home-questions">
+      <details><summary>Is Aminodata free to use?</summary><p>You can create a free account to keep your food diary, save meals and sync them across devices.</p></details>
+      <details><summary>Do I need to download an app?</summary><p>No. Aminodata works in your browser on your phone, tablet or computer. You can also add it to your home screen for quicker access.</p></details>
+      <details><summary>Can I track more than protein?</summary><p>Yes. Your diary includes calories, carbohydrates, fat, vitamins, minerals and detailed lipids wherever food data is available.</p></details>
+      <details><summary>Does every food have an amino acid profile?</summary><p>No. Many foods have detailed amino acid data, but some branded foods and scanned labels only provide basic nutrition. Aminodata marks missing data so you can see what is and isn’t included.</p></details>
+      <details><summary>Will this tell me if I have a deficiency?</summary><p>No. It compares the food you log with reference or personal targets. It cannot diagnose a deficiency or replace advice from a qualified health professional.</p></details>
+    </div></section>
+    <section class="home-closing" aria-labelledby="homeClosingTitle"><p class="eyebrow">MAKE YOUR NEXT MEAL COUNT</p><h2 id="homeClosingTitle">A clearer picture.<br>One meal at a time.</h2><button type="button" class="home-primary" data-home-signup>Create your free account <span aria-hidden="true">↗</span></button><p>Your everyday foods. A little more understanding.</p><div class="home-install-slot"></div></section>
+  </div>
   <section class="v2-entry">
     <a class="linkish diary-back" href="/" id="diaryBack">← Back to homepage</a>
     <h2 class="v2-h diary-title">Your food diary</h2>
@@ -1616,6 +1654,7 @@
   </section>
   <section class="v2-result" id="v2Result" hidden></section>
   <div class="atlas-head">
+    <p style="width:100%;font-size:14px"><a href="/foods">Browse food profiles by category</a> · <a href="/guides/amino-acid-profile">What is an amino acid profile?</a></p>
     <h2 class="v2-h">Amino acid database</h2>
     <a class="linkish" href="/" id="atlasBack">← Back to my day</a>
   </div>
@@ -1684,6 +1723,7 @@
     <img class="avatar" src="/assets/logan-king.jpg" alt="Logan King" width="30" height="30" loading="lazy"><img class="avatar" src="/assets/paul-morgan.jpg" alt="Dr Paul T Morgan" width="30" height="30" loading="lazy"> Made by <a href="https://logantalkshealth.com/" rel="author">Logan King</a> and <a href="https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan" rel="author">Dr Paul T Morgan</a>, Senior Lecturer in Human Nutrition and Metabolism at Manchester Metropolitan University, Registered Sport and Exercise Nutritionist (SENr).<br>
     Aminodata · Educational reference, not medical advice. Compiled from public analytical data; corrections welcome.<br>
     <span style="font-family:var(--font-mono);font-size:11px">Cite: Aminodata (2026), aminodata.org · Data: USDA FoodData Central, SR Legacy · Scoring: WHO/FAO/UNU (2007)</span>
+    <p><a href="/foods">Food profiles by category</a> · <a href="/guides/amino-acid-profile">Amino acid profiles explained</a></p>
     <button type="button" class="footer-feedback" id="footerFeedback">Send feedback</button>
   </div>
 </footer>
@@ -2876,7 +2916,7 @@ function navigateApp(act) {
   else if (act === "feedback") openFeedback();
   else if (act === "comparefoods") openCompareFoods();
   else if (act === "compareaa") openCompareAAs();
-  else if (act === "method") { if (["account", "compare"].includes(document.body.dataset.view)) showView("day"); document.getElementById("method").scrollIntoView({behavior:"smooth"}); }
+  else if (act === "method") { if (!document.body.dataset.view && !document.body.classList.contains("authed")) { document.getElementById("home-method").scrollIntoView({behavior:"smooth"}); return; } if (["account", "compare"].includes(document.body.dataset.view)) showView("day"); document.getElementById("method").scrollIntoView({behavior:"smooth"}); }
   if (window.__syncShell) window.__syncShell();
 }
 (function initMenu() {
@@ -4295,7 +4335,7 @@ updateDayBtn();
 
   let cols = {};
   function readCols() {
-    const cs = getComputedStyle(document.documentElement);
+    const cs = getComputedStyle(cv);
     cols = {
       b: cs.getPropertyValue("--c-bcaa").trim(), e: cs.getPropertyValue("--c-ess").trim(),
       n: cs.getPropertyValue("--c-non").trim(), ink: cs.getPropertyValue("--ink-3").trim()
@@ -4429,6 +4469,8 @@ function showView(v, push) {
   }
 }
 window.addEventListener("popstate", () => {
+  const homeSection = !document.body.classList.contains("authed") && location.pathname === "/" && /^#home-/.test(location.hash) && document.getElementById(location.hash.slice(1));
+  if (homeSection) { showView("home", false); homeSection.scrollIntoView({ block: "start" }); return; }
   if (/^\/account\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("account", false); return; }
   if (/^\/history\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("history", false); return; }
   if (/^\/meals\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("meals", false); return; }
@@ -5160,6 +5202,15 @@ window.addEventListener("popstate", () => {
   window.__v2Render = render;
   render();
 })();
+
+document.querySelectorAll('a[href^="#home-"]').forEach(link => link.addEventListener("click", event => {
+  const section = document.getElementById(link.hash.slice(1));
+  if (!section || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  history.pushState({ v: "home" }, "", link.hash);
+  section.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
+}));
+document.querySelectorAll("[data-home-signup]").forEach(button => button.addEventListener("click", () => openAuthSheet(undefined, "signup")));
 
 /* Autoplay the muted demo when visible on any screen; respect reduced motion. */
 (function wireDemo() {
