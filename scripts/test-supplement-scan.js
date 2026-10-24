@@ -111,3 +111,23 @@ test('each tablet provides and dotted leaders retain copper dose in micrograms',
  const d=S.parse(text);assert.equal(S.detect(text),true);assert.equal(d.servingCount,1);assert.equal(d.doseUnit,'tablets');assert.equal(d.ingredients[0].key,'copper');assert.equal(d.ingredients[0].amount,2500);assert.equal(d.ingredients[0].unit,'µg');
  const f=S.makeFood(d,'copper-tablet');near(N.total([{name:f.name,g:1,food:f}],(n,e)=>e.food,'copper').value,2.5);
 });
+
+test('OCR border character before elemental magnesium does not lose nutrient mapping',()=>{
+ const d=S.parse('Nutritional Information\nMagnesium Bisglycinate 1950mg\ni Providing Elemental Magnesium 253mg 67%');
+ assert.equal(d.name,'Magnesium');assert.equal(d.ingredients[1].key,'magnesium');assert.equal(d.ingredients[0].key,'');
+ assert.equal(S.reviewState({...d,weakRead:true}).missingServing,true);
+ assert.equal(S.reviewState(d).needsIngredients,false);
+ assert.match(S.reviewState(d).message,/Amounts found/);
+ const f=S.makeFood({...d,servingCount:3,doseUnit:'capsules'},'border-test');near(f.nutrients.magnesium*3/100,253);
+ assert.equal(S.matchKey('i Providing Elemental Magnesium','mg'),'magnesium');
+ assert.equal(S.matchKey('Magnesium Bisglycinate','mg'),'');assert.equal(S.matchKey('Zinc with elemental magnesium','mg'),'');
+});
+test('review distinguishes missing serving, incomplete amounts, conflicting columns and empty scans',()=>{
+ const d=S.parse('Serving Size: 3 Capsules\nElemental Magnesium 253mg');
+ assert.equal(S.reviewState({...d,weakRead:true}).needsIngredients,false);
+ assert.equal(S.reviewState({...d,issues:['A second reading could not confirm every amount.']}).needsIngredients,false);
+ assert.doesNotMatch(S.reviewState({...d,weakRead:true}).message,/couldn.t|not read/i);
+ assert.equal(S.reviewState(S.parse('Serving Size: 3 Capsules\nMagnesium 84mg 253mg')).needsIngredients,true);
+ assert.equal(S.reviewState(S.parse('Serving Size: 3 Capsules\nMagnesium 253')).missingAmounts,true);
+ assert.match(S.reviewState(S.parse('')).message,/No ingredient amounts/);
+});
