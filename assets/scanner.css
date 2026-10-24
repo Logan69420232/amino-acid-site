@@ -39,3 +39,5 @@
 
 /* Keep the dose unit beside the number, never as separate flex label lines. */
 .food-scan-dialog .scan-dose-inline{display:flex;align-items:center;gap:12px}.food-scan-dialog .scan-dose-inline input{width:110px;flex:0 1 110px}.food-scan-dialog .scan-amount-title{font-weight:600;color:inherit}.food-scan-dialog .scan-basis{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}.scan-serving-needed{border:1px solid #ded2ea;border-radius:12px;padding:0 12px}.scan-label-summary>small{margin-top:8px}.scan-portion p:empty{display:none}.scan-portion p{font-size:14px;line-height:1.5;margin-bottom:0}
+
+.meal-scan{flex:0 0 auto;min-height:44px;padding:8px 12px;border:1px solid #d9cfe5;border-radius:8px;background:#faf7fd;color:#51327b;font:600 13px var(--font-sans);cursor:pointer}.food-scan-dialog #scanTorch[aria-pressed="true"]{background:#fff0c2;border-color:#caa547;color:#55400c}.food-scan-dialog #scanTorch{min-height:44px}@media(max-width:600px){.meal-supplements .meal-header{flex-wrap:wrap;padding-block:10px}.meal-supplements .meal-header h3{flex-basis:100%}.meal-supplements .meal-plus,.meal-supplements .meal-scan{flex:1}}
