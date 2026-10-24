@@ -333,7 +333,7 @@ fs.writeFileSync(path.join(root, "dist", "index.html"), out);
 // ---------- /database: the same app, addressed as its own page ----------
 const BASE = "https://aminodata.org";
 const dbOut = out
-  .replace("<title>Aminodata: amino acid profiles of every protein source</title>",
+  .replace(/<title>[^<]*<\/title>/,
     "<title>Amino acid database: full profiles of " + foods.length.toLocaleString() + " foods · Aminodata</title>")
   .replace('<meta name="description" content="Enter what you eat in a day and see its full amino acid profile. 4,000+ foods from USDA analytical data, scored against WHO/FAO 2007 requirements." />',
     '<meta name="description" content="Browse the full amino acid composition of ' + foods.length.toLocaleString() + ' foods: all 18 amino acids per 100 g, WHO/FAO 2007 scores, and limiting amino acids, from USDA analytical data." />')
@@ -346,7 +346,7 @@ fs.writeFileSync(path.join(root, "dist", "database.html"), dbOut);
 // ---------- /compare and /compare-amino-acids: addressed pages of the app ----------
 function pageCopy(title, desc, canonicalPath, ogTitle) {
   return out
-    .replace("<title>Aminodata: amino acid profiles of every protein source</title>", "<title>" + title + "</title>")
+    .replace(/<title>[^<]*<\/title>/, "<title>" + title + "</title>")
     .replace(/<meta name="description" content="[^"]*" \/>/, '<meta name="description" content="' + desc + '" />')
     .replace('<link rel="canonical" href="https://aminodata.org/" />', '<link rel="canonical" href="' + BASE + canonicalPath + '" />')
     .replace('<meta property="og:title" content="Aminodata" />', '<meta property="og:title" content="' + ogTitle + '" />');
@@ -455,11 +455,12 @@ for (const f of foods) {
   publisher: { "@type": "Organization", name: "Aminodata", url: BASE + "/" },
   author: AUTHORS_LD
 })}</script>
-<style>${FOOD_CSS}</style>
+<style>${FOOD_CSS}
+.food-answer{background:#f1eaf7;border:1px solid #dfd2e8;border-radius:10px;padding:22px;margin:25px 0 35px}.food-answer h2{font-size:21px;line-height:1.3;margin:0}.food-answer p{font-size:15px}.food-answer .cta{margin-top:8px;font-size:14px;border-radius:5px}h2{font-size:23px}table th,table td{padding:8px 6px}th:first-child{width:52%}@media(max-width:450px){.cls{display:block;font-size:10px}table{font-size:13px}th{font-size:10px}.food-answer{padding:18px}}</style>
 </head>
 <body><div class="wrap">
-<nav><a href="/">Aminodata</a> · <a href="/database">Amino acid database</a></nav>
-<h1>${esc(f.name)}</h1>
+<nav><a href="/">Aminodata</a> · <a href="/foods">Food library</a> · <a href="/guides/amino-acid-profile">How to read a profile</a></nav>
+<h1>${esc(f.name)}: amino acid profile</h1>
 <p class="sub">${esc(f.state)} · ${esc(f.source || "")}</p>
 <div class="facts">
 <div><span>Protein /100 g</span><b>${f.protein_g_per_100g.toFixed(1)} g</b></div>
@@ -467,11 +468,13 @@ ${f.kcal != null ? `<div><span>Energy /100 g</span><b>${f.kcal} kcal</b></div><d
 <div class="${complete ? "good" : "limit"}"><span>Amino acid score</span><b>${pct}%</b></div>
 <div><span>Limiting amino acid</span><b>${complete ? "none (complete)" : esc(SCORE_LABEL[score.id])}</b></div>
 </div>
+<section class="food-answer" aria-label="Quick answer"><h2>How much protein and leucine does it contain?</h2><p>Per 100 g, ${esc(f.name)} provides <strong>${f.protein_g_per_100g.toFixed(1)} g protein</strong> and <strong>${f.aa.leucine.toFixed(2)} g leucine</strong>. Use the listed preparation when comparing portions.</p><a class="cta" href="/#add=${f.slug}">Add to my day</a><a class="cta alt" href="/database/${f.slug}">Open interactive profile</a></section>
+<h2>Full amino acid table</h2><p class="sub">The first column of amounts is per 100 g of food; the second compares the composition of the protein itself.</p>
 <table>
 <thead><tr><th>Amino acid</th><th>g / 100 g</th><th>g / 100 g protein</th></tr></thead>
 <tbody>${rows}</tbody>
 </table>
-<a class="cta" href="/#add=${f.slug}">Add to my day</a><a class="cta alt" href="/database/${f.slug}">Open interactive profile</a>
+<p class="note"><a href="/guides/amino-acid-profile">What do these numbers mean? Read the guide →</a></p>
 <p class="note byline"><img class="avatar" src="/assets/logan-king.jpg" alt="Logan King" width="26" height="26" loading="lazy"><img class="avatar" src="/assets/paul-morgan.jpg" alt="Dr Paul T Morgan" width="26" height="26" loading="lazy"> By <a href="https://logantalkshealth.com/" rel="author">Logan King</a> and <a href="https://www.mmu.ac.uk/staff/profile/dr-paul-t-morgan" rel="author">Dr Paul T Morgan</a>, Senior Lecturer in Human Nutrition and Metabolism, Manchester Metropolitan University.</p>
 <p class="note">Amino acid score compares this food's scarcest essential amino acid with the WHO/FAO/UNU 2007 adult pattern; 100%+ means every essential amino acid is carried in good proportion. Data: ${srcLinkHTML(f)}. Educational reference, not medical advice.</p>
 <p class="note"><a href="mailto:logan@nfsupplements.co.uk?subject=${encodeURIComponent("Aminodata feedback: " + f.name)}&amp;body=${encodeURIComponent("\n\nPage: " + BASE + "/food/" + f.slug)}">Send feedback about this food</a></p>
@@ -480,7 +483,8 @@ ${f.kcal != null ? `<div><span>Energy /100 g</span><b>${f.kcal} kcal</b></div><d
 }
 
 // ---------- sitemap + robots ----------
-const urls = [BASE + "/", BASE + "/database", BASE + "/compare", BASE + "/compare-amino-acids", BASE + "/faq", ...foods.map(f => BASE + "/food/" + f.slug)];
+const discoveryUrls = require("./scripts/build-discovery")({root, foods, base:BASE, sourceLink:srcLinkHTML});
+const urls = [...discoveryUrls, BASE + "/", BASE + "/database", BASE + "/compare", BASE + "/compare-amino-acids", BASE + "/faq", ...foods.map(f => BASE + "/food/" + f.slug)];
 fs.writeFileSync(path.join(root, "dist", "sitemap.xml"),
   '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
   urls.map(u => "<url><loc>" + u + "</loc></url>").join("\n") + "\n</urlset>\n");
