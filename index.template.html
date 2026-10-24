@@ -4580,7 +4580,7 @@ window.addEventListener("popstate", () => {
     $("v2Form").hidden=pickerMode!=='search';$("savedMealRow").hidden=true;panel.hidden=pickerMode==='search';
     if(pickerMode==='recent'){
       const seen=new Set(),recent=[];
-      loadLog().days.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(d=>d.entries.forEach(e=>{if(!seen.has(e.food?.scanId||e.name)){seen.add(e.food?.scanId||e.name);recent.push(e);}}));
+      loadLog().days.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(d=>d.entries.slice().reverse().forEach(e=>{if(!seen.has(e.food?.scanId||e.name)){seen.add(e.food?.scanId||e.name);recent.push(e);}}));
       panel.innerHTML=recent.length?'<p class="picker-help">Choose a food, then check your portion.</p>'+recent.slice(0,8).map((e,i)=>`<button type="button" class="quick-food" data-recent="${i}"><span>${html(uiFoodName(e.name))}<small>Last portion: ${html(quantityText(e))}</small></span><span aria-hidden="true">＋</span></button>`).join(''):'<p class="picker-help">Your recent foods will appear here. Choose Search foods to add your first meal.</p>';
       panel.querySelectorAll('[data-recent]').forEach(b=>b.onclick=()=>{const e=recent[+b.dataset.recent];pick(foodByName(e.name, e));grams.value=e.g;previewPortion();});
     }else if(pickerMode==='saved'){

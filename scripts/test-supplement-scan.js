@@ -62,3 +62,22 @@ test('automatic names describe parsed supplement ingredients without inventing b
  assert.equal(S.parse('').name,'Scanned supplement');
  const draft=S.parse(label);const custom=S.makeFood({...draft,name:'My preferred fish oil'},'custom-name-123');assert.equal(F.snapshot(custom).name,'My preferred fish oil');
 });
+
+test('explicit elemental magnesium counts once; compound and packaging prose do not',()=>{
+ for(const prefix of ['Providing Elemental','Foviding Elemental','Elemental','Equivalent to elemental','Of which']){
+  const d=S.parse('Nutritional Information\nServing Size: 3 Capsules\nServings Per Container: 30\nMagnesium Bisglycinate 1950mg\n'+prefix+' Magnesium 253mg 67%\nReference Intake of an average adult (8400kJ/2000kcal)\nIngredients: Magnesium Glycinate 1950mg');
+  assert.equal(d.name,'Magnesium');assert.equal(d.ingredients.length,2);assert.equal(d.ingredients[0].key,'');assert.equal(d.ingredients[1].key,'magnesium');
+  const f=S.makeFood(d,'magnesium-test');near(f.nutrients.magnesium*3/100,253);near(N.total([{name:f.name,g:1,food:f}],(n,e)=>F.snapshot(e.food),'magnesium').value,253/3);
+ }
+ const compound=S.parse('Serving Size: 1 Capsule\nMagnesium bisglycinate 1950mg');assert.equal(compound.ingredients[0].key,'');
+});
+test('two amount columns require choosing a value; RI percentages are not extra doses',()=>{
+ const d=S.parse('Serving Size: 3 Capsules\nMagnesium 84.3mg 253mg 67%');assert.equal(d.ingredients[0].amount,'');assert.equal(d.issues.length,1);assert.throws(()=>S.makeFood(d,'multi-column'),/Check each/);
+ assert.equal(S.parse('Serving Size: 3 Capsules\nMagnesium 253mg 67%').ingredients[0].amount,253);
+});
+
+test('explicit per-capsule headers work without confusing container counts',()=>{
+ const d=S.parse('Nutritional Information\nServings Per Container: 30\nAmount Per 3 Capsules\nElemental Magnesium 253mg');assert.equal(d.servingCount,3);assert.equal(d.doseUnit,'capsules');assert.equal(S.detect(d.text),true);
+ const single=S.parse('Supplement Facts\nPer capsule\nZinc 10mg');assert.equal(single.servingCount,1);
+ const blend=S.parse('Serving Size: 1 capsule\nZinc with elemental magnesium 500mg');assert.equal(blend.ingredients[0].key,'');
+});
