@@ -37,18 +37,18 @@ const NAME_MACROS = {
 };
 const tokKey = desc => desc.toLowerCase().split(",").map(t => t.trim()).filter(Boolean).sort().join("|");
 function attachMacros(f) {
-  if (f.kcal != null) return;
+  if (f.kcal != null) { f.macroProvenance='Values supplied in original curated record'; return; }
   const src = f.source || "";
-  let m = null, x;
-  if ((x = /FDC (?:ID )?(\d+)/.exec(src))) m = macrosLookup.byFdc[x[1]];
-  if (!m && (x = /NDB (\d+)/.exec(src))) m = macrosLookup.byNdb[x[1]] || macrosLookup.byNdb[String(+x[1])];
+  let m = null, x, method='Exact normalised source-record name';
+  if ((x = /FDC (?:ID )?(\d+)/.exec(src))) { m = macrosLookup.byFdc[x[1]]; method='Exact FDC ID'; }
+  if (!m && (x = /NDB (\d+)/.exec(src))) { m = macrosLookup.byNdb[x[1]] || macrosLookup.byNdb[String(+x[1])]; method='Exact NDB ID'; }
   if (!m) {
     let nm = null;
     if ((x = /USDA SR Legacy, (.+?) \(via nutritionvalue/.exec(src))) nm = x[1];
     else if ((x = /USDA SR Legacy \((.+?)\)/.exec(src))) nm = x[1];
     else if ((x = /USDA SR Legacy, (.+)$/.exec(src))) nm = x[1].replace(/ \([^)]*\)\s*$/, "");
     if (nm) {
-      m = macrosLookup.byTok[tokKey(nm)];
+      m = macrosLookup.byTok[tokKey(nm)]; method='Exact normalised source-record name';
       if (!m) {
         /* curated citations abbreviate the USDA names; accept the record whose
            token set contains all of ours with the fewest extras */
@@ -64,16 +64,16 @@ function attachMacros(f) {
           const extra = kt.length - toks.size;
           if (extra < bestExtra) { bestExtra = extra; best = mm; }
         }
-        if (bestExtra <= 3) m = best;
+        if (bestExtra <= 3) { m = best; method='Abbreviated source-name token match (up to 3 extra tokens)'; }
       }
     }
   }
-  if (!m && NAME_MACROS[f.name]) m = NAME_MACROS[f.name];
+  if (!m && NAME_MACROS[f.name]) { m = NAME_MACROS[f.name]; method='Curated typical macro fallback; may differ from amino acid source'; }
   if (!m && SUPP_MACROS[f.name]) {
-    const t = SUPP_MACROS[f.name];
+    method='Typical powder macros; calories estimated with 4/4/9 factors'; const t = SUPP_MACROS[f.name];
     m = { kcal: Math.round(4 * (f.protein_g_per_100g + t.carb) + 9 * t.fat), fat: t.fat, carb: t.carb };
   }
-  if (m) { f.kcal = m.kcal; if (m.fat != null) f.fat = m.fat; if (m.carb != null) f.carb = m.carb; }
+  if (m) { f.macroProvenance=method; f.kcal = m.kcal; if (m.fat != null) f.fat = m.fat; if (m.carb != null) f.carb = m.carb; }
 }
 [...meatDairy, ...seafoodPlants, ...suppFoods].forEach(attachMacros);
 
@@ -306,6 +306,15 @@ const FAQ_LD = JSON.stringify({
   mainEntity: FAQS.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } }))
 });
 
+// Content versions are independent of deployment time; source filenames are sorted.
+const crypto = require('node:crypto');
+const hash = value => crypto.createHash('sha256').update(value).digest('hex');
+const dataFiles = fs.readdirSync(path.join(root,'data')).filter(n=>n.endsWith('.json')).sort();
+atlas.versions = {
+  dataset: 'sha256:' + hash(dataFiles.map(n=>n+'\n'+fs.readFileSync(path.join(root,'data',n),'utf8')).join('\n')),
+  calculation: 'sha256:' + hash([...fs.readdirSync(path.join(root,'lib')).filter(n=>n.endsWith('.js')).sort().map(n=>'lib/'+n),'build.js','index.template.html','result-method-ui.js','evidence-ui.js','usability-ui.js'].map(n=>fs.readFileSync(path.join(root,n),'utf8')).join('\n')),
+  references: 'sha256:' + hash(JSON.stringify(require('./lib/evidence').references(atlas)))
+};
 const template = fs.readFileSync(path.join(root, "index.template.html"), "utf8");
 const intakeTargets = fs.readFileSync(path.join(root, "lib", "intake-targets.js"), "utf8");
 // Build stamp: long-lived phone tabs compare it against /version.json to know a newer deploy exists.
@@ -324,12 +333,18 @@ const out = template.replace("__BUILD_ID__", BUILD_ID)
   .replace("__INJECT_ACCOUNT_STORAGE__", () => fs.readFileSync(path.join(root, "lib", "account-storage.js"), "utf8"))
   .replace("__INJECT_INTAKE_TARGETS__", () => intakeTargets)
   .replace("__INJECT_USABILITY_UI__", () => fs.readFileSync(path.join(root, "usability-ui.js"), "utf8"))
+  .replace("__INJECT_EVIDENCE__", () => fs.readFileSync(path.join(root,"lib/evidence.js"),"utf8"))
+  .replace("__INJECT_EVIDENCE_UI__", () => fs.readFileSync(path.join(root,"evidence-ui.js"),"utf8"))
   .replace("__INJECT_RESULT_METHOD_UI__", () => fs.readFileSync(path.join(root, "result-method-ui.js"), "utf8"))
   .replace("__INJECT_INTAKE_UI__", () => fs.readFileSync(path.join(root, "intake-ui.js"), "utf8"))
   .replace("__INJECT_FAQ__", () => faqHTML);
 fs.mkdirSync(path.join(root, "dist"), { recursive: true });
 fs.writeFileSync(path.join(root, "dist", "amino-atlas.html"), out);
 fs.writeFileSync(path.join(root, "dist", "index.html"), out);
+
+fs.writeFileSync(path.join(root,'dist','examples.html'),out);
+fs.mkdirSync(path.join(root,'dist','reproduce'),{recursive:true});
+for(const name of ['reproduce.py','reproduce.R','README.txt'])fs.copyFileSync(path.join(root,'reproduce',name),path.join(root,'dist','reproduce',name));
 
 // ---------- /database: the same app, addressed as its own page ----------
 const BASE = "https://aminodata.org";

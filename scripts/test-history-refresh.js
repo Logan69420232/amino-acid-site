@@ -15,7 +15,7 @@ function harness(initial=[day('2026-10-14',false)]) {
     sbReady:()=>({from:()=>({select:()=>({eq:()=>({maybeSingle:()=>read})})})}),
     loadLog:()=>log,saveLog:value=>{log=value;},mergeLogs:(remote,local)=>Sync.merge(remote,local).log,applySettings:()=>{},schedulePush:()=>{},
     dayIntake:d=>({prot:d.entries.length?10:0,kcal:100,carb:1,fat:1,balance:1}),getWeight:()=>75,getThriveG:()=>120,
-    niceStep:()=>50,todayISO:()=> '2026-10-14',_histMetric:'prot',overlay:{hidden:true},downloadCSV:()=>{},historyCSV:()=>'',navigateApp:()=>{},showView:()=>{},closeDetail:()=>{}});
+    niceStep:()=>50,todayISO:()=> '2026-10-14',_histMetric:'prot',overlay:{hidden:true},downloadCSV:()=>{},historyCSV:()=>'',evidenceExportControls:()=>'',bindEvidenceExports:()=>{},navigateApp:()=>{},showView:()=>{},closeDetail:()=>{}});
   for(const [start,end] of [
     ['function quantityUnit(', 'function supplementIngredients('],
     ['function isCurrentAccount(', 'let _pushJob'],
