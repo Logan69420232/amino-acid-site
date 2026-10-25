@@ -23,7 +23,7 @@ function cameraHarness(getUserMedia){
  const messages=[];const ctx=vm.createContext({navigator:{mediaDevices:{getUserMedia}},$:(id)=>elements[id],status:(message)=>messages.push(message),valid:()=>ctx.active,active:true,controls:null,worker:null,abort:null,photoURL:null,epoch:0});
  vm.runInContext(source.slice(source.indexOf('  let torchTrack='),source.indexOf('  async function camera(mode)')),ctx);
  vm.runInContext(source.slice(source.indexOf('  function stop()'),source.indexOf('  function valid(')),ctx);
- vm.runInContext(source.slice(source.indexOf('  async function camera('),source.indexOf('  function captureLabel(')),ctx);
+ vm.runInContext(source.slice(source.indexOf('  async function camera('),source.indexOf('  async function captureLabel(')),ctx);
  return {ctx,elements,messages};
 }
 test('label camera requests rear video only and releases every track on stop',async()=>{
@@ -43,12 +43,12 @@ test('UK table units before paired energy amounts and bracketed subnutrients',()
  assert.deepEqual(d.values,{energy:660,protein:21,carb:4.5,fat:60,saturated_fat:7,sugars:2.6,fibre:8.9,salt:0});
 });
 
-test('camera capture uses exactly the central frame despite video aspect-ratio differences',()=>{
+test('camera capture uses exactly the central frame despite video aspect-ratio differences',async()=>{
  const source=fs.readFileSync(require('node:path').join(__dirname,'../scan-ui.js'),'utf8');let drawn;
  const canvas={getContext:()=>({drawImage:(...args)=>{drawn=args;}}),toBlob:()=>{}};
  const video={videoWidth:1920,videoHeight:1080,srcObject:{},getBoundingClientRect:()=>({width:400,height:300})},capture={};
- const ctx=vm.createContext({$:(id)=>id==='scanVideo'?video:capture,document:{createElement:()=>canvas},epoch:1});
- vm.runInContext(source.slice(source.indexOf('  function captureLabel('),source.indexOf('  async function photo(')),ctx);ctx.captureLabel();
+ const ctx=vm.createContext({$:(id)=>id==='scanVideo'?video:capture,document:{createElement:()=>canvas},epoch:1,valid:()=>true,withPhotoLight:async(t,draw)=>draw()});
+ vm.runInContext(source.slice(source.indexOf('  async function captureLabel('),source.indexOf('  async function photo(')),ctx);await ctx.captureLabel();
  assert.equal(drawn[0],video);assert.ok(Math.abs(drawn[1]-355.2)<.001);assert.ok(Math.abs(drawn[2]-86.4)<.001);assert.ok(Math.abs(drawn[3]-1209.6)<.001);assert.ok(Math.abs(drawn[4]-907.2)<.001);assert.equal(canvas.width,1210);assert.equal(canvas.height,907);
 });
 test('recent picker puts latest confirmed snapshot first without changing diary order',()=>{
