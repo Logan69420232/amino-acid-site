@@ -4752,7 +4752,7 @@ window.addEventListener("popstate", () => {
     ddIdx = 0;
     dd.innerHTML = ddItems.map((f, i) => `<button type="button" role="option" id="diary-option-${i}" data-i="${i}" aria-selected="${i === 0}">
       <span><span class="nm">${html(f.name)}</span>${stateTagHTML(f)}${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
-      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span></button>`).join("");
+      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${f.portionEstimate&&FoodScan.packPortion(f.portionEstimate.packGrams,f.portionEstimate.beforePercent,f.portionEstimate.afterPercent)===e.g?'Estimated portion · ':''}${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span></button>`).join("");
     dd.hidden = false; food.setAttribute("aria-expanded", "true"); food.setAttribute("aria-activedescendant", "diary-option-0");
     dd.querySelectorAll("button").forEach(b => b.addEventListener("click", () => pick(ddItems[+b.dataset.i])));
   }
@@ -4900,7 +4900,7 @@ window.addEventListener("popstate", () => {
       const unitUI = units.length
         ? `<select class="unit-sel" data-i="${i}" aria-label="Unit for ${name}"><option value="">g</option>${units.map(u => `<option value="${html(u[0])}"${e.unit === u[0] ? " selected" : ""}>${html(portionUnitLabel(u))}</option>`).join("")}</select>${u ? `<small class="unit-g">≈ ${Math.round(e.g)} g</small>` : ""}`
         : " "+html(quantityUnit(f));
-      return `<div class="v2-item"><div class="food-info"><span class="nm">${name}</span><span class="food-nutrition-source">${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
+      return `<div class="v2-item"><div class="food-info"><span class="nm">${name}</span><span class="food-nutrition-source">${f.portionEstimate&&FoodScan.packPortion(f.portionEstimate.packGrams,f.portionEstimate.beforePercent,f.portionEstimate.afterPercent)===e.g?'Estimated portion · ':''}${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
         </div><div class="qty"><span class="portion-label">Portion</span><input type="number" min="0.1" max="2000" step="any" value="${qty}" data-i="${i}" aria-label="Amount of ${name}">${unitUI}</div>
         <div class="food-macros">${f.supplement ? f.ingredients.slice(0,2).map(r=>`<span>${html(r.label)} <strong>${Nutrition.format(r.amount*e.g/f.serving_g)} ${html(r.unit)}</strong></span>`).join("") : `<strong>${f.protein_g_per_100g == null ? "Protein unavailable" : (f.protein_g_per_100g * e.g / 100).toFixed(1)+" g protein"}</strong><span>${f.kcal == null ? "Calories unavailable" : Math.round(f.kcal * e.g / 100) + " kcal"}</span>`}</div>
         <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button>${supplementIngredients(f,e.g)}</div>`;
