@@ -142,3 +142,22 @@ test('IU doses use vitamin and form-specific factors and survive saved snapshots
  const d=S.parse('Serving Size: 1 tablet\nVitamin D3 1000 IU');assert.equal(d.ingredients[0].key,'vitamin_d');near(S.makeFood(d,'scanned-d').nutrients.vitamin_d/100,25);
  assert.equal(S.parse('Serving Size: 1 capsule\nVitamin E 400 IU').ingredients[0].key,'');
 });
+test('explicit and wrapped serving headers are recognised without guessing from directions',()=>{
+ for(const header of ['Serving Size:\n1 Tablet','Amount per tablet','Nutritional information per tablet','Each tablet contains:']){
+  const d=S.parse(header+'\nMelatonin 10 mg');assert.equal(d.servingCount,1,header);assert.equal(d.doseUnit,'tablets');assert.equal(d.ingredients[0].amount,10);
+ }
+ const multi=S.parse('Serving size:\n3\nSoftgels\nEPA 1300 mg');assert.equal(multi.servingCount,3);assert.equal(multi.doseUnit,'softgels');
+ assert.equal(S.parse('Melatonin 10 mg\nDirections: Take 2 tablets daily').servingCount,'');
+});
+test('intake uses tablets for single-unit labels and servings for multi-unit labels',()=>{
+ assert.deepEqual(S.intakeQuantity(1,'tablets',2),{unitsTaken:2,unit:'tablets',servings:false});
+ assert.deepEqual(S.intakeQuantity(3,'softgels',1),{unitsTaken:3,unit:'servings',servings:true});
+ assert.equal(S.intakeQuantity(3,'tablets',0.5).unitsTaken,1.5);
+ assert.equal(S.intakeQuantity(5,'ml',2).unitsTaken,2);
+ for(const args of [[null,'tablets',1],[3,'tablets',0],[3,'tablets',1000],[1,'invalid',1]])assert.equal(S.intakeQuantity(...args),null);
+ const d=S.parse('Serving size: 3 softgels\nEPA 1300 mg\nDHA 860 mg');const f=F.snapshot(S.makeFood(d,'multi-portion-123'));
+ const q=S.intakeQuantity(d.servingCount,d.doseUnit,0.5);
+ near(N.total([{name:f.name,g:q.unitsTaken,food:f}],(n,e)=>e.food,'epa').value,0.65);
+ const m=F.snapshot(S.makeFood(S.parse('Per tablet\nMelatonin 10 mg'),'melatonin-dose-123'));
+ assert.equal(m.ingredients[0].amount*S.intakeQuantity(1,'tablets',2).unitsTaken/m.serving_g,20);
+});
