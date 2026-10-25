@@ -1437,6 +1437,7 @@
       </div>
     </details>
     <button type="button" data-act="account" aria-label="Account & targets" title="Account & targets"><span class="nav-icon" aria-hidden="true">⚙</span><span class="nav-text">Account & targets</span></button>
+    <button type="button" data-act="examples" aria-label="Worked examples" title="Worked examples"><span class="nav-icon" aria-hidden="true">◫</span><span class="nav-text">Worked examples</span></button>
     <button type="button" data-act="method" aria-label="How the numbers work" title="How the numbers work"><span class="nav-icon" aria-hidden="true">ⓘ</span><span class="nav-text">How the numbers work</span></button>
     <button type="button" data-act="faq" aria-label="FAQ" title="FAQ"><span class="nav-icon" aria-hidden="true">?</span><span class="nav-text">FAQ</span></button>
   </nav>
@@ -1463,6 +1464,7 @@
     <button type="button" data-act="compareaa">Compare amino acids</button>
   </div>
   <p class="mobile-more-label">Help &amp; support</p>
+  <button type="button" data-act="examples"><span class="nav-icon" aria-hidden="true">◫</span><span>Worked examples</span></button>
   <button type="button" data-act="method"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/></svg><span>How the numbers work</span></button>
   <button type="button" data-act="faq"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4m0 4h.01"/></svg><span>FAQ</span></button>
   <button type="button" data-act="feedback"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 15a2 2 0 0 1-2 2H9l-5 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/><path d="M8 8h8m-8 4h5"/></svg><span>Send feedback</span></button>
@@ -1490,6 +1492,7 @@
             <button data-act="compareaa">Compare amino acids<span class="mi-sub">Role, daily need, richest sources</span></button>
           </div>
         </details>
+        <button data-act="examples">Worked examples</button>
         <button data-act="method">How the numbers work</button>
         <button data-act="faq">FAQ<span class="mi-sub">How the tool works, in plain answers</span></button>
         <button data-act="feedback">Send feedback</button>
@@ -1577,6 +1580,7 @@
   <section id="accountPage" hidden aria-labelledby="accountTitle"></section>
   <section id="historyPage" hidden aria-labelledby="historyTitle"></section>
   <section id="mealsPage" hidden aria-labelledby="mealsTitle"></section>
+  <section id="examplesPage" hidden aria-labelledby="examplesTitle"></section>
   <section id="faqPage" hidden aria-labelledby="faqTitle">__INJECT_FAQ__</section>
   <section class="product-demo" id="home-demo" aria-labelledby="demoTitle">
     <div class="demo-intro"><div><p class="eyebrow">MEET YOUR NEW FOOD DIARY</p><h2 id="demoTitle">A few meals.<br>A much clearer picture.</h2></div><p>From your first breakfast to your full daily profile. Here’s how it comes together.</p></div>
@@ -1735,6 +1739,7 @@ __INJECT_INTAKE_TARGETS__
 __INJECT_NUTRITION__
 __INJECT_FOOD_SCAN__
 __INJECT_RECOMMENDATIONS__
+__INJECT_EVIDENCE__
 const ATLAS = __INJECT_DATA__;
 const DIARY_FOODS = [...ATLAS.foods, ...(ATLAS.nutritionFoods || [])];
 const FOOD_BY_NAME = new Map(DIARY_FOODS.map(f=>[f.name,f]));
@@ -2293,14 +2298,14 @@ function renderGrid() {
 function foodsCSV(list) {
   const aaKeys = AA_META.map(m => m[0]);
   const head = ["name", "category", "state", "protein_g_per_100g",
-    ...aaKeys.map(k => k + "_g_per_100g"), "score_pct", "limiting", "source"];
+    ...aaKeys.map(k => k + "_g_per_100g"), "score_pct", "limiting", "source", "food_id", "dataset_version", "calculation_version", "reference_version"];
   const esc = v => { v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   const lines = [head.join(",")];
   list.forEach(f => {
     const m = f.metrics;
     lines.push([f.name, f.category, f.state, f.protein_g_per_100g,
-      ...aaKeys.map(k => f.aa[k]), Math.round(m.score * 100),
-      m.score >= 1 ? "" : m.min.label, f.source || ""].map(esc).join(","));
+      ...aaKeys.map(k => f.aa[k]), m.score * 100,
+      m.score >= 1 ? "" : m.min.label, f.source || "", Evidence.identity(f), ATLAS.versions.dataset, ATLAS.versions.calculation, ATLAS.versions.references].map(Evidence.cell).join(","));
   });
   return lines.join("\n");
 }
@@ -2405,6 +2410,7 @@ const store = AccountStorage.create(browserStore);
 const diaryPanels = DiaryPanels.create(browserStore);
 __INJECT_USABILITY_UI__
 __INJECT_RESULT_METHOD_UI__
+__INJECT_EVIDENCE_UI__
 __INJECT_INTAKE_UI__
 function getEpaDhaGoalMg() { return Nutrition.normaliseEpaDhaGoal(store.getItem("aa_epa_dha_goal_mg")); }
 function getWeight() { return +(store.getItem("aa_weight") || 75); }
@@ -2472,6 +2478,7 @@ function renderDetail(id) {
       </div>
     </div>
 
+    ${uiFoodEvidence(f,{g:portion})}
     <p class="unit-note">Amounts are per 100 g ${stateWord(f)}: what you'd weigh on the scales, not what's digested or absorbed.</p>
     <div class="bloom-holder" id="bloomHolder">${renderBloom(f, { unit: currentUnit, compact: isCompact() })}</div>
     <div class="bloom-legend">${bloomLegendHTML(f, currentUnit)}</div>
@@ -2915,6 +2922,7 @@ function navigateApp(act) {
     if (act === "addfoods" && window.__v2OpenMeal) window.__v2OpenMeal(currentMeal);
   } else if (act === "history") { if (requireAccount("See your data over time with a free account.")) showView("history"); }
   else if (act === "meals") { if (requireAccount("Save and reuse your favourite meals with a free account.")) showView("meals"); }
+  else if (act === "examples") showView("examples");
   else if (act === "faq") showView("faq");
   else if (act === "account") openAccountPage();
   else if (act === "signout") signOutAccount();
@@ -2923,7 +2931,7 @@ function navigateApp(act) {
   else if (act === "feedback") openFeedback();
   else if (act === "comparefoods") openCompareFoods();
   else if (act === "compareaa") openCompareAAs();
-  else if (act === "method") { if (!document.body.dataset.view && !document.body.classList.contains("authed")) { document.getElementById("home-method").scrollIntoView({behavior:"smooth"}); return; } if (["account", "compare"].includes(document.body.dataset.view)) showView("day"); document.getElementById("method").scrollIntoView({behavior:"smooth"}); }
+  else if (act === "method") { if (!document.body.dataset.view && !document.body.classList.contains("authed")) { document.getElementById("home-method").scrollIntoView({behavior:"smooth"}); return; } if (["account", "compare", "examples"].includes(document.body.dataset.view)) showView("day"); document.getElementById("method").scrollIntoView({behavior:"smooth"}); }
   if (window.__syncShell) window.__syncShell();
 }
 (function initMenu() {
@@ -2951,7 +2959,7 @@ function navigateApp(act) {
     if (desktopApp) { pop.hidden = true; btn.setAttribute("aria-expanded", String(!collapsed)); }
     btn.setAttribute("aria-controls", desktopApp ? "appSidebar" : mobileApp ? "mobileMore" : "mobileMenu");
     btn.setAttribute("aria-label", desktopApp ? "Expand navigation" : "Menu");
-    const active = document.body.dataset.view === "compare" ? "comparefoods" : document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : document.body.dataset.view === "history" ? "history" : document.body.dataset.view === "meals" ? "meals" : document.body.dataset.view === "faq" ? "faq" : "diary";
+    const active = document.body.dataset.view === "examples" ? "examples" : document.body.dataset.view === "compare" ? "comparefoods" : document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : document.body.dataset.view === "history" ? "history" : document.body.dataset.view === "meals" ? "meals" : document.body.dataset.view === "faq" ? "faq" : "diary";
     for (const nav of [sidebar, mobileNav, more]) nav.querySelectorAll("[data-act], [data-section]").forEach(b => { if((b.dataset.act || b.dataset.section) === (b.dataset.section === "atlas" && active === "comparefoods" ? "atlas" : active)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
     moreToggle.classList.toggle("is-current", ["atlas", "comparefoods", "history", "faq"].includes(active));
   }
@@ -3600,6 +3608,7 @@ function renderHistoryPage({focus = true} = {}) {
         ${x.d.note ? `<p class="hist-note">${esc(x.d.note)}</p>` : ""}
       </article>`;
     }).join("")}</div>
+    ${logged.length ? evidenceExportControls() : ""}
     ${logged.length ? `<details class="history-export-notes"><summary>About your data &amp; CSV download</summary><p>The overview uses days with food entries. Each day is compared with its saved protein target, or your current target if none was saved. Trends show one point per logged day; gaps between dates are not empty days.</p><p>CSV includes all saved days, with each food and day total, with macros, amino acids, vitamins and minerals. Units appear in the column headings (ug = micrograms). Status columns flag partial, trace or unknown nutrient amounts; blank amounts mean no numeric data, not zero.</p></details>` : ""}`;
   page.querySelector("#historyMonth").onchange=e=>{uiHistoryMonth=e.target.value;renderHistoryPage();};
   page.querySelector('#historyRetrySync')?.addEventListener('click',()=>{if(authedUser) syncOnLogin(authedUser.id,_accountEpoch);});
@@ -3653,6 +3662,7 @@ function renderHistoryPage({focus = true} = {}) {
     renderChart();
     page.querySelector('#histMetric').addEventListener('change',e=>{_histMetric=e.target.value;renderChart();});
   }
+  bindEvidenceExports(page,()=>evidenceDiarySnapshot(allDays.map(x=>x.d)),'aminodata-diary-'+todayISO());
   page.querySelector('#histCsv')?.addEventListener('click',()=>downloadCSV('aminodata-diary-'+todayISO()+'.csv',historyCSV(allDays)));
   if(focus) page.querySelector('#historyTitle').focus();
 }
@@ -4456,22 +4466,24 @@ updateDayBtn();
 
 /* ================= home views ================= */
 function showView(v, push) {
-  if (v === "home") delete document.body.dataset.view; else document.body.dataset.view = ["atlas", "account", "compare", "history", "meals", "faq"].includes(v) ? v : "day";
+  if (v === "home") delete document.body.dataset.view; else document.body.dataset.view = ["atlas", "account", "compare", "history", "meals", "faq", "examples"].includes(v) ? v : "day";
   document.getElementById("accountPage").hidden = v !== "account";
   document.getElementById("historyPage").hidden = v !== "history";
   document.getElementById("mealsPage").hidden = v !== "meals";
   document.getElementById("faqPage").hidden = v !== "faq";
+  document.getElementById("examplesPage").hidden = v !== "examples";
+  if(v === "examples")renderExamplesPage(true);
   document.getElementById("compareFoodsPage").hidden = v !== "compare";
   if (v === "account") renderAccountPage();
   if (v === "history") renderHistoryPage();
   if (v === "meals") renderMealsPage();
-  const target = v === "compare" ? document.getElementById("compareFoodsPage") : v === "account" ? document.getElementById("accountPage") : v === "history" ? document.getElementById("historyPage") : v === "meals" ? document.getElementById("mealsPage") : v === "faq" ? document.getElementById("faqPage") : v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
+  const target = v === "examples" ? document.getElementById("examplesPage") : v === "compare" ? document.getElementById("compareFoodsPage") : v === "account" ? document.getElementById("accountPage") : v === "history" ? document.getElementById("historyPage") : v === "meals" ? document.getElementById("mealsPage") : v === "faq" ? document.getElementById("faqPage") : v === "atlas" ? document.querySelector(".toolbar") : v === "home" ? document.querySelector(".landing") : document.querySelector(".v2-entry");
   if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   if (v === "atlas") renderGrid();
   if (window.__syncShell) window.__syncShell();
   /* keep the URL honest: /database is a real page, crawlable on its own */
   if (push !== false && history.pushState) {
-    try { history.pushState({ v }, "", v === "compare" ? "/compare" : v === "account" ? "/account" : v === "history" ? "/history" : v === "meals" ? "/meals" : v === "faq" ? "/faq" : v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
+    try { history.pushState({ v }, "", v === "compare" ? "/compare" : v === "account" ? "/account" : v === "history" ? "/history" : v === "meals" ? "/meals" : v === "examples" ? "/examples" : v === "faq" ? "/faq" : v === "atlas" ? "/database" : v === "home" ? "/" : "/?view=diary"); } catch (e) {}
   }
 }
 window.addEventListener("popstate", () => {
@@ -4480,6 +4492,7 @@ window.addEventListener("popstate", () => {
   if (/^\/account\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("account", false); return; }
   if (/^\/history\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("history", false); return; }
   if (/^\/meals\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("meals", false); return; }
+  if (/^\/examples\/?$/.test(location.pathname)) { showView("examples", false); return; }
   if (/^\/faq\/?$/.test(location.pathname)) { if (!overlay.hidden) closeDetail(false); showView("faq", false); return; }
   const m = location.pathname.match(/^\/database\/([a-z0-9-]+)/);
   if (m) {
@@ -4912,7 +4925,7 @@ window.addEventListener("popstate", () => {
       return `<div class="v2-item"><div class="food-info"><span class="nm">${name}</span><span class="food-nutrition-source">${f.portionEstimate&&FoodScan.packPortion(f.portionEstimate.packGrams,f.portionEstimate.beforePercent,f.portionEstimate.afterPercent)===e.g?'Estimated portion · ':''}${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
         </div><div class="qty"><span class="portion-label">Portion</span><input type="number" min="0.1" max="2000" step="any" value="${qty}" data-i="${i}" aria-label="Amount of ${name}">${unitUI}${f.supplement?'':`<button type="button" class="linkish food-pack-button" data-pack-item="${i}">% of pack</button>`}</div>
         <div class="food-macros">${f.supplement ? f.ingredients.slice(0,2).map(r=>`<span>${html(r.label)} <strong>${Nutrition.format(r.amount*e.g/f.serving_g)} ${html(r.unit)}</strong></span>`).join("") : `<strong>${f.protein_g_per_100g == null ? "Protein unavailable" : (f.protein_g_per_100g * e.g / 100).toFixed(1)+" g protein"}</strong><span>${f.kcal == null ? "Calories unavailable" : Math.round(f.kcal * e.g / 100) + " kcal"}</span>`}</div>
-        <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button>${supplementIngredients(f,e.g)}</div>`;
+        <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button>${supplementIngredients(f,e.g)}${uiFoodEvidence(f,e)}</div>`;
     };
     list.innerHTML = MEALS.filter(([mk])=>mk!=="other"||day.some(e=>e.meal==="other")).map(([mk, ml]) => {
       const idxs = day.map((e, i) => [e, i]).filter(([e]) => e.meal === mk);
@@ -5262,6 +5275,7 @@ document.querySelectorAll("[data-home-signup]").forEach(button => button.addEven
   if (/^\/account\/?$/.test(location.pathname)) { showView("account", false); return; }
   if (/^\/history\/?$/.test(location.pathname)) { showView("history", false); return; }
   if (/^\/meals\/?$/.test(location.pathname)) { showView("meals", false); return; }
+  if (/^\/examples\/?$/.test(location.pathname)) { showView("examples", false); return; }
   if (/^\/faq\/?$/.test(location.pathname)) { showView("faq", false); return; }
   if (new URLSearchParams(location.search).get("view") === "diary") showView("day", false);
   if (/^\/database/.test(location.pathname) || document.title.indexOf("database") !== -1) {
