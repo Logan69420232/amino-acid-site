@@ -60,3 +60,23 @@ body[data-view="day"] #method{display:none}.v2-note{font-size:13px}.meal-totals 
   .daily-other{gap:10px}
   .daily-other strong{font-size:20px}
 }
+
+/* Explain results on demand, with the calculation kept beside the result. */
+.result-method{margin:16px 0;border:1px solid #e3dbea;border-radius:12px;background:#fff;color:var(--ink)}
+.result-method>summary{padding:14px 18px;cursor:pointer;font-size:14px;font-weight:600;color:#51327b;min-height:44px;box-sizing:border-box}
+.result-method>summary:focus-visible,.result-method-more>summary:focus-visible{outline:2px solid #715193;outline-offset:3px;border-radius:8px}
+.result-method-body{padding:0 18px 18px;font-size:14px;line-height:1.65;overflow-wrap:anywhere}
+.result-method-body p{margin:12px 0}.result-method-intro{color:#514958}.result-method-limit{color:#63586c;border-top:1px solid #e9e3ee;padding-top:14px}
+.result-reference-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.result-reference-grid>div,.result-formula{padding:16px;border-radius:10px;background:#f6f3f9}
+.result-reference-grid span,.result-formula>span{display:block;font:600 10px var(--font-mono);letter-spacing:.08em;color:#796489;margin-bottom:6px}
+.result-reference-grid strong,.result-formula>strong{display:block;font-size:18px;color:#352742}.result-reference-grid p,.result-formula p{margin:8px 0 0}
+.result-method-more{border-top:1px solid #e9e3ee;margin-top:12px}.result-method-more>summary{padding:14px 0;cursor:pointer;font-weight:600;color:#51327b}
+.result-calculation-row{display:grid;grid-template-columns:1fr 1.5fr auto;align-items:start;gap:12px;padding:12px 0;border-top:1px solid #eee9f2;font-variant-numeric:tabular-nums}
+.result-calculation-row small{display:block;color:#726779;font-size:12px}.result-calculation-row>b{color:#51327b}
+.result-foods{list-style:none;padding:0;margin:0}.result-foods li{padding:12px 0;border-top:1px solid #eee9f2}.result-foods strong,.result-foods span,.result-foods small{display:block}.result-foods small{color:#726779}
+.result-coverage{border-left:3px solid #ac93c1;padding-left:12px}.result-reference-link{font-size:12px}.result-scaling-note{font-size:13px;color:#67596f;line-height:1.6;margin:12px 0 18px}
+.result-method-compact{border:0;border-top:1px solid #eee9f2;border-radius:0;margin:12px 0 0;background:transparent}.result-method-compact>summary{padding:12px 0 0;min-height:36px;font-size:12px}.result-method-compact .result-method-body{padding:0;font-size:13px}
+.profile-panel>.result-method{margin:0 18px 18px}.cov-amount{display:block;font-size:10px;color:var(--ink-2);font-weight:400;white-space:nowrap}
+@media(max-width:600px){.result-reference-grid{grid-template-columns:1fr}.result-method>summary{padding:13px 14px}.result-method-body{padding:0 14px 14px;font-size:13px}.result-reference-grid strong,.result-formula>strong{font-size:16px}.result-calculation-row{grid-template-columns:1fr auto;gap:4px 10px}.result-calculation-row>strong{grid-column:1/-1}.result-method-compact>summary{padding:12px 0 0}.profile-panel>.result-method{margin:0 14px 14px}.covrow .cov-amount{font-size:9px}}
+.diary-amino-panel>summary>span{display:block;font-size:12px;font-weight:400;color:#726779;margin:5px 0 0 14px}

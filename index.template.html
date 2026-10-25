@@ -1688,15 +1688,15 @@
       </div>
       <div>
         <h3>Same food, different sample</h3>
-        <p>The same source varies: grass-fed vs corn-fed beef, cultivar, season, processing. Values here are typical, and the faint band at each ray tip marks a ±10% indicative variation, except where a true published range exists. Beef carries one now: the published grass-fed vs conventional comparisons find feeding system barely shifts beef's <em>amino acid</em> profile (the differences live in fat and micronutrients), so its measured range is a narrow ~4-8%. Building real ranges like this for every food is the roadmap.</p>
+        <p>Food composition varies with breed, cultivar, season and processing. Where a published range is available, the protein profile can show it. Daily intake totals do not have a measured confidence interval, and we do not add an automatic 10% margin to targets.</p>
       </div>
       <div>
-        <h3>Requirements, not just RDA</h3>
-        <p>Coverage is scored against the WHO/FAO/UNU (2007) adult indispensable amino acid pattern, expressed per gram of protein, plus per-kilogram daily requirements in the calculator. For total protein we show two numbers: the RDA (0.8&nbsp;g/kg/day) as a survival floor (enough to prevent deficiency) and a thrive target entered as a simple total, defaulting to 1.6&nbsp;g/kg of body weight (about 120&nbsp;g for a 75&nbsp;kg adult), in line with the intakes meta-analyses associate with supporting muscle. Type your own total in the calculator if you work to a different number.</p>
+        <h3>References and your targets</h3>
+        <p>Protein composition is compared with the WHO/FAO/UNU (2007) adult amino acid pattern in mg per gram of protein. Daily intake uses the adult reference in mg/kg/day × body weight. We then scale that daily reference by your protein goal divided by a 0.8 g/kg protein baseline. This scaling is an Aminodata assumption, not a separate published amino acid requirement. Your protein goal comes from your account settings or the app’s suggestion.</p>
       </div>
       <div>
         <h3>What "limiting" means</h3>
-        <p>A protein's amino acid score is set by its scarcest essential amino acid relative to the WHO pattern. Below 100%, that amino acid caps how well the protein alone can support tissue needs, which is exactly why complementary sources matter.</p>
+        <p>The composition score is the lowest essential amino acid ratio against the adult reference pattern. Below 100% means that ratio is below the pattern; it does not diagnose a deficiency. This score is not adjusted for digestibility and is not DIAAS or PDCAAS.</p>
       </div>
     </div>
   </div>
@@ -1882,8 +1882,8 @@ function renderBloom(f, opts) {
     const len = d.val * scale;
     const x1 = cx + c * r0, y1 = cy + sn * r0;
     const x2 = cx + c * (r0 + len), y2 = cy + sn * (r0 + len);
-    if (!mini && band && d.val > 0) {
-      let lo = len * 0.9, hi = len * 1.1;
+    if (!mini && band && d.val > 0 && f.range_per_protein && unit !== "food") {
+      let lo = len, hi = len;
       if (f.range_per_protein && unit !== "food") {
         lo = f.range_per_protein.low[d.key] * scale;
         hi = f.range_per_protein.high[d.key] * scale;
@@ -2404,6 +2404,7 @@ const browserStore = (() => {
 const store = AccountStorage.create(browserStore);
 const diaryPanels = DiaryPanels.create(browserStore);
 __INJECT_USABILITY_UI__
+__INJECT_RESULT_METHOD_UI__
 __INJECT_INTAKE_UI__
 function getEpaDhaGoalMg() { return Nutrition.normaliseEpaDhaGoal(store.getItem("aa_epa_dha_goal_mg")); }
 function getWeight() { return +(store.getItem("aa_weight") || 75); }
@@ -2481,11 +2482,13 @@ function renderDetail(id) {
       <div class="stat"><div class="k">Leucine</div><div class="v">${m.leu.toFixed(1)}<small> g /100 g protein</small></div></div>
       ${f.kcal != null ? `<div class="stat"><div class="k">Energy</div><div class="v">${f.kcal}<small> kcal /100 g · carbs ${f.carb != null ? f.carb.toFixed(1) : "?"} g · fat ${f.fat != null ? f.fat.toFixed(1) : "?"} g</small></div></div>` : ""}
       <div class="stat ${complete ? "good-stat" : "limit-stat"}">
-        <div class="k">Amino acid score</div>
+        <div class="k">Composition score</div>
         <div class="v">${Math.round(m.score * 100)}%<small> ${complete ? "complete" : "limited by " + m.min.label.toLowerCase()}</small></div>
       </div>
     </div>
 
+    <p class="result-scaling-note">Composition compares amino acid proportions with the adult reference pattern. Not adjusted for digestibility; not a daily intake percentage.</p>
+    ${uiResultMethod([{name:f.name,g:portion}],weight,protThrive,"composition")}
     <h3 class="sec-h">Your day, in this food</h3>
     <div class="calc">
       <div class="calc-controls">
@@ -2497,14 +2500,15 @@ function renderDetail(id) {
         </div>
       </div>
       <div class="prot-targets">
-        <div class="prot-target"><div class="t">Daily protein · survival floor</div><div class="n">${protFloor.toFixed(0)} g<small> of protein a day · RDA 0.8 g/kg</small></div>Enough to prevent deficiency, not a target. Based on your body weight of ${displayWeight} ${wUnit}, set on the <b>home page</b>.</div>
-        <div class="prot-target"><div class="t">Daily protein · your thrive target</div><div class="n"><input class="rate-in" id="thriveG" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Your daily protein target in grams per day" /><small> g of protein a day</small></div>Total protein you're aiming for across the whole day. Uses your saved account target. Set your activity level in Account for a suggestion, or enter your own target here.</div>
+        <div class="prot-target"><div class="t">Daily protein · reference baseline</div><div class="n">${protFloor.toFixed(0)} g<small> of protein a day · RDA 0.8 g/kg</small></div>Reference baseline used in the calculation. Based on your body weight of ${displayWeight} ${wUnit}.</div>
+        <div class="prot-target"><div class="t">Daily protein · your selected goal</div><div class="n"><input class="rate-in" id="thriveG" type="number" min="30" max="500" step="5" value="${protThrive.toFixed(0)}" aria-label="Your daily protein target in grams per day" /><small> g of protein a day</small></div>Total protein you're aiming for across the whole day. Uses your saved account target. Set your activity level in Account for a suggestion, or enter your own target here.</div>
       </div>
       <p class="calc-summary">
-        A ${portion} g portion gives <b>${protInPortion.toFixed(1)} g protein</b>, <b>${Math.round(protInPortion / protFloor * 100)}%</b> of your daily survival floor and <b>${Math.round(protInPortion / protThrive * 100)}%</b> of your ${protThrive.toFixed(0)} g daily protein target. Amino acid by amino acid:
+        A ${portion} g portion gives <b>${protInPortion.toFixed(1)} g protein</b>, <b>${Math.round(protInPortion / protFloor * 100)}%</b> of the protein reference baseline and <b>${Math.round(protInPortion / protThrive * 100)}%</b> of your ${protThrive.toFixed(0)} g daily protein target. Amino acid by amino acid:
       </p>
       <div class="covbars">${covHtml}</div>
-      <p class="cov-note">Bars show how much of your <b>whole day</b> this one portion covers, so under 100% is normal; eat more across the day and it adds up. Faint line = WHO/FAO 2007 baseline need at your weight · dark line = your target (baseline scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein target). ${complete ? "Nothing is flagged: this protein carries every essential amino acid in good proportion." : `Only <b>${m.min.label.toLowerCase()}</b> is flagged: the one amino acid this protein is genuinely short of for its protein content.`} No official "thrive" amino acid figures exist; proportional scaling is our transparent assumption. Met+Cys and Phe+Tyr are scored together because the body can spare one with the other.</p>
+      <p class="cov-note">This portion is compared with a whole day’s target, so being below 100% is normal. Faint line = adult reference · dark line = scaled target. Scaling the reference ×${aaScale.toFixed(2)} to your protein goal is an Aminodata assumption.</p>
+      ${uiResultMethod([{name:f.name,g:portion}],weight,protThrive)}
       <button class="add-day" id="addDayBtn">＋ Add this ${portion} g portion to my day</button>
     </div>
 
@@ -2518,7 +2522,7 @@ function renderDetail(id) {
     <p class="src-note">Daily targets: WHO/FAO 2007 baseline at your body weight, scaled to your ${protThrive.toFixed(0)} g protein target. Met+Cys and Phe+Tyr are counted together; non-essential amino acids have no set target.</p>
     <p class="src-note"><strong>Source:</strong> ${sourceAnchor(f)}.${sourceURL(f.source) ? " The link opens the exact record." : ""}${f.usda_name && f.usda_name !== f.name ? " USDA record name: " + f.usda_name + "." : ""}${f.notes ? " " + f.notes : ""} ${f.range_per_protein
       ? "The faint band on each ray shows this food's published range across analyses, not an estimate."
-      : "Values are typical for this food; individual samples vary with breed, feed, cultivar and processing (indicatively ±10%, shown as the faint band on each ray)."}</p>
+      : "Values are typical for this food; individual samples vary with breed, feed, cultivar and processing. No measured confidence interval is available for this profile."}</p>
     ${f.range_note ? `<p class="src-note"><strong>About this range:</strong> ${f.range_note}</p>` : ""}
   `;
 
@@ -4134,7 +4138,7 @@ function openDay() {
 }
 
 /* Bar with two markers: faint = RDA baseline, dark = the user's target. % shown vs target. */
-const PROTEIN_INFO = ["Total protein", "Protein is the total; amino acids are what it is made of. This bar adds up every amino acid from what you entered and compares it with the RDA floor (0.8 g per kg of body weight) and your own daily target. Reaching the protein number does not guarantee each essential amino acid is covered. That is exactly what the bars below check."];
+const PROTEIN_INFO = ["Total protein", "Protein is the total; amino acids are what it is made of. This bar adds up the recorded protein in your food portions and compares it with the protein baseline (0.8 g per kg of body weight) and your daily protein goal. Reaching the protein number does not guarantee each essential amino acid is covered. That is exactly what the bars below check."];
 document.addEventListener("click", e => {
   const btn = e.target.closest(".cov-i");
   if (!btn) return;
@@ -4169,7 +4173,7 @@ function groupedNeedRows(totals, weight, aaScale, panels = false) {
   const rowFor = rid => {
     const [id, label, keys] = SCORE_ROWS.find(r => r[0] === rid);
     const got = keys.reduce((s, k) => s + totals[k], 0) * 1000, base = WHO_KG[id] * weight;
-    return covRow2(shortLbl(label), got, base, base * aaScale, undefined, id);
+    return covRow2(shortLbl(label), got, base, base * aaScale, undefined, id).replace('<span class="pct">', `<span class="pct"><small class="cov-amount">${resultNumber(got)} mg</small>`);
   };
   const nonKeys = AA_META.filter(m => m[2] === "n").map(m => m[0]);
   const maxNon = Math.max(...nonKeys.map(k => totals[k]));
@@ -4180,7 +4184,7 @@ function groupedNeedRows(totals, weight, aaScale, panels = false) {
   const nonessential = `<div class="cov-set non">${nonKeys.map(k => covRowAmt(AA_META.find(m => m[0] === k)[1], totals[k], maxNon, k)).join("")}</div>`;
   if (panels) return `<div class="v2-nutrients">
     <details class="v2-nutrient-panel" data-diary-section="essential-amino-acids" open>
-      <summary class="v2-nutrient-heading">Essential amino acids<span>Daily intake · percentage of your target</span></summary>
+      <summary class="v2-nutrient-heading">Essential amino acids<span>Logged intake · percentage of your scaled target</span></summary>
       <div class="covbars">${essential}</div>
     </details>
     <details class="v2-nutrient-panel" data-diary-section="nonessential-amino-acids" open>
@@ -4191,7 +4195,6 @@ function groupedNeedRows(totals, weight, aaScale, panels = false) {
   return essential + `<div class="cov-group">Non-essential <span>your body makes these; no daily requirement, so this is the amount eaten</span></div>` + nonessential;
 }
 
-const DATA_CI = 0.10; /* food composition data is trusted to about +/-10 percent */
 function covRow2(label, val, base, target, flagged, infoKey) {
   const span = target * 1.6;
   const w = Math.min(val, span) / span * 100;
@@ -4199,13 +4202,9 @@ function covRow2(label, val, base, target, flagged, infoKey) {
   const tPos = target / span * 100;
   const pct = val / target * 100;
   const isFlagged = flagged === undefined ? val < target : flagged;
-  /* confidence band around the measured value, capped to the track */
-  const ciLo = Math.min(val * (1 - DATA_CI), span) / span * 100;
-  const ciHi = Math.min(val * (1 + DATA_CI), span) / span * 100;
-  const band = val > 0 ? `<span class="ci" style="left:${ciLo.toFixed(2)}%;width:${Math.max(ciHi - ciLo, 0.5).toFixed(2)}%"></span>` : "";
   return `<div class="covrow ${isFlagged ? "is-limit" : ""}">
     <span class="aa-name">${label}${flagged ? " ⚠" : ""}${infoKey ? `<button type="button" class="info-btn cov-i" data-info="${infoKey}" aria-expanded="false" aria-label="About ${label}">i</button>` : ""}</span>
-    <span class="track"><span class="fill" style="width:${w}%"></span>${band}<span class="goal base" style="left:${basePos}%"></span><span class="goal" style="left:${tPos}%"></span></span>
+    <span class="track"><span class="fill" style="width:${w}%"></span><span class="goal base" style="left:${basePos}%"></span><span class="goal" style="left:${tPos}%"></span></span>
     <span class="pct">${Math.round(pct)}%</span></div>`;
 }
 
@@ -4238,8 +4237,8 @@ function renderDay() {
     .filter(([rid, , keys]) => keys.reduce((s, k) => s + totals[k], 0) * 1000 < WHO_KG[rid] * weight * aaScale)
     .map(([, label]) => label.toLowerCase());
   const verdict = !day.length ? "" : shortOn.length
-    ? `Against your target you're still short on <b>${shortOn.join(", ")}</b>.`
-    : "Every essential amino acid target is covered for the day.";
+    ? `Logged amounts are below your selected target for <b>${shortOn.join(", ")}</b>.`
+    : "Logged amounts meet all your scaled essential amino acid targets.";
 
   const eaaRows = groupedNeedRows(totals, weight, aaScale);
 
@@ -4276,10 +4275,10 @@ function renderDay() {
         <div class="covbars">
           ${covRow2("Protein", protTotal, protFloor, protThrive, undefined, "protein")}
         </div>
-        <p class="cov-note">Faint line = published baseline requirement (RDA, ${protFloor.toFixed(0)} g) · dark line = your target (${protThrive.toFixed(0)} g, our proportional scaling of the baseline). Percentages are against your target, and bars stay amber until they reach it. The grey band at each bar's tip is an indicative ±10% allowance for variation in the food data, not a measured interval: to be sure a target is met, get the whole band past the dark line, which in practice means aiming about 10% over.</p>
-        <h3 class="sec-h" style="font-size:19px">Essential amino acids vs your daily need</h3>
+        <p class="cov-note">Faint line = protein baseline · dark line = your protein goal. Percentages compare your logged amount with your goal.</p>
+        <h3 class="sec-h" style="font-size:19px">Amino acid intake vs your scaled daily targets</h3>
         <p class="sec-p">Amino acid targets are the WHO/FAO/UNU 2007 baseline at ${displayWeight} ${wUnit}, scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein target (no official "thrive" amino figures exist; proportional scaling is our transparent assumption). Anything under the dark line is a gap against your target.</p>
-        <div class="covbars">${eaaRows}</div>
+        <div class="covbars">${eaaRows}</div>${uiResultMethod(day,weight,protThrive)}
         <div class="day-bloom">${renderBloom(pseudo, { mini: true })}</div>
         <p class="day-bloom-cap">The whole day's combined amino acid profile</p>
       ` : ""}
@@ -4891,9 +4890,11 @@ window.addEventListener("popstate", () => {
   }
   function render() {
     diaryPanels.capture(result);
+    diaryPanels.capture($("diarySummary"));
     renderDayChrome();
     const day = loadDay();
     $("diarySummary").innerHTML=uiSummary(day);
+    diaryPanels.bind($("diarySummary"));
     $("diarySummary").querySelector("[data-edit-targets]").onclick=openAccountPage;
     $("diarySuggestions").innerHTML="";
     // Keep the single search form and its listeners when rebuilding the meal cards.
@@ -5051,8 +5052,8 @@ window.addEventListener("popstate", () => {
     const aaComplete = aaMissing.length < day.length;   // true when at least one food has an amino acid profile
     const aaNote = !aaMissing.length ? "" : ` <span class="aa-left-out">Not counted in the amino acid totals, because no amino acid profile is available: ${aaMissing.map(html).join("; ")}.</span>`;
     const verdict = (!aaComplete ? 'None of these foods has an amino acid profile available, so only your nutrition totals are shown below.' : shortOn.length
-      ? `Against your target you're still short on <span class="short">${shortOn.join(", ")}</span>. Add a source rich in ${shortOn[0]}, or increase a portion.`
-      : "Every essential amino acid target is covered for the day.") + (aaComplete ? aaNote : "");
+      ? `Logged amounts are below your scaled target for <span class="short">${shortOn.join(", ")}</span>.${aaMissing.length ? ' Some amino acid amounts are unavailable, so these are partial totals.' : ''}`
+      : "Logged amounts meet all your scaled essential amino acid targets.") + (aaComplete ? aaNote : "");
     const vegan = store.getItem("aa_diet") === "vegan";
     const recommendation = Recommendations.recommend({
       entries:day, lookup:foodByName, foods:DIARY_FOODS, proteinTarget:protThrive,
@@ -5097,11 +5098,11 @@ window.addEventListener("popstate", () => {
         </div>
         <span class="v2-share-msg" id="shareMsg" role="status" hidden></span>
       </dialog>
-      <details class="nutrition-panel profile-panel" data-aa-only data-diary-section="profile-chart"><summary>Amino acid proportions <span>Explore your protein profile</span></summary><div class="v2-overview">
+      <details class="nutrition-panel profile-panel" data-aa-only data-diary-section="profile-chart"><summary>Protein composition <span>Amino acid proportions · not daily intake</span></summary><div class="v2-overview">
         <div>
           <div class="v2-sec">The shape of your day</div>
           <button type="button" class="v2-bloom v2-bloom-toggle" id="openDayBloom" aria-label="Enlarge the shape of your day chart" aria-haspopup="dialog" aria-controls="dayBloomDialog">${bloom}<span class="v2-bloom-hint"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>Enlarge chart</span></button>
-          <p class="v2-note">Combined amino acid profile of everything you added, per 100 g of protein. Ray length is grams; the darkest rays are BCAAs, the mid tone other essentials, grey non-essentials.</p>
+          <p class="v2-note">Amino acid profile of the foods with available profiles, per 100 g of their protein. Ray length is grams; the darkest rays are BCAAs, the mid tone other essentials, grey non-essentials.</p>
         </div>
         <div>
           <div class="v2-sec">Your protein profile</div>
@@ -5109,12 +5110,13 @@ window.addEventListener("popstate", () => {
             <div class="v2-stat"><div class="k">Essential AAs</div><div class="v">${eaa.toFixed(0)}<small> g /100 g protein</small></div></div>
             <div class="v2-stat"><div class="k">BCAAs</div><div class="v">${bcaa.toFixed(1)}<small> g /100 g protein</small></div></div>
             <div class="v2-stat"><div class="k">Leucine</div><div class="v">${perP("leucine").toFixed(1)}<small> g /100 g protein</small></div></div>
-            <div class="v2-stat ${complete ? "good" : "limit"}"><div class="k">Amino acid proportions</div><div class="v">${Math.round(min.ratio * 100)}%<small> ${complete ? "well balanced" : "limited by " + min.label.toLowerCase()}</small></div></div>
+            <div class="v2-stat ${complete ? "good" : "limit"}"><div class="k">Composition score</div><div class="v">${Math.round(min.ratio * 100)}%<small> ${complete ? "meets reference pattern" : "lowest ratio: " + min.label.toLowerCase()}</small></div></div>
           </div>
-          <p class="v2-note v2-balance-note">This score measures the proportions in your protein, not how much of your daily target you've eaten. Your daily progress is the big number at the top and the bars below.</p>
+          <p class="v2-note v2-balance-note">Compared with the WHO/FAO/UNU adult amino acid pattern. Not adjusted for digestibility. This is separate from your daily intake progress.</p>
 
         </div>
       </div>
+      ${uiResultMethod(day,weight,protThrive,"composition")}
       </details>
       <dialog class="v2-share-dialog v2-bloom-dialog" id="dayBloomDialog" aria-labelledby="dayBloomTitle" aria-describedby="dayBloomDescription">
         <div class="v2-share-head"><h2 id="dayBloomTitle">The shape of your day</h2><button type="button" class="v2-share-close" id="closeDayBloom" aria-label="Close enlarged chart" autofocus>×</button></div>
@@ -5125,13 +5127,11 @@ window.addEventListener("popstate", () => {
       ${nutritionDashboard(day,{epaDhaGoalMg:getEpaDhaGoalMg()})}
       <div data-aa-only>
       <details class="nutrition-panel diary-amino-panel" data-diary-section="amino-acids">
-      <summary>Your amino acids · day total</summary><div class="diary-amino-content">
-          <p class="cov-legend"><span class="lgt base"></span> baseline requirement, WHO/FAO 2007 at your weight · <span class="lgt tgt"></span> your target, baseline scaled ×${aaScale.toFixed(1)} (our assumption) · <span class="lgt band"></span> indicative ±10% data variation</p>
+      <summary>Amino acid intake <span>Logged amounts vs your scaled daily targets</span></summary><div class="diary-amino-content">
+          <p class="cov-legend"><span class="lgt base"></span> adult reference at your weight · <span class="lgt tgt"></span> your scaled target</p>
+      <p class="result-scaling-note">Your amino acid targets use the adult reference ×${aaScale.toFixed(2)}, scaled to your ${protThrive.toFixed(0)} g protein goal. This scaling is an Aminodata assumption.${aaMissing.length ? " Partial data: some foods have no amino acid profile." : ""}</p>
       ${eaaRows}
-      <details class="v2-method" data-diary-section="amino-method">
-        <summary>How to read these numbers</summary>
-          <p class="v2-note">The faint line marks the published baseline requirement (WHO/FAO 2007 at your body weight); the dark line is your target, that baseline scaled ×${aaScale.toFixed(1)} in proportion to your ${protThrive.toFixed(0)} g protein goal. No official amino acid figures exist for intakes above the baseline, so the proportional scaling is our assumption, shown here rather than hidden. Percentages are against your target; bars stay amber until they reach it. The grey band at each bar's tip is an indicative ±10% allowance for variation in food composition data, not a measured confidence interval: lab analyses of the same food vary with breed, feed, season and processing. To be sure a target is truly met, get the whole band past the dark line, which in practice means aiming about 10% over it. Non-essential amino acids have no daily requirement (your body makes them), so those bars show the amount eaten. Why can every amino acid be covered while protein is not? The essential amino acid requirements are small next to total protein (together about a quarter of its weight), and good sources carry nearly twice that density, so quality protein clears the amino acid targets well before the protein total is reached. The protein bar at the top of your results is the one to watch for quantity; the amino acid bars here tell you whether that protein was the right kind.</p>
-      </details>
+      ${uiResultMethod(day,weight,protThrive,"daily",!!stamped)}
       </div></details>
       </div>`;
     $("diarySuggestions").innerHTML=uiSuggestions(recommendation);
