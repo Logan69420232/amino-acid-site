@@ -59,3 +59,18 @@ test('recent picker puts latest confirmed snapshot first without changing diary 
  vm.runInContext(source.slice(source.indexOf('  function renderQuickPicker('),source.indexOf('  /* ----- share link:',source.indexOf('  function renderQuickPicker('))),ctx);ctx.renderQuickPicker();
  assert.match(nodes.quickFoodPanel.innerHTML,/data-recent="0"><span>Magnesium<small>Last portion: 1 capsules/);assert.equal(JSON.stringify(log),before);
 });
+test('pack weight accepts explicit mass, never counts, volumes or ambiguous multipacks',()=>{
+ assert.equal(F.packWeight('2.5 kg'),2500);assert.equal(F.packWeight('750g'),750);assert.equal(F.packWeight('1,5 kilograms'),1500);
+ for(const v of ['6 potatoes','2 x 500g','500 ml','1,000 g','',null,'0g','-20g','100001g'])assert.equal(F.packWeight(v),null,v);
+ const p=F.fromProduct({quantity:'2 kg',nutriments:{}},'012345678905');assert.equal(p.packGrams,2000);
+});
+test('visual portion logs only the difference in pack fullness',()=>{
+ assert.equal(F.packPortion(2000,100,75),500);assert.equal(F.packPortion(2000,60,35),500);
+ assert.equal(F.packPortion(2000,50,50),0);assert.equal(F.packPortion(750,100,0),750);
+ for(const args of [[null,100,50],[0,100,50],[2000,50,60],[2000,101,20],[2000,50,-1],[2000,null,20]])assert.equal(F.packPortion(...args),null);
+});
+test('pack estimates survive validated snapshots without storing arbitrary metadata',()=>{
+ const f=F.makeFood(draft(),'test-pack-123');f.portionEstimate={packGrams:2000,beforePercent:60,afterPercent:35,extra:'discard'};
+ assert.deepEqual(F.snapshot(f).portionEstimate,{packGrams:2000,beforePercent:60,afterPercent:35});
+ assert.equal(F.snapshot({...f,portionEstimate:{packGrams:2000,beforePercent:20,afterPercent:30}}).portionEstimate,undefined);
+});

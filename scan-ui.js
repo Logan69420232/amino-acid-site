@@ -79,11 +79,51 @@
     const read=()=>({...draft,name:$('scanName').value,brand:$('scanBrand').value,basis:$('scanBasis').value,referenceGrams:$('scanWeight').value,values:Object.fromEntries(FoodScan.fields.map(([k])=>[k,$('scan-'+k).value]))});
     const preview=()=>{const b=$('scanBasis').value;$('scanWeightLabel').hidden=b==='100g';$('scanWeight').required=b!=='100g';try{const f=FoodScan.makeFood(read(),'preview-food');const g=+$('scanPortion').value;$('scanPortionSummary').textContent=g>0?`${Math.round(f.kcal*g/100)} kcal · ${(f.protein_g_per_100g*g/100).toFixed(1)} g protein in your portion`:'';}catch{$('scanPortionSummary').textContent='Complete the main nutrition values to see your portion.';}};
     $('scanReview').oninput=e=>{preview();};
-    $('scanBasis').onchange=preview;preview();$('scanAgain').onclick=()=>openMode(context.mode);
-    $('scanReview').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}try{const f=FoodScan.makeFood(read(),crypto.randomUUID());const grams=Number($('scanPortion').value);if(!Number.isFinite(grams)||grams<=0||grams>2000)throw Error('Enter a portion between 0.1 and 2,000 g.');let added=false;uiMutateDay(()=>{added=addToDay(f.name,grams,context.meal,undefined,f);},'Scanned food added.');if(added){dialog.close();window.__v2Render?.();}}catch(e){status(e.message,true);}};
+    $('scanBasis').onchange=preview;preview();if(draft.source==='Open Food Facts'&&draft.basis==='100g')setupPackPicker(draft,preview);$('scanAgain').onclick=()=>openMode(context.mode);
+    $('scanReview').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}try{const f=FoodScan.makeFood(read(),crypto.randomUUID());const grams=Number($('scanPortion').value);if($('scanReview').dataset.packEstimate==='true')f.portionEstimate={packGrams:+$('packWeight').value,beforePercent:+$('packBefore').value,afterPercent:+$('packLeft').value};if(!Number.isFinite(grams)||grams<=0||grams>2000)throw Error('Enter a portion between 0.1 and 2,000 g.');let added=false;uiMutateDay(()=>{added=addToDay(f.name,grams,context.meal,undefined,f);},'Scanned food added.');if(added){dialog.close();window.__v2Render?.();}}catch(e){status(e.message,true);}};
     if($('scanRetake'))$('scanRetake').onclick=()=>openMode('label');
     if($('scanCrop'))$('scanCrop').onclick=()=>cropLabel({...draft,...read()});
     $('scanName').focus();
+  }
+
+  function setupPackPicker(draft,preview){
+    const portion=$('scanPortion').closest('.scan-portion'),form=$('scanReview');
+    const panel=document.createElement('section');panel.className='scan-pack';
+    $('scanTitle').textContent=draft.name||'Your scanned food';$('scanBody').querySelector('.scan-lead')?.remove();
+    panel.innerHTML=`<h3>How much did you eat?</h3><div class="scan-pack-modes" role="group" aria-label="Portion method"><button type="button" id="packEstimate" aria-pressed="false">Estimate from pack</button><button type="button" id="packGramsMode" aria-pressed="true">Enter grams</button></div><div id="packControls" hidden><label class="pack-weight">Full pack weight (g)<input id="packWeight" type="number" inputmode="decimal" min="1" max="100000" step="any" value="${draft.packGrams||''}" placeholder="Weight printed on the pack"></label><p class="scan-hint">${draft.packGrams?'From the barcode listing — check your pack.':'Enter the weight printed on your pack.'}</p><div class="pack-visual-row"><div class="pack-bag" id="packBag" aria-hidden="true"><div class="pack-fill" id="packFill"></div><span id="packPercent" hidden>100%</span><span class="pack-handle" id="packHandle">↕</span></div><div class="pack-result"><span>You ate</span><strong id="packEaten">0%</strong><span id="packAmount">≈ 0 g</span><p>Drag the bag down to show what’s left.</p></div></div><label class="pack-range-label">Left now <output id="packLeftOutput">100%</output><input id="packLeft" aria-label="Pack remaining now" type="range" min="0" max="100" step="1" value="100"></label><div class="pack-shortcuts" role="group" aria-label="Amount eaten"><button type="button" data-pack-eaten="25">¼ pack</button><button type="button" data-pack-eaten="50">½ pack</button><button type="button" data-pack-eaten="100">All of it</button></div><details class="pack-before"><summary>Already opened?</summary><label>How full was it before?<input id="packBefore" aria-label="Pack fullness before eating" type="range" min="1" max="100" value="100"><output id="packBeforeOutput">100% full</output></label></details><p class="scan-hint">A visual estimate, not a weighed portion. Log only what you ate, excluding food shared or thrown away.</p></div>`;
+    // Keep editable nutrition available, but put the portion decision first.
+    const details=document.createElement('details');details.className='pack-nutrition';
+    details.innerHTML='<summary>Product & nutrition details</summary>';
+    const last=portion.nextElementSibling;
+    while(form.firstChild&&form.firstChild!==portion)details.appendChild(form.firstChild);
+    form.insertBefore(panel,portion);form.insertBefore(details,last);
+    details.appendChild($('scanSupplement'));const source=$('scanBody').querySelector('.scan-source');if(source)details.appendChild(source);details.appendChild(last);
+    const estimateSummary=document.createElement('p');estimateSummary.id='packNutritionSummary';estimateSummary.className='scan-hint';panel.appendChild(estimateSummary);
+    try{FoodScan.makeFood(draft,'preview-food');}catch{details.open=true;}
+    form.addEventListener('invalid',e=>{if(details.contains(e.target))details.open=true;},true);
+    let estimate=false;
+    function update(){
+      const before=+$('packBefore').value;const left=Math.min(before,+$('packLeft').value);$('packLeft').max=before;$('packLeft').value=left;
+      const grams=FoodScan.packPortion($('packWeight').value,before,left);
+      $('packBeforeOutput').textContent=before+'% full';$('packLeftOutput').textContent=left+'%';$('packPercent').textContent=left+'%';$('packEaten').textContent=(before-left)+'% of pack';$('packAmount').textContent=grams===null?'Enter the pack weight':'≈ '+grams+' g';
+      $('packFill').style.height=left+'%';$('packHandle').style.bottom='calc('+left+'% - 16px)';
+      if(estimate){$('scanPortion').value=grams===null?'':grams;$('scanPortion').setCustomValidity(grams===null?'Enter the full pack weight.':grams<=0?'Move the bag level to show how much you ate.':grams>2000?'This is more than 2,000 g. Check the pack weight and portion.':'');}
+      preview();$('packNutritionSummary').textContent=estimate&&$('scanPortionSummary').textContent?'Estimated: '+$('scanPortionSummary').textContent:'';
+      form.querySelector('[type=submit]').disabled=estimate&&(grams===null||grams<0.1||grams>2000);
+      form.dataset.packEstimate=estimate?'true':'false';
+    }
+    function mode(on){estimate=on;$('packControls').hidden=!on;portion.hidden=on;$('packEstimate').setAttribute('aria-pressed',String(on));$('packGramsMode').setAttribute('aria-pressed',String(!on));$('packWeight').required=on;$('packWeight').disabled=!on;
+      $('scanPortion').required=!on;$('scanPortion').disabled=on;$('scanPortion').setCustomValidity('');
+      if(!on&&!(+$('scanPortion').value>0))$('scanPortion').value=100;update();}
+    $('packEstimate').onclick=()=>mode(true);$('packGramsMode').onclick=()=>mode(false);
+    for(const id of ['packWeight','packBefore','packLeft'])$(id).addEventListener('input',update);
+    panel.querySelectorAll('[data-pack-eaten]').forEach(b=>b.onclick=()=>{$('packLeft').value=Math.max(0,+$('packBefore').value-+b.dataset.packEaten);update();});
+    const bag=$('packBag');let dragging=false;
+    const move=e=>{const r=bag.getBoundingClientRect();$('packLeft').value=Math.max(0,Math.min(+$('packBefore').value,Math.round((1-(e.clientY-r.top)/r.height)*100)));update();};
+    bag.onpointerdown=e=>{dragging=true;bag.setPointerCapture(e.pointerId);move(e);};bag.onpointermove=e=>{if(dragging)move(e);};bag.onpointerup=bag.onpointercancel=()=>{dragging=false;};
+    // The visible fields explain invalid estimates; never silently fall back to 100 g.
+    form.addEventListener('submit',e=>{if(estimate){const g=FoodScan.packPortion($('packWeight').value,$('packBefore').value,$('packLeft').value);if(g===null||g<0.1||g>2000){e.preventDefault();e.stopImmediatePropagation();status('Check the pack weight and choose an amount eaten between 0.1 and 2,000 g.',true);}}},true);
+    mode(!!draft.packGrams);
   }
 
   function cropLabel(draft){
