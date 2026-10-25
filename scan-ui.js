@@ -10,9 +10,10 @@
   function frame(title){stop();dialog.innerHTML=`<header class="scan-head"><div><span class="scan-eyebrow">ADD TO ${escape(MEAL_LABEL[context.meal].toUpperCase())}</span><h2 id="scanTitle">${title}</h2></div><button type="button" id="scanClose" aria-label="Close scanner">×</button></header><div id="scanBody"></div><p id="scanStatus" role="status" aria-live="polite"></p>`;$('scanClose').onclick=()=>dialog.close();dialog.scrollTop=0;}
   function supplementSearch(){
     frame('Find a supplement');
-    $('scanBody').innerHTML='<p class="scan-lead">Choose a nutrient, then enter the dose you took from your label.</p><label>Search supplements<input id="supplementQuery" type="search" placeholder="Try iron, vitamin C or magnesium" autocomplete="off"></label><div id="supplementResults" class="supplement-results"></div><p class="scan-hint">Generic nutrients, not branded products. For a blend or multivitamin, scan its label to record each ingredient.</p><button type="button" id="supplementScan">Scan a supplement label</button>';
-    const render=()=>{const results=SupplementScan.search($('supplementQuery').value);$('supplementResults').innerHTML=results.length?results.map(d=>`<button type="button" data-supplement-key="${d.key}"><span>${escape(d.label)}</span><small>${d.doseUnit==='µg'?'mcg':d.doseUnit} <span aria-hidden="true">＋</span></small></button>`).join(''):'<p>No matching nutrient. Try another name or scan the label below.</p>';$('supplementResults').querySelectorAll('[data-supplement-key]').forEach(b=>b.onclick=()=>supplementDose(b.dataset.supplementKey));};
-    $('supplementQuery').oninput=render;render();$('supplementScan').onclick=()=>openMode('label');$('supplementQuery').focus();
+    $('scanBody').innerHTML='<button type="button" id="supplementScan" class="scan-primary supplement-scan-first">Scan a supplement label</button><p class="scan-hint">Or search for a nutrient and enter your dose.</p><label>Search supplements<input id="supplementQuery" type="search" placeholder="Try iron, vitamin C or magnesium" autocomplete="off"></label><div id="supplementResults" class="supplement-results"></div><p class="scan-hint">Generic nutrients, not branded products. For a blend or multivitamin, scan its label to record each ingredient.</p>';
+    const render=()=>{const results=SupplementScan.search($('supplementQuery').value);$('supplementResults').innerHTML=results.length?results.map(d=>`<button type="button" data-supplement-key="${d.key}"><span>${escape(d.label)}</span><small>${d.doseUnit==='µg'?'mcg':d.doseUnit} <span aria-hidden="true">＋</span></small></button>`).join(''):'<p>No matching nutrient. Try another name or use Scan a supplement label above.</p>';$('supplementResults').querySelectorAll('[data-supplement-key]').forEach(b=>b.onclick=()=>supplementDose(b.dataset.supplementKey));};
+    $('supplementQuery').oninput=render;render();$('supplementScan').onclick=()=>openMode('label');// Keep the phone keyboard closed until the user chooses to search.
+    $('scanClose').focus({preventScroll:true});
   }
   function supplementDose(key){
     const d=SupplementScan.catalog.find(d=>d.key===key);if(!d)return;
@@ -89,28 +90,31 @@
     const read=()=>({...draft,name:$('scanName').value,brand:$('scanBrand').value,basis:$('scanBasis').value,referenceGrams:$('scanWeight').value,values:Object.fromEntries(FoodScan.fields.map(([k])=>[k,$('scan-'+k).value]))});
     const preview=()=>{const b=$('scanBasis').value;$('scanWeightLabel').hidden=b==='100g';$('scanWeight').required=b!=='100g';try{const f=FoodScan.makeFood(read(),'preview-food');const g=+$('scanPortion').value;$('scanPortionSummary').textContent=g>0?`${Math.round(f.kcal*g/100)} kcal · ${(f.protein_g_per_100g*g/100).toFixed(1)} g protein in your portion`:'';}catch{$('scanPortionSummary').textContent='Complete the main nutrition values to see your portion.';}};
     $('scanReview').oninput=e=>{preview();};
-    $('scanBasis').onchange=preview;preview();if(draft.source==='Open Food Facts'&&draft.basis==='100g')setupPackPicker(draft,preview);$('scanAgain').onclick=()=>openMode(context.mode);
+    $('scanBasis').onchange=preview;preview();setupPackPicker(draft,preview);$('scanAgain').onclick=()=>openMode(context.mode);
     $('scanReview').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}try{const f=FoodScan.makeFood(read(),crypto.randomUUID());const grams=Number($('scanPortion').value);if($('scanReview').dataset.packEstimate==='true')f.portionEstimate={packGrams:+$('packWeight').value,beforePercent:+$('packBefore').value,afterPercent:+$('packLeft').value};if(!Number.isFinite(grams)||grams<=0||grams>2000)throw Error('Enter a portion between 0.1 and 2,000 g.');let added=false;uiMutateDay(()=>{added=addToDay(f.name,grams,context.meal,undefined,f);},'Scanned food added.');if(added){dialog.close();window.__v2Render?.();}}catch(e){status(e.message,true);}};
     if($('scanRetake'))$('scanRetake').onclick=()=>openMode('label');
     if($('scanCrop'))$('scanCrop').onclick=()=>cropLabel({...draft,...read()});
     $('scanName').focus();
   }
 
-  function setupPackPicker(draft,preview){
+  function setupPackPicker(draft,preview,simple=false){
     const portion=$('scanPortion').closest('.scan-portion'),form=$('scanReview');
     const panel=document.createElement('section');panel.className='scan-pack';
     $('scanTitle').textContent=draft.name||'Your scanned food';$('scanBody').querySelector('.scan-lead')?.remove();
-    panel.innerHTML=`<h3>How much did you eat?</h3><div class="scan-pack-modes" role="group" aria-label="Portion method"><button type="button" id="packEstimate" aria-pressed="false">Estimate from pack</button><button type="button" id="packGramsMode" aria-pressed="true">Enter grams</button></div><div id="packControls" hidden><label class="pack-weight">Full pack weight (g)<input id="packWeight" type="number" inputmode="decimal" min="1" max="100000" step="any" value="${draft.packGrams||''}" placeholder="Weight printed on the pack"></label><p class="scan-hint">${draft.packGrams?'From the barcode listing — check your pack.':'Enter the weight printed on your pack.'}</p><div class="pack-visual-row"><div class="pack-bag" id="packBag" aria-hidden="true"><div class="pack-fill" id="packFill"></div><span id="packPercent" hidden>100%</span><span class="pack-handle" id="packHandle">↕</span></div><div class="pack-result"><span>You ate</span><strong id="packEaten">0%</strong><span id="packAmount">≈ 0 g</span><p>Drag the bag down to show what’s left.</p></div></div><label class="pack-range-label">Left now <output id="packLeftOutput">100%</output><input id="packLeft" aria-label="Pack remaining now" type="range" min="0" max="100" step="1" value="100"></label><div class="pack-shortcuts" role="group" aria-label="Amount eaten"><button type="button" data-pack-eaten="25">¼ pack</button><button type="button" data-pack-eaten="50">½ pack</button><button type="button" data-pack-eaten="100">All of it</button></div><details class="pack-before"><summary>Already opened?</summary><label>How full was it before?<input id="packBefore" aria-label="Pack fullness before eating" type="range" min="1" max="100" value="100"><output id="packBeforeOutput">100% full</output></label></details><p class="scan-hint">A visual estimate, not a weighed portion. Log only what you ate, excluding food shared or thrown away.</p></div>`;
-    // Keep editable nutrition available, but put the portion decision first.
-    const details=document.createElement('details');details.className='pack-nutrition';
-    details.innerHTML='<summary>Product & nutrition details</summary>';
-    const last=portion.nextElementSibling;
-    while(form.firstChild&&form.firstChild!==portion)details.appendChild(form.firstChild);
-    form.insertBefore(panel,portion);form.insertBefore(details,last);
-    details.appendChild($('scanSupplement'));const source=$('scanBody').querySelector('.scan-source');if(source)details.appendChild(source);details.appendChild(last);
+    panel.innerHTML=`<h3>How much did you eat?</h3><div class="scan-pack-modes" role="group" aria-label="Portion method"><button type="button" id="packEstimate" aria-pressed="false">Estimate from pack</button><button type="button" id="packGramsMode" aria-pressed="true">Enter grams</button></div><div id="packControls" hidden><label class="pack-weight">Full pack weight (g)<input id="packWeight" type="number" inputmode="decimal" min="1" max="100000" step="any" value="${draft.packGrams||''}" placeholder="Weight printed on the pack"></label><p class="scan-hint">${draft.packGrams?'Check this weight matches your pack.':'Enter the weight printed on your pack.'}</p><div class="pack-visual-row"><div class="pack-bag" id="packBag" aria-hidden="true"><div class="pack-fill" id="packFill"></div><span id="packPercent" hidden>100%</span><span class="pack-handle" id="packHandle">↕</span></div><div class="pack-result"><span>You ate</span><strong id="packEaten">0%</strong><span id="packAmount">≈ 0 g</span><p>Drag the bag down to show what’s left.</p></div></div><label class="pack-range-label">Left now <output id="packLeftOutput">100%</output><input id="packLeft" aria-label="Pack remaining now" type="range" min="0" max="100" step="1" value="100"></label><div class="pack-shortcuts" role="group" aria-label="Amount eaten"><button type="button" data-pack-eaten="25">¼ pack</button><button type="button" data-pack-eaten="50">½ pack</button><button type="button" data-pack-eaten="100">All of it</button></div><details class="pack-before"><summary>Already opened?</summary><label>How full was it before?<input id="packBefore" aria-label="Pack fullness before eating" type="range" min="1" max="100" value="100"><output id="packBeforeOutput">100% full</output></label></details><p class="scan-hint">A visual estimate, not a weighed portion. Log only what you ate, excluding food shared or thrown away.</p></div>`;
+    // Food review and standalone portions share the same visual control.
+    if(!simple){
+      const details=document.createElement('details');details.className='pack-nutrition';
+      details.innerHTML='<summary>Product & nutrition details</summary>';
+      const last=portion.nextElementSibling;
+      while(form.firstChild&&form.firstChild!==portion)details.appendChild(form.firstChild);
+      form.insertBefore(details,last);
+      details.appendChild($('scanSupplement'));const source=$('scanBody').querySelector('.scan-source');if(source)details.appendChild(source);details.appendChild(last);
+      try{FoodScan.makeFood(draft,'preview-food');}catch{details.open=true;}
+      form.addEventListener('invalid',e=>{if(details.contains(e.target))details.open=true;},true);
+    }
+    form.insertBefore(panel,portion);
     const estimateSummary=document.createElement('p');estimateSummary.id='packNutritionSummary';estimateSummary.className='scan-hint';panel.appendChild(estimateSummary);
-    try{FoodScan.makeFood(draft,'preview-food');}catch{details.open=true;}
-    form.addEventListener('invalid',e=>{if(details.contains(e.target))details.open=true;},true);
     let estimate=false;
     function update(){
       const before=+$('packBefore').value;const left=Math.min(before,+$('packLeft').value);$('packLeft').max=before;$('packLeft').value=left;
@@ -126,15 +130,30 @@
       $('scanPortion').required=!on;$('scanPortion').disabled=on;$('scanPortion').setCustomValidity('');
       if(!on&&!(+$('scanPortion').value>0))$('scanPortion').value=100;update();}
     $('packEstimate').onclick=()=>mode(true);$('packGramsMode').onclick=()=>mode(false);
-    for(const id of ['packWeight','packBefore','packLeft'])$(id).addEventListener('input',update);
+    form.addEventListener('input',update);
     panel.querySelectorAll('[data-pack-eaten]').forEach(b=>b.onclick=()=>{$('packLeft').value=Math.max(0,+$('packBefore').value-+b.dataset.packEaten);update();});
     const bag=$('packBag');let dragging=false;
     const move=e=>{const r=bag.getBoundingClientRect();$('packLeft').value=Math.max(0,Math.min(+$('packBefore').value,Math.round((1-(e.clientY-r.top)/r.height)*100)));update();};
     bag.onpointerdown=e=>{dragging=true;bag.setPointerCapture(e.pointerId);move(e);};bag.onpointermove=e=>{if(dragging)move(e);};bag.onpointerup=bag.onpointercancel=()=>{dragging=false;};
     // The visible fields explain invalid estimates; never silently fall back to 100 g.
     form.addEventListener('submit',e=>{if(estimate){const g=FoodScan.packPortion($('packWeight').value,$('packBefore').value,$('packLeft').value);if(g===null||g<0.1||g>2000){e.preventDefault();e.stopImmediatePropagation();status('Check the pack weight and choose an amount eaten between 0.1 and 2,000 g.',true);}}},true);
-    mode(!!draft.packGrams);
+    mode(simple||!!draft.packGrams);
   }
+
+  // Reuse the pack picker wherever a food quantity is editable. Never apply to tablets.
+  window.__openPackPortion=(f,amount,onChoose,button)=>{
+    if(f?.supplement)return;
+    opener=button;context={owner:store.owner,date:activeLogDay().date,meal:currentMeal,mode:'portion',view:document.body.dataset.view};
+    if(!dialog.open)dialog.showModal();frame(escape(f?.name||'Your food portion'));const t=epoch;
+    dialog.querySelector('.scan-eyebrow').textContent='FOOD PORTION';
+    $('scanBody').innerHTML='<form id="scanReview"><div class="scan-portion"><label>Your portion (g)<input id="scanPortion" type="number" inputmode="decimal" min="0.1" max="2000" step="any" required></label><p id="scanPortionSummary" aria-live="polite"></p></div><div class="scan-actions"><button class="scan-primary" type="submit">Use this portion</button></div></form>';
+    $('scanPortion').value=amount||100;
+    const preview=()=>{const g=+$('scanPortion').value;const parts=[];if(f?.kcal!=null)parts.push(Math.round(f.kcal*g/100)+' kcal');if(f?.protein_g_per_100g!=null)parts.push((f.protein_g_per_100g*g/100).toFixed(1)+' g protein');$('scanPortionSummary').textContent=g>0?parts.join(' · '):'';};
+    setupPackPicker({name:f?.name||'Your food portion',packGrams:f?.packGrams||f?.portionEstimate?.packGrams},preview,true);
+    $('scanReview').oninput=preview;
+    $('scanReview').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}const g=+$('scanPortion').value;if(!(g>=0.1&&g<=2000))return;dialog.close();onChoose(g);};
+    $('scanClose').focus({preventScroll:true});
+  };
 
   function cropLabel(draft){
     const source=labelCanvas;if(!source)return;
@@ -185,6 +204,21 @@
       finally{if(valid(t)&&torchTrack===track)b.disabled=false;}
     };
   }
+  async function withPhotoLight(t,draw){
+    const track=torchTrack,b=$('scanTorch');
+    if(b)b.disabled=true;
+    const apply=on=>{const constraints=track.getConstraints?.()||{};return track.applyConstraints({...constraints,advanced:[...(constraints.advanced||[]).map(c=>{const {torch,...rest}=c;return rest;}),{torch:on}]});};
+    try{
+      if(track?.readyState!=='ended'&&track){
+        try{await apply(true);if(valid(t))await new Promise(resolve=>setTimeout(resolve,250));}catch{/* Capture still works without hardware light. */}
+      }
+      if(valid(t))draw();
+    }finally{
+      // Always extinguish the capture light, including failed captures/cancellation.
+      if(track&&track.readyState!=='ended'){try{await apply(false);}catch{track.stop();}}
+      if(valid(t)&&torchTrack===track){torchOn=false;if(b){b.textContent='Flash off';b.setAttribute('aria-pressed','false');b.disabled=false;}}
+    }
+  }
   async function camera(mode){stop();const t=epoch;status('Opening your back camera…');$('scanCamera').disabled=true;if(mode==='label')$('scanCamera').hidden=true;try{
     if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera access needs HTTPS and a supported browser. You can enter the values manually.');
     const v=$('scanVideo');v.hidden=false;if($('scanCameraView'))$('scanCameraView').hidden=false;
@@ -201,7 +235,23 @@
     }
   }catch(e){if(valid(t)){stop();status(e.name==='NotAllowedError'?'Camera permission was denied. Allow it in browser settings or enter the values manually.':e.name==='NotFoundError'?'No camera found. You can enter the values manually.':e.message,true);}}
   finally{if($('scanCamera'))$('scanCamera').disabled=false;}}
-  function captureLabel(){const v=$('scanVideo');if(!v?.videoWidth||!v.srcObject){status('Start the camera and wait for the picture before capturing.',true);return;}const t=epoch;const canvas=document.createElement('canvas'),r=v.getBoundingClientRect(),scale=Math.max(r.width/v.videoWidth,r.height/v.videoHeight),visibleW=r.width/scale,visibleH=r.height/scale;canvas.width=Math.round(visibleW*.84);canvas.height=Math.round(visibleH*.84);canvas.getContext('2d').drawImage(v,(v.videoWidth-visibleW)/2+visibleW*.08,(v.videoHeight-visibleH)/2+visibleH*.08,visibleW*.84,visibleH*.84,0,0,canvas.width,canvas.height);$('scanCapture').disabled=true;canvas.toBlob(blob=>{if(!valid(t))return;if(blob)photo(new File([blob],'nutrition-label.jpg',{type:'image/jpeg'}),'label');else{status('Could not capture the picture. Try again.',true);$('scanCapture').disabled=false;}},'image/jpeg',0.95);}
+  async function captureLabel(){
+    const v=$('scanVideo'),button=$('scanCapture');
+    if(button?.disabled)return;
+    if(!v?.videoWidth||!v.srcObject){status('Start the camera and wait for the picture before capturing.',true);return;}
+    if($('scanTorch')?.disabled){status('Wait for the camera light to finish changing, then take the photo.');return;}
+    const t=epoch;button.disabled=true;let canvas=null;
+    try{
+      await withPhotoLight(t,()=>{
+        canvas=document.createElement('canvas');
+        const r=v.getBoundingClientRect(),scale=Math.max(r.width/v.videoWidth,r.height/v.videoHeight),visibleW=r.width/scale,visibleH=r.height/scale;
+        canvas.width=Math.round(visibleW*.84);canvas.height=Math.round(visibleH*.84);
+        canvas.getContext('2d').drawImage(v,(v.videoWidth-visibleW)/2+visibleW*.08,(v.videoHeight-visibleH)/2+visibleH*.08,visibleW*.84,visibleH*.84,0,0,canvas.width,canvas.height);
+      });
+      if(!valid(t)||!canvas)return;
+      canvas.toBlob(blob=>{if(!valid(t))return;if(blob)photo(new File([blob],'nutrition-label.jpg',{type:'image/jpeg'}),'label');else{status('Could not capture the picture. Try again.',true);button.disabled=false;}},'image/jpeg',0.95);
+    }catch{if(valid(t)){status('Could not capture the picture. Try again.',true);button.disabled=false;}}
+  }
   async function photo(file,mode){if(!file)return;stop();const t=epoch;if(file.size>12*1024*1024||!/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type)){status('Choose a JPG, PNG or WebP photo up to 12 MB. If HEIC will not open, use a screenshot.',true);return;}status(mode==='barcode'?'Reading barcode…':'Reading the label on your device…');try{const image=new Image();photoURL=URL.createObjectURL(file);image.src=photoURL;await image.decode();if(!valid(t))return;const canvas=document.createElement('canvas'),scale=Math.min(1,3200/Math.max(image.width,image.height));canvas.width=Math.round(image.width*scale);canvas.height=Math.round(image.height*scale);canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
       if(mode==='barcode'){await script('/assets/scanner/zxing.min.js','ZXingBrowser');if(!valid(t))return;const r=new ZXingBrowser.BrowserMultiFormatReader();const result=await r.decodeFromImageUrl(canvas.toDataURL('image/png'));if(valid(t))await lookup(result.getText());}
       else{labelCanvas=canvas;await script('/assets/scanner/tesseract.min.js','Tesseract');if(!valid(t))return;const w=await Tesseract.createWorker('eng',1,{workerPath:'/assets/scanner/worker.min.js',corePath:'/assets/scanner',langPath:'/assets/scanner',workerBlobURL:false,logger:m=>{if(valid(t)&&m.status==='recognizing text')status('Reading label… '+Math.round(m.progress*100)+'%');}});if(!valid(t)){await w.terminate();return;}worker=w;const result=await LabelReader.read(w,canvas,{active:()=>valid(t),retrying:()=>status('Taking another look at the label…')});await w.terminate();worker=null;if(valid(t)&&result){const draft=FoodScan.parseLabel(result.text);draft.weakRead=!result.readable;draft.issues=result.issues||[];draft.previewImage=canvas.toDataURL("image/jpeg",0.85);review(draft);if(!Object.keys(draft.values).length&&!SupplementScan.parse(draft.text).ingredients.length)status('No clear nutrition amounts were found. You can enter them below or try a sharper photo.',true);}}
@@ -214,5 +264,5 @@
   dialog.addEventListener('close',()=>{stop();labelCanvas=null;dialog.innerHTML='';opener?.focus();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&!$('scanReview')){stop();if(dialog.open)status('Scanner paused. Restart the camera to continue.');}});
   window.addEventListener('pagehide',stop);
-  new MutationObserver(()=>{if(dialog.open&&(store.owner!==context?.owner||document.body.dataset.view!=='day'))dialog.close();}).observe(document.body,{attributes:true,attributeFilter:['class','data-view']});
+  new MutationObserver(()=>{if(dialog.open&&(store.owner!==context?.owner||document.body.dataset.view!==(context?.mode==='portion'?context.view:'day')))dialog.close();}).observe(document.body,{attributes:true,attributeFilter:['class','data-view']});
 })();

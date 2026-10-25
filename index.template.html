@@ -1635,7 +1635,7 @@
       <div class="v2-search"><input id="v2Food" placeholder="Search foods, e.g. eggs or oats" role="combobox" aria-label="Food to add" aria-autocomplete="list" aria-expanded="false" aria-controls="v2DD" aria-describedby="mealSearchHint" /><div class="v2-dd" id="v2DD" role="listbox" hidden></div></div>
       <p class="meal-search-hint" id="mealSearchHint" role="status">Choose a food, then set your portion.</p>
       <div class="meal-portion" id="mealPortion" hidden>
-        <div class="meal-portion-field"><label for="v2Grams">Your portion</label><div class="v2-g"><input id="v2Grams" type="number" min="0.1" max="2000" step="any" value="100" required aria-label="Portion amount" /><select id="v2Unit" aria-label="Portion unit"><option value="">g</option></select></div></div>
+        <div class="meal-portion-field"><label for="v2Grams">Your portion</label><div class="v2-g"><input id="v2Grams" type="number" min="0.1" max="2000" step="any" value="100" required aria-label="Portion amount" /><select id="v2Unit" aria-label="Portion unit"><option value="">g</option></select></div><button type="button" class="linkish" id="mealPackPortion">% of pack</button></div>
         <div class="meal-portion-preview" id="mealPortionPreview" aria-live="polite"></div>
         <button type="submit" class="v2-add" id="mealAddConfirm" disabled>Add to Breakfast</button>
       </div>
@@ -2491,7 +2491,8 @@ function renderDetail(id) {
       <div class="calc-controls">
         <div class="ctl-group">
           <span class="ctl-label">This portion</span>
-          <label><input id="calcPortion" type="number" min="0.1" max="1000" step="any" value="${portion}" aria-label="Portion in grams" /> g of ${f.name.split("(")[0].trim().toLowerCase()}</label>
+          <label><input id="calcPortion" type="number" min="0.1" max="2000" step="any" value="${portion}" aria-label="Portion in grams" /> g of ${f.name.split("(")[0].trim().toLowerCase()}</label>
+          <button type="button" class="linkish" id="calcPackPortion">% of pack</button>
           ${practicalPortions(f).length ? `<div class="pp-row">${practicalPortions(f).map(p => `<button type="button" class="pp-chip" data-g="${p[1]}">${p[0]} · ${p[1]} g</button>`).join("")}</div>` : ""}
         </div>
       </div>
@@ -2530,8 +2531,9 @@ function renderDetail(id) {
     bumpSettings(); schedulePush();
     renderDetail(id);
   });
+  sheet.querySelector('#calcPackPortion').onclick=e=>window.__openPackPortion(f,portion,g=>{store.setItem('aa_portion_'+f.id,g);renderDetail(id);},e.currentTarget);
   sheet.querySelector("#calcPortion").addEventListener("change", e => {
-    store.setItem("aa_portion_" + f.id, Math.max(0.1, Math.min(1000, +e.target.value || 100)));
+    store.setItem("aa_portion_" + f.id, Math.max(0.1, Math.min(2000, +e.target.value || 100)));
     renderDetail(id);
   });
   sheet.querySelectorAll(".pp-chip").forEach(b => b.addEventListener("click", () => {
@@ -3699,11 +3701,13 @@ function renderMealsPage({ preserve = false, openIndex = null, removedIndex = nu
         <div class="sm-items">${m.items.map((it, j) => `<div class="sm-item">
           <span class="nm">${esc(it.name)}</span>
           <input type="number" min="0.1" max="2000" step="any" value="${it.g}" data-i="${i}" data-j="${j}" aria-label="Amount of ${esc(it.name)} in ${esc(quantityUnit(foodByName(it.name,it)))}"> ${esc(quantityUnit(foodByName(it.name,it)))}
+          ${foodByName(it.name,it)?.supplement?'':`<button type="button" class="linkish sm-pack" data-i="${i}" data-j="${j}">% of pack</button>`}
           <button type="button" class="sm-rm" data-i="${i}" data-j="${j}" aria-label="Remove ${esc(it.name)}">✕</button>
         </div>`).join("")}</div>
         ${_mealsAddOpen === i ? `<div class="sm-addrow">
           <input class="sm-search" data-i="${i}" placeholder="Search a food to add (chicken, lentils, eggs...)" aria-label="Search a food to add">
           <input class="sm-grams" data-i="${i}" type="number" min="0.1" max="2000" step="any" placeholder="g (typical if blank)" aria-label="Grams to add">
+          <button type="button" class="linkish sm-new-pack">% of pack</button>
           <button type="button" class="linkish sm-addclose" data-i="${i}">Done</button>
           <div class="sm-dd" data-i="${i}" hidden></div>
         </div>` : `<button type="button" class="linkish sm-addfood" data-i="${i}">＋ Add food to this meal</button>`}
@@ -3749,6 +3753,8 @@ function renderMealsPage({ preserve = false, openIndex = null, removedIndex = nu
     saveSavedMeals(l);
     renderMealsPage({ preserve: true });
   }));
+  page.querySelectorAll('.sm-pack').forEach(b=>b.onclick=()=>{const l=loadSavedMeals(),it=l[+b.dataset.i].items[+b.dataset.j];window.__openPackPortion(foodByName(it.name,it),it.g,g=>{it.g=g;saveSavedMeals(l);renderMealsPage({preserve:true});},b);});
+  page.querySelectorAll('.sm-new-pack').forEach(b=>b.onclick=()=>{const inp=page.querySelector('.sm-grams');window.__openPackPortion(null,+inp.value,g=>{inp.value=g;},b);});
   page.querySelectorAll(".sm-rm").forEach(b => b.addEventListener("click", () => {
     const l = loadSavedMeals();
     l[+b.dataset.i].items.splice(+b.dataset.j, 1);
@@ -4730,8 +4736,10 @@ window.addEventListener("popstate", () => {
     grams.min = "0.1"; grams.max = "2000"; grams.value = String(f.serving_g || 100);
     $("mealPortion").hidden = false; $("mealAddConfirm").disabled = false;
     $("mealSearchHint").textContent = "Selected. Check your portion below, then add it to your meal.";
+    $("mealPackPortion").hidden=!!f.supplement;
     previewPortion(); grams.focus(); grams.select();
   }
+  $("mealPackPortion").onclick=e=>{if(!selectedFood)return;window.__openPackPortion(selectedFood,+grams.value*(portionUnits(selectedFood).find(u=>u[0]===$("v2Unit").value)?.[1]||1),g=>{selectedUnit="";$("v2Unit").value="";grams.min="0.1";grams.max="2000";grams.value=g;previewPortion();},e.currentTarget);};
   grams.addEventListener("input", previewPortion);
   $("v2Unit").addEventListener("change", () => {
     if (!selectedFood) return;
@@ -4752,7 +4760,7 @@ window.addEventListener("popstate", () => {
     ddIdx = 0;
     dd.innerHTML = ddItems.map((f, i) => `<button type="button" role="option" id="diary-option-${i}" data-i="${i}" aria-selected="${i === 0}">
       <span><span class="nm">${html(f.name)}</span>${stateTagHTML(f)}${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
-      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${f.portionEstimate&&FoodScan.packPortion(f.portionEstimate.packGrams,f.portionEstimate.beforePercent,f.portionEstimate.afterPercent)===e.g?'Estimated portion · ':''}${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span></button>`).join("");
+      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span></button>`).join("");
     dd.hidden = false; food.setAttribute("aria-expanded", "true"); food.setAttribute("aria-activedescendant", "diary-option-0");
     dd.querySelectorAll("button").forEach(b => b.addEventListener("click", () => pick(ddItems[+b.dataset.i])));
   }
@@ -4901,7 +4909,7 @@ window.addEventListener("popstate", () => {
         ? `<select class="unit-sel" data-i="${i}" aria-label="Unit for ${name}"><option value="">g</option>${units.map(u => `<option value="${html(u[0])}"${e.unit === u[0] ? " selected" : ""}>${html(portionUnitLabel(u))}</option>`).join("")}</select>${u ? `<small class="unit-g">≈ ${Math.round(e.g)} g</small>` : ""}`
         : " "+html(quantityUnit(f));
       return `<div class="v2-item"><div class="food-info"><span class="nm">${name}</span><span class="food-nutrition-source">${f.portionEstimate&&FoodScan.packPortion(f.portionEstimate.packGrams,f.portionEstimate.beforePercent,f.portionEstimate.afterPercent)===e.g?'Estimated portion · ':''}${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
-        </div><div class="qty"><span class="portion-label">Portion</span><input type="number" min="0.1" max="2000" step="any" value="${qty}" data-i="${i}" aria-label="Amount of ${name}">${unitUI}</div>
+        </div><div class="qty"><span class="portion-label">Portion</span><input type="number" min="0.1" max="2000" step="any" value="${qty}" data-i="${i}" aria-label="Amount of ${name}">${unitUI}${f.supplement?'':`<button type="button" class="linkish food-pack-button" data-pack-item="${i}">% of pack</button>`}</div>
         <div class="food-macros">${f.supplement ? f.ingredients.slice(0,2).map(r=>`<span>${html(r.label)} <strong>${Nutrition.format(r.amount*e.g/f.serving_g)} ${html(r.unit)}</strong></span>`).join("") : `<strong>${f.protein_g_per_100g == null ? "Protein unavailable" : (f.protein_g_per_100g * e.g / 100).toFixed(1)+" g protein"}</strong><span>${f.kcal == null ? "Calories unavailable" : Math.round(f.kcal * e.g / 100) + " kcal"}</span>`}</div>
         <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button>${supplementIngredients(f,e.g)}</div>`;
     };
@@ -4972,6 +4980,7 @@ window.addEventListener("popstate", () => {
       if (!expanded && editingMeal === m) { editingMeal = null; hideDD(); }
       render(); $("meal-toggle-" + m).focus();
     }));
+    list.querySelectorAll('[data-pack-item]').forEach(b=>b.onclick=()=>{const i=+b.dataset.packItem,d=loadDay(),entry=d[i];window.__openPackPortion(foodByName(entry.name,entry),entry.g,g=>{entry.g=g;delete entry.unit;saveDay(d);render();},b);});
     list.querySelectorAll(".v2-item input").forEach(inp => inp.addEventListener("change", ev => {
       const i = +ev.target.dataset.i;
       const d = loadDay();
@@ -4993,6 +5002,7 @@ window.addEventListener("popstate", () => {
     if (editingMeal) {
       const panel = $("meal-panel-" + editingMeal);
       panel.appendChild(editor); editor.hidden = false;
+      $("supplementSearchEntry").hidden = editingMeal === "snacks";
       $("mealEditorLabel").textContent = "Add to " + MEAL_LABEL[editingMeal];
       $("mealAddConfirm").textContent = "Add to " + MEAL_LABEL[editingMeal];
       const empty = panel.querySelector(".meal-empty"); if (empty) empty.hidden = true;
