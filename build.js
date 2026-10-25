@@ -284,10 +284,10 @@ const FAQS = [
     "Amino acid profiles and nutrients come from published analytical sources: USDA FoodData Central (SR Legacy), the UK CoFID 2021 tables, and peer reviewed analyses such as Gorissen et al. 2018 for protein powders. Every food cites its source, and the citation links to the exact record."],
   ["How are my daily amino acid targets set?",
     "The baseline is the WHO/FAO/UNU 2007 requirement at your body weight. Because no official figures exist for higher protein intakes, we scale that baseline in proportion to your protein target and say so openly wherever the numbers appear. The default protein target is 1.6 g per kg of body weight, in line with intakes meta-analyses associate with supporting muscle; you can set your own in Account & targets."],
-  ["What does the amino acid balance score mean?",
-    "Balance measures the proportions in your protein against the WHO/FAO 2007 pattern, not how much you have eaten. 100% or more means every essential amino acid is present in good proportion; below that, the score names the limiting amino acid holding your day back. Daily progress, the big number above your results, is the quantity side."],
-  ["Why do the bars show a grey band at the tip?",
-    "Food composition data is not exact: lab analyses of the same food vary with breed, feed, season and processing. The band is an indicative allowance of about plus or minus 10%, not a measured confidence interval. To be sure a target is truly met, aim to get the whole band past the line."],
+  ["What does the protein composition score mean?",
+    "The composition score is the lowest essential amino acid ratio against the WHO/FAO/UNU adult pattern, using foods with available profiles. It describes proportions per gram of protein, not daily intake. It is not adjusted for digestibility and is not DIAAS or PDCAAS. A low score does not diagnose a deficiency. Daily intake percentages separately compare logged amounts with your scaled targets."],
+  ["How precise are the intake totals?",
+    "Food composition and portion estimates can vary. No measured confidence interval is available for daily totals, so the intake bars show no uncertainty band and we do not recommend an automatic 10% margin. Missing data is unknown, not zero."],
   ["What happens to my diary at midnight?",
     "The diary rolls to a fresh day automatically. Yesterday keeps its date, foods and note, and moves into your history; the diary holds a rolling 31 days, with the oldest dropping off as you keep logging. Each day also remembers the body weight and target it was logged against, so changing your weight today never rewrites last week."],
   ["Can I see trends or export my data?",
@@ -324,6 +324,7 @@ const out = template.replace("__BUILD_ID__", BUILD_ID)
   .replace("__INJECT_ACCOUNT_STORAGE__", () => fs.readFileSync(path.join(root, "lib", "account-storage.js"), "utf8"))
   .replace("__INJECT_INTAKE_TARGETS__", () => intakeTargets)
   .replace("__INJECT_USABILITY_UI__", () => fs.readFileSync(path.join(root, "usability-ui.js"), "utf8"))
+  .replace("__INJECT_RESULT_METHOD_UI__", () => fs.readFileSync(path.join(root, "result-method-ui.js"), "utf8"))
   .replace("__INJECT_INTAKE_UI__", () => fs.readFileSync(path.join(root, "intake-ui.js"), "utf8"))
   .replace("__INJECT_FAQ__", () => faqHTML);
 fs.mkdirSync(path.join(root, "dist"), { recursive: true });
