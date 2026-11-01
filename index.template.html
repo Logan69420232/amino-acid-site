@@ -1646,7 +1646,7 @@
     <div class="saved-meal-row" id="savedMealRow" hidden></div>
     <p class="v2-err" id="v2Err" hidden>Pick a food from the list first.</p>
     </div>
-    </dialog><div id="diarySummary"></div><div class="ux-diary-columns"><div class="ux-meals-column"><div class="meals-heading"><h2>Your meals</h2><span>One meal at a time.</span></div>
+    </dialog><div id="diarySummary"></div><div id="diaryWater"></div><div class="ux-diary-columns"><div class="ux-meals-column"><div class="meals-heading"><h2>Your meals</h2><span>One meal at a time.</span></div>
     <div class="v2-list" id="v2List"></div></div><aside id="diaryPriorities"></aside></div><div id="diarySuggestions"></div>
     <p class="v2-hint" id="v2Hint">Choose <b>Add food</b> to search <b id="v2Count"></b> foods and set your portion. Or explore the <a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</p>
     <div class="day-meta" id="dayMeta" hidden>
@@ -3043,6 +3043,7 @@ function collectSettings() {
   return {
     weight: store.getItem("aa_weight") || null, thrive: store.getItem("aa_thrive_g") || "",
     epaDhaGoalMg: store.getItem("aa_epa_dha_goal_mg") || "",
+    waterGoalMl: store.getItem("aa_water_goal_ml") || "",
     intake: getIntakeProfile(), intakeCompleted: store.getItem("aa_intake_completed") === "1",
     unit: store.getItem("aa_wunit") || null, diet: store.getItem("aa_diet") || null,
     meal: store.getItem("aa_meal") || null,
@@ -3067,6 +3068,7 @@ function applySettings(st) {
   [["aa_weight", st.weight], ["aa_thrive_g", st.thrive], ["aa_wunit", st.unit], ["aa_diet", st.diet], ["aa_meal", st.meal],
    ["aa_acct_type", st.atype], ["aa_acct_role", st.role]]
     .forEach(([k, v]) => { if (v != null) store.setItem(k, v); });
+  if (st.waterGoalMl != null) store.setItem("aa_water_goal_ml", Water.amount(st.waterGoalMl) || "");
   if (st.epaDhaGoalMg != null) store.setItem("aa_epa_dha_goal_mg", st.epaDhaGoalMg === "" ? "" : Nutrition.normaliseEpaDhaGoal(st.epaDhaGoalMg));
   if (+st.at) store.setItem("aa_settings_at", +st.at);
 }
@@ -3627,6 +3629,7 @@ function renderHistoryPage({focus = true} = {}) {
             <p>Carbs: ${x.carb===null?'unavailable':x.carb.toFixed(0)+' g'} · Fat: ${x.fat===null?'unavailable':x.fat.toFixed(0)+' g'}<br>Amino acid balance: ${x.balance===null?'unavailable':Math.round(x.balance*100)+'%'}</p>
             <ul>${x.d.entries.map(e=>`<li><span>${esc(e.name)}</span><span>${esc(quantityText(e))}</span></li>`).join("")}</ul>
           </details>` : '<p class="hist-stats">No food logged yet.</p>'}
+        ${Water.total(x.d)?`<p class="hist-water">Water: <strong>${Water.label(Water.total(x.d))}</strong></p>`:""}
         ${x.d.note ? `<p class="hist-note">${esc(x.d.note)}</p>` : ""}
       </article>`;
     }).join("")}</div>
@@ -4655,7 +4658,7 @@ window.addEventListener("popstate", () => {
     const log = loadLog();
     const cur = log.days[log.active];
     const shared = { date: todayISO(), note: "", entries: day.map(e => ({ name: e.name, g: e.g, meal: "other" })) };
-    if (!cur.entries.length && !cur.note) log.days[log.active] = shared;
+    if (!cur.entries.length && !cur.note && !Water.total(cur)) log.days[log.active] = shared;
     else { log.days.push(shared); log.active = log.days.length - 1; }
     saveLog(log);
     if (+params.get("w") > 0) { store.setItem("aa_weight", clamp(params.get("w"), 30, 200, 75)); bumpSettings(); }
@@ -4946,6 +4949,7 @@ window.addEventListener("popstate", () => {
     renderDayChrome();
     const day = loadDay();
     $("diarySummary").innerHTML=uiSummary(day);
+    renderWater();
     diaryPanels.bind($("diarySummary"));
     $("diarySummary").querySelector("[data-edit-targets]").onclick=openAccountPage;
     diaryPanels.capture($("diarySuggestions"));

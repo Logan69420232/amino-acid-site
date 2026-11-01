@@ -10,7 +10,7 @@ function harness(initial=[day('2026-10-14',false)]) {
   const chart={innerHTML:'',querySelector:()=>null,querySelectorAll:()=>[]};
   const page={innerHTML:'',querySelector:id=>id==='#histChart'?chart:element(id),querySelectorAll:()=>[]};
   const store={owner:'a',revision:0,setItem:()=>{}};
-  const context=vm.createContext({console,Set,Map,Date,store,DiaryUX:require('../lib/diary-ux'),Nutrition:require('../lib/nutrition'),foodByName:(name,e)=>e?.food||{name},authedUser:{id:'a'},_accountEpoch:1,_syncReadyOwner:null,_historySyncError:false,
+  const context=vm.createContext({console,Set,Map,Date,store,Water:require('../lib/water'),DiaryUX:require('../lib/diary-ux'),Nutrition:require('../lib/nutrition'),foodByName:(name,e)=>e?.food||{name},authedUser:{id:'a'},_accountEpoch:1,_syncReadyOwner:null,_historySyncError:false,
     document:{body:{dataset:{view:'history'}},getElementById:()=>page},window:{__v2Render:()=>{diaryRenders++;}},
     sbReady:()=>({from:()=>({select:()=>({eq:()=>({maybeSingle:()=>read})})})}),
     loadLog:()=>log,saveLog:value=>{log=value;},mergeLogs:(remote,local)=>Sync.merge(remote,local).log,applySettings:()=>{},schedulePush:()=>{},
