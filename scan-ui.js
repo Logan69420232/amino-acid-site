@@ -9,10 +9,23 @@
   function script(src,global){if(window[global])return Promise.resolve();if(scriptJobs.has(src))return scriptJobs.get(src);const job=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>{scriptJobs.delete(src);s.remove();reject(Error('Scanner could not load. Check your connection and try again.'));};document.head.appendChild(s);});scriptJobs.set(src,job);return job;}
   function frame(title){stop();dialog.innerHTML=`<header class="scan-head"><div><span class="scan-eyebrow">ADD TO ${escape(MEAL_LABEL[context.meal].toUpperCase())}</span><h2 id="scanTitle">${title}</h2></div><button type="button" id="scanClose" aria-label="Close scanner">×</button></header><div id="scanBody"></div><p id="scanStatus" role="status" aria-live="polite"></p>`;$('scanClose').onclick=()=>dialog.close();dialog.scrollTop=0;}
   function supplementSearch(){
-    frame('Find a supplement');
+    frame('Your supplements');
     $('scanBody').innerHTML='<button type="button" id="supplementScan" class="scan-primary supplement-scan-first">Scan a supplement label</button><p class="scan-hint">Or search for a nutrient and enter your dose.</p><label>Search supplements<input id="supplementQuery" type="search" placeholder="Try iron, vitamin C or magnesium" autocomplete="off"></label><div id="supplementResults" class="supplement-results"></div><p class="scan-hint">Generic nutrients, not branded products. For a blend or multivitamin, scan its label to record each ingredient.</p>';
+    const library=uxMySupplements();
+    const my=document.createElement('section');my.className='ux-my-supplements';my.innerHTML='<h3>My supplements</h3><p class="scan-hint">Reuse a product you have already logged.</p>'+library.slice(0,12).map((e,i)=>`<button type="button" class="quick-food" data-my-supplement="${i}"><span>${escape(e.name)}<small>${e.food.serving_g>1?'1 serving = '+e.food.serving_g+' ': 'Per '}${escape(e.food.doseUnit)} · ${e.food.ingredients.filter(r=>r.key).slice(0,2).map(r=>Nutrition.format(r.amount)+' '+escape(r.unit)+' '+escape(r.label)).join(' · ')}</small></span><span aria-hidden="true">＋</span></button>`).join('');
+    if(library.length){$('scanBody').prepend(my);my.querySelectorAll('[data-my-supplement]').forEach(b=>b.onclick=()=>repeatSupplement(library[+b.dataset.mySupplement]));}
     const render=()=>{const results=SupplementScan.search($('supplementQuery').value);$('supplementResults').innerHTML=results.length?results.map(d=>`<button type="button" data-supplement-key="${d.key}"><span>${escape(d.label)}</span><small>${d.doseUnit==='µg'?'mcg':d.doseUnit} <span aria-hidden="true">＋</span></small></button>`).join(''):'<p>No matching nutrient. Try another name or use Scan a supplement label above.</p>';$('supplementResults').querySelectorAll('[data-supplement-key]').forEach(b=>b.onclick=()=>supplementDose(b.dataset.supplementKey));};
     $('supplementQuery').oninput=render;render();$('supplementScan').onclick=()=>openMode('label');// Keep the phone keyboard closed until the user chooses to search.
+    $('scanClose').focus({preventScroll:true});
+  }
+  function repeatSupplement(entry){
+    const f=foodByName(entry.name,entry);frame(f.name);const t=epoch;
+    const asServings=f.serving_g>1&&!['ml','g'].includes(f.doseUnit),unit=asServings?'servings':f.doseUnit,divisor=asServings?f.serving_g:1;
+    $('scanBody').innerHTML=`<p class="scan-hint">${asServings?'1 serving = '+f.serving_g+' '+escape(f.doseUnit):'Your saved product'}</p><form id="repeatSupplementForm"><label>How many ${escape(unit)} did you take?<input id="repeatSupplementAmount" type="number" inputmode="decimal" min="0.001" max="${2000/divisor}" step="any" required value="${+(entry.g/divisor).toFixed(3)}"></label><div class="portion-shortcuts">${[0.5,1,2].map(n=>`<button type="button" data-qty="${n}">${n}</button>`).join('')}</div><p id="repeatSupplementSummary" class="scan-label-summary" aria-live="polite"></p><button type="submit" class="scan-primary">Add to Supplements</button><button type="button" id="repeatSupplementBack" class="linkish">Back to supplements</button></form>`;
+    const preview=()=>{$('repeatSupplementSummary').textContent=f.ingredients.filter(r=>r.key).map(r=>Nutrition.format(r.amount*Number($('repeatSupplementAmount').value)*divisor/f.serving_g)+' '+r.unit+' '+r.label).join(' · ')||'Amount recorded with your saved label.';};
+    $('repeatSupplementAmount').oninput=preview;dialog.querySelectorAll('[data-qty]').forEach(b=>b.onclick=()=>{$('repeatSupplementAmount').value=b.dataset.qty;preview();});preview();
+    $('repeatSupplementBack').onclick=supplementSearch;
+    $('repeatSupplementForm').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}const quantity=Number($('repeatSupplementAmount').value)*divisor;if(!Number.isFinite(quantity)||quantity<=0||quantity>2000)return;let added=false;uiMutateDay(()=>{added=addToDay(f.name,quantity,'supplements',undefined,f);},'Supplement added.');if(added){uxRememberSupplement(f,quantity);dialog.close();window.__v2Render?.();}};
     $('scanClose').focus({preventScroll:true});
   }
   function supplementDose(key){
@@ -23,12 +36,11 @@
     $('supplementUnit').value=d.doseUnit;
     const preview=()=>{$('supplementDoseSummary').textContent='';try{const f=SupplementScan.fromDose(key,$('supplementDose').value,$('supplementUnit').value,'dose-preview');$('supplementDoseSummary').textContent='Will add '+f.name+($('supplementUnit').value.startsWith('IU')?' = '+Nutrition.format(f.nutrients[key]/100)+' '+d.unit:'');}catch{}};
     $('supplementDoseForm').oninput=preview;$('supplementBack').onclick=supplementSearch;
-    $('supplementDoseForm').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}try{const f=SupplementScan.fromDose(key,$('supplementDose').value,$('supplementUnit').value,crypto.randomUUID());let added=false;uiMutateDay(()=>{added=addToDay(f.name,1,'supplements',undefined,f);},'Supplement added.');if(added){dialog.close();window.__v2Render?.();}}catch(e){status(e.message,true);}};
+    $('supplementDoseForm').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}try{const f=SupplementScan.fromDose(key,$('supplementDose').value,$('supplementUnit').value,crypto.randomUUID());let added=false;uiMutateDay(()=>{added=addToDay(f.name,1,'supplements',undefined,f);},'Supplement added.');if(added){uxRememberSupplement(f,1);dialog.close();window.__v2Render?.();}}catch(e){status(e.message,true);}};
     $('supplementDose').focus();
   }
   window.__openSupplementSearch=button=>{opener=button;context={owner:store.owner,date:activeLogDay().date,meal:'supplements',mode:'label'};if(!dialog.open)dialog.showModal();supplementSearch();};
   window.__openSupplementScan=button=>{opener=button;context={owner:store.owner,date:activeLogDay().date,meal:'supplements',mode:'label'};if(!dialog.open)dialog.showModal();openMode('label');};
-  document.getElementById('supplementSearchEntry').onclick=e=>window.__openSupplementSearch(e.currentTarget);
   function supplementReview(draft){
     draft={...draft,name:String(draft.name||'').trim()||SupplementScan.suggestName(draft.ingredients)};
     frame(draft.name||'Your supplement');const t=epoch,reviewState=SupplementScan.reviewState(draft);
@@ -67,7 +79,7 @@
     $('scanReview').addEventListener('invalid',e=>{if($('scanLabelDetails').contains(e.target))$('scanLabelDetails').open=true;},true);
     $('scanReview').oninput=preview;
     $('scanAgain').onclick=()=>openMode(context.mode);$('scanFoodInstead').onclick=()=>review({...FoodScan.parseLabel(draft.text||''),previewImage:draft.previewImage,weakRead:draft.weakRead,issues:draft.issues,forceFood:true});
-    $('scanReview').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}try{const d=read(),f=SupplementScan.makeFood(d,crypto.randomUUID()),quantity=SupplementScan.intakeQuantity(d.servingCount,d.doseUnit,$('scanPortion').value)?.unitsTaken;if(!Number.isFinite(quantity)||quantity<=0||quantity>2000)throw Error('Enter an amount above zero and no more than 2,000 label units.');let added=false;uiMutateDay(()=>{added=addToDay(f.name,quantity,context.meal,undefined,f);},'Supplement added.');if(added){dialog.close();window.__v2Render?.();}}catch(e){$('scanLabelDetails').open=true;status(e.message,true);}};
+    $('scanReview').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}try{const d=read(),f=SupplementScan.makeFood(d,crypto.randomUUID()),quantity=SupplementScan.intakeQuantity(d.servingCount,d.doseUnit,$('scanPortion').value)?.unitsTaken;if(!Number.isFinite(quantity)||quantity<=0||quantity>2000)throw Error('Enter an amount above zero and no more than 2,000 label units.');let added=false;uiMutateDay(()=>{added=addToDay(f.name,quantity,context.meal,undefined,f);},'Supplement added.');if(added){uxRememberSupplement(f,quantity);dialog.close();window.__v2Render?.();}}catch(e){$('scanLabelDetails').open=true;status(e.message,true);}};
     if($('scanCrop'))$('scanCrop').onclick=()=>cropLabel({...draft,...read()});
     $('scanClose').focus();
   }
@@ -91,7 +103,7 @@
     const preview=()=>{const b=$('scanBasis').value;$('scanWeightLabel').hidden=b==='100g';$('scanWeight').required=b!=='100g';try{const f=FoodScan.makeFood(read(),'preview-food');const g=+$('scanPortion').value;$('scanPortionSummary').textContent=g>0?`${Math.round(f.kcal*g/100)} kcal · ${(f.protein_g_per_100g*g/100).toFixed(1)} g protein in your portion`:'';}catch{$('scanPortionSummary').textContent='Complete the main nutrition values to see your portion.';}};
     $('scanReview').oninput=e=>{preview();};
     $('scanBasis').onchange=preview;preview();setupPackPicker(draft,preview);$('scanAgain').onclick=()=>openMode(context.mode);
-    $('scanReview').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}try{const f=FoodScan.makeFood(read(),crypto.randomUUID());const grams=Number($('scanPortion').value);if($('scanReview').dataset.packEstimate==='true')f.portionEstimate={packGrams:+$('packWeight').value,beforePercent:+$('packBefore').value,afterPercent:+$('packLeft').value};if(!Number.isFinite(grams)||grams<=0||grams>2000)throw Error('Enter a portion between 0.1 and 2,000 g.');let added=false;uiMutateDay(()=>{added=addToDay(f.name,grams,context.meal,undefined,f);},'Scanned food added.');if(added){dialog.close();window.__v2Render?.();}}catch(e){status(e.message,true);}};
+    $('scanReview').onsubmit=e=>{e.preventDefault();if(!valid(t)){dialog.close();return;}try{const f=FoodScan.makeFood(read(),crypto.randomUUID());const grams=Number($('scanPortion').value);if($('scanReview').dataset.packEstimate==='true')f.portionEstimate={packGrams:+$('packWeight').value,beforePercent:+$('packBefore').value,afterPercent:+$('packLeft').value};if(!Number.isFinite(grams)||grams<=0||grams>2000)throw Error('Enter a portion between 0.1 and 2,000 g.');let added=false;uiMutateDay(()=>{added=addToDay(f.name,grams,context.meal,undefined,f);},'Scanned food added.');if(added){uxRememberSupplement(f,1);dialog.close();window.__v2Render?.();}}catch(e){status(e.message,true);}};
     if($('scanRetake'))$('scanRetake').onclick=()=>openMode('label');
     if($('scanCrop'))$('scanCrop').onclick=()=>cropLabel({...draft,...read()});
     $('scanName').focus();

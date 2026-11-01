@@ -10,7 +10,8 @@ function uiSetSaveState(text,kind='local') {
 function uiSummary(day) {
   const stamp=activeLogDay(),saved=stamp.date!==todayISO()&&stamp.w,weight=saved?stamp.w:getWeight();
   const totals=mealItemsIntake(day),target=saved&&stamp.t?stamp.t:getThriveG(weight),left=Math.max(0,target-totals.prot);
-  return `<div class="daily-overview"><div class="daily-overview-head"><span>YOUR DAY, AT A GLANCE</span><span data-save-state data-state="${uiSaveState.kind}" role="status">${uiEsc(uiSaveState.text)}</span></div><div class="daily-overview-grid"><div class="daily-protein"><span>Protein</span><strong>${macroDisplay(totals,"prot")} <small>/ ${target.toFixed(0)} g</small></strong><div class="daily-track"><span style="width:${Math.min(100,totals.prot/target*100)}%"></span></div><span class="daily-remaining">${left?left.toFixed(0)+' g to your daily goal':'Daily protein goal reached ✓'}</span></div><div class="daily-other"><div><span>Calories</span><strong>${macroDisplay(totals,"kcal")} <small>kcal</small></strong></div><div><span>Carbs</span><strong>${macroDisplay(totals,"carb")} <small>g</small></strong></div><div><span>Fat</span><strong>${macroDisplay(totals,"fat")} <small>g</small></strong></div></div></div><div class="daily-overview-foot"><span>${totals.miss?'Partial totals: some foods or supplements have unlisted macros.':'Totals from your logged food.'}</span><button type="button" class="linkish" data-edit-targets>Edit targets</button></div>${uiProteinMethod(day,weight,target,!!saved)}</div>`;
+  const calories=IntakeTargets.calorieTarget(weight,getIntakeProfile());
+  return `<div class="ux-overview"><div class="ux-overview-top"><span class="section-kicker">YOUR DAY AT A GLANCE</span><span data-save-state data-state="${uiSaveState.kind}" role="status">${uiEsc(uiSaveState.text)}</span></div><div class="ux-macros">${[['kcal','Calories','kcal',calories],['prot','Protein','g',target],['carb','Carbs','g',null],['fat','Fat','g',null]].map(([k,l,u,t])=>`<div class="ux-macro ${k==='prot'?'primary':''}"><span>${l}</span><strong>${macroDisplay(totals,k)} <small>${u}</small></strong>${t?`<div class="ux-meter"><span style="width:${Math.min(100,totals[k]/t*100)}%"></span></div><small>${Math.round(totals[k])>=t?'Goal reached':'of '+Math.round(t).toLocaleString()+' '+u}</small>`:'<small>Logged</small>'}</div>`).join('')}</div><div class="ux-summary-foot"><span>${totals.miss?'Partial totals · some values unavailable':'From your logged food & supplements'}</span><button type="button" class="linkish" data-edit-targets>Edit targets</button></div>${uiProteinMethod(day,weight,target,!!saved)}</div>`;
 }
 function uiAvoidedFoods() {
   try { const value=JSON.parse(store.getItem('aa_avoided_foods')||'[]'); return Array.isArray(value)?value.filter(x=>typeof x==='string'):[]; }
@@ -34,6 +35,8 @@ function uiToast(message,keepUndo=false) {
       log.days[i]=undo.before;saveLog(log);uiUndoState=null;window.__v2Render();uiToast('Change undone.');
     };
   }
+  const picker=document.getElementById("foodPickerDialog");
+  (picker?.open?document.getElementById("mealEditor"):document.getElementById("siteNotices")||document.body).appendChild(toast);
   toast.hidden=false;toast.querySelector('[role="status"]').textContent=message;toast.querySelector('[data-undo]').hidden=!uiUndoState;
 }
 function uiMutateDay(action,message) {

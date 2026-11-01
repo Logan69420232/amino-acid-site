@@ -10,7 +10,7 @@ function harness(initial=[day('2026-10-14',false)]) {
   const chart={innerHTML:'',querySelector:()=>null,querySelectorAll:()=>[]};
   const page={innerHTML:'',querySelector:id=>id==='#histChart'?chart:element(id),querySelectorAll:()=>[]};
   const store={owner:'a',revision:0,setItem:()=>{}};
-  const context=vm.createContext({console,Set,Map,Date,store,Nutrition:require('../lib/nutrition'),foodByName:(name,e)=>e?.food||{name},authedUser:{id:'a'},_accountEpoch:1,_syncReadyOwner:null,_historySyncError:false,
+  const context=vm.createContext({console,Set,Map,Date,store,DiaryUX:require('../lib/diary-ux'),Nutrition:require('../lib/nutrition'),foodByName:(name,e)=>e?.food||{name},authedUser:{id:'a'},_accountEpoch:1,_syncReadyOwner:null,_historySyncError:false,
     document:{body:{dataset:{view:'history'}},getElementById:()=>page},window:{__v2Render:()=>{diaryRenders++;}},
     sbReady:()=>({from:()=>({select:()=>({eq:()=>({maybeSingle:()=>read})})})}),
     loadLog:()=>log,saveLog:value=>{log=value;},mergeLogs:(remote,local)=>Sync.merge(remote,local).log,applySettings:()=>{},schedulePush:()=>{},
@@ -23,6 +23,7 @@ function harness(initial=[day('2026-10-14',false)]) {
     ['async function syncOnLogin(', 'function renderAuthSlot('],
     ['let uiHistoryMonth=', '/* ================= saved meals:']
   ]) vm.runInContext(source.slice(source.indexOf(start),source.indexOf(end,source.indexOf(start))),context);
+  vm.runInContext('uiHistoryPeriod="all"',context);
   return {context,page,chart,handlers,resolveRead,get log(){return log;},get focusCount(){return focusCount;},get diaryRenders(){return diaryRenders;}};
 }
 test('delayed account load refreshes Progress from placeholder to seven logged days without moving focus',async()=>{
@@ -36,7 +37,7 @@ test('delayed account load refreshes Progress from placeholder to seven logged d
   h.resolveRead({data:{data:remote},error:null});await syncing;
   assert.match(h.page.innerHTML,/7 logged days across 1 month/);
   assert.match(h.page.innerHTML,/<dt>Days logged<\/dt><dd>7<\/dd>/);
-  assert.match(h.page.innerHTML,/7 of 7 days logged/); // A later empty placeholder cannot move the latest logged week.
+  assert.match(h.page.innerHTML,/7 logged days/); // A later empty placeholder cannot move the latest logged week.
   assert.doesNotMatch(h.page.innerHTML,/Loading saved days|Your progress starts with a meal/);
   assert.equal(h.focusCount,beforeFocus);assert.equal(h.diaryRenders,1);
   assert.equal(JSON.stringify(remote),original);
@@ -55,9 +56,9 @@ test('day counts exclude placeholders, count months independently and explain em
   h.context._syncReadyOwner='a';h.context.renderHistoryPage();
   assert.match(h.page.innerHTML,/7 logged days across 2 months/);
   assert.match(h.page.innerHTML,/<option value="2026-10" selected>/);
-  vm.runInContext('uiHistoryMonth="2026-11"',h.context);h.context.renderHistoryPage();
-  assert.match(h.page.innerHTML,/No food logged in this month/);
-  assert.match(h.page.innerHTML,/7 logged days are available in the other months/);
+  vm.runInContext('uiHistoryMonth="2026-11";uiHistoryPeriod="month"',h.context);h.context.renderHistoryPage();
+  assert.match(h.page.innerHTML,/No entries in this period/);
+  assert.match(h.page.innerHTML,/7 logged days are available in All time/);
   assert.equal(h.log.days.length,8);
   const empty=harness();empty.context._syncReadyOwner='a';empty.context.renderHistoryPage();
   assert.match(empty.page.innerHTML,/0 logged days across 0 months/);

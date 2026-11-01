@@ -1418,7 +1418,7 @@
     .meal-plus { padding-inline: 10px; }
   }
 </style>
-<link rel="stylesheet" href="/assets/scanner.css"><link rel="stylesheet" href="/assets/usability.css"><link rel="stylesheet" href="/assets/home.css">
+<link rel="stylesheet" href="/assets/scanner.css"><link rel="stylesheet" href="/assets/usability.css"><link rel="stylesheet" href="/assets/home.css"><link rel="stylesheet" href="/assets/ux.css">
 
 <div class="tip" id="tip" hidden role="status"></div>
 <aside id="appSidebar" class="app-sidebar" hidden aria-label="Main navigation">
@@ -1626,29 +1626,28 @@
   </div>
   <section class="v2-entry">
     <a class="linkish diary-back" href="/" id="diaryBack">← Back to homepage</a>
-    <h2 class="v2-h diary-title">Your food diary</h2>
+    <h2 class="v2-h diary-title">Food diary</h2>
     <p class="v2-p diary-intro">Log your meals and see how they add up against your daily targets.</p>
     <div class="day-nav" id="dayTabs" role="group" aria-label="Diary day navigation"></div>
-    <div class="meal-editor" id="mealEditor" hidden>
-    <div class="meal-editor-head"><span id="mealEditorLabel">Add food</span><button type="button" class="meal-close" id="mealEditorClose">Done</button></div>
-    <button type="button" id="supplementSearchEntry" class="linkish">Search supplements</button>
+    <dialog id="foodPickerDialog" class="ux-food-dialog" aria-labelledby="mealEditorLabel"><div class="meal-editor" id="mealEditor" hidden>
+    <div class="meal-editor-head"><h2 id="mealEditorLabel">Add food</h2><button type="button" class="meal-close" id="mealEditorClose">Done</button></div>
     <div class="scan-entry-actions"><button type="button" data-food-scan="barcode">▥ Scan barcode</button><button type="button" data-food-scan="label">▤ Scan label</button></div>
-    <div class="food-picker-tabs" id="foodPickerTabs" role="group" aria-label="Choose how to add food"></div><div id="quickFoodPanel"></div>
     <form class="v2-form" id="v2Form" autocomplete="off">
-      <div class="meal-search-head"><label for="v2Food">Find a food</label><label class="nutrition-source-select">Source <select id="diaryFoodSource"><option value="all">All foods</option><option value="USDA">USDA foods</option><option value="CoFID">UK foods · CoFID</option></select></label></div>
+      <div class="meal-search-head"><label for="v2Food">Search foods</label><details class="ux-source-filter"><summary>Filter</summary><label class="nutrition-source-select">Data source <select id="diaryFoodSource"><option value="all">All foods</option><option value="USDA">USDA foods</option><option value="CoFID">UK foods · CoFID</option></select></label></details></div>
       <div class="v2-search"><input id="v2Food" placeholder="Search foods, e.g. eggs or oats" role="combobox" aria-label="Food to add" aria-autocomplete="list" aria-expanded="false" aria-controls="v2DD" aria-describedby="mealSearchHint" /><div class="v2-dd" id="v2DD" role="listbox" hidden></div></div>
       <p class="meal-search-hint" id="mealSearchHint" role="status">Choose a food, then set your portion.</p>
       <div class="meal-portion" id="mealPortion" hidden>
         <div class="meal-portion-field"><label for="v2Grams">Your portion</label><div class="v2-g"><input id="v2Grams" type="number" min="0.1" max="2000" step="any" value="100" required aria-label="Portion amount" /><select id="v2Unit" aria-label="Portion unit"><option value="">g</option></select></div><button type="button" class="linkish" id="mealPackPortion">% of pack</button></div>
-        <div class="meal-portion-preview" id="mealPortionPreview" aria-live="polite"></div>
+        <div class="meal-portion-preview" id="mealPortionPreview" aria-live="polite"></div><div id="mealPortionShortcuts" class="portion-shortcuts" role="group" aria-label="Quick portion amounts"></div>
         <button type="submit" class="v2-add" id="mealAddConfirm" disabled>Add to Breakfast</button>
       </div>
     </form>
+    <div class="food-picker-tabs" id="foodPickerTabs" role="group" aria-label="Choose how to add food"></div><div id="quickFoodPanel"></div>
     <div class="saved-meal-row" id="savedMealRow" hidden></div>
     <p class="v2-err" id="v2Err" hidden>Pick a food from the list first.</p>
     </div>
-    <div id="diarySummary"></div><div class="meals-heading"><h2>Your meals</h2><span>One meal at a time.</span></div>
-    <div class="v2-list" id="v2List"></div><div id="diarySuggestions"></div>
+    </dialog><div id="diarySummary"></div><div class="ux-diary-columns"><div class="ux-meals-column"><div class="meals-heading"><h2>Your meals</h2><span>One meal at a time.</span></div>
+    <div class="v2-list" id="v2List"></div></div><aside id="diaryPriorities"></aside></div><div id="diarySuggestions"></div>
     <p class="v2-hint" id="v2Hint">Choose <b>Add food</b> to search <b id="v2Count"></b> foods and set your portion. Or explore the <a class="linkish" href="/database" id="v2ToAtlas">amino acid database</a>.</p>
     <div class="day-meta" id="dayMeta" hidden>
       <p id="dayFull" class="intake-help" hidden>All saved days remain available in Progress.</p>
@@ -2192,11 +2191,30 @@ function portionUnits(f, storedUnit) {
   if (f.supplement) return []; // quantity is already in its declared label unit
   if (f.scanVersion) return [["servings", f.serving_g || 100]];
   const exact=(f.portions||[]).map(([id,g,label])=>[id,g,label]);
-  const legacy=ITEM_UNITS.find(([re])=>re.test(f.name))?.[1]||[];
+  let legacy=ITEM_UNITS.find(([re])=>re.test(f.name))?.[1]||[];
+  // Keep old conversions for saved entries, but do not offer bread slices for
+  // breaded foods, bagels, crumbs or dishes merely containing bread.
+  if(legacy[0]?.[0]==='slices' && legacy[0][1]===40 &&
+    (!/\b(bread|toast)\b/i.test(f.name)||/crumb|pudding|stuffing|sandwich|french toast/i.test(f.name)) && storedUnit!=='slices')legacy=[];
   return exact.length ? [...exact,...legacy.filter(u=>u[0]===storedUnit)] : legacy;
 }
+function preferredPortionUnit(f) {
+  const units = portionUnits(f);
+  // Prefer a familiar unit, using the food's source weight where available.
+  // Never pick a whole package or loaf just because it is first in the source.
+  const label=u=>u[2]||u[0];
+  if(/^(?:bananas?|apples?|oranges?|pears?|peaches?|kiwi|potato|sweet potato)/i.test(f.name)&&!/bread|juice|powder|dehydrated|dried|chips|salad/i.test(f.name)) {
+    const item=units.find(u=>/^medium\b/i.test(label(u)))||units.find(u=>/banana|apple|orange|pear|potato/i.test(label(u)));if(item)return item;
+  }
+  if(/^(?:whole )?eggs?\b/i.test(f.name)){const egg=units.find(u=>/^large\b/i.test(label(u)))||units.find(u=>/egg/i.test(label(u)));if(egg)return egg;}
+  const familiar = /\b(slice|egg|tablespoon|tbsp|teaspoon|tsp|cup|scoop|pot|glass|rasher|banana|apple|bagel|tortilla|medium potato)s?\b/i;
+  return units.find(u => familiar.test(u[2] || u[0])) || null;
+}
 function quantityUnit(f) { return f?.supplement ? f.doseUnit : 'g'; }
-function quantityText(e) { return Nutrition.format(e.g)+' '+quantityUnit(foodByName(e.name,e)); }
+function quantityText(e) {
+  const f=foodByName(e.name,e),u=e.unit&&portionUnits(f,e.unit).find(u=>u[0]===e.unit);
+  return u ? Nutrition.format(e.g/u[1])+' '+(u[2]||u[0])+' (≈ '+Nutrition.format(e.g)+' g)' : Nutrition.format(e.g)+' '+quantityUnit(f);
+}
 function supplementIngredients(f,quantity) {
   if(!f?.supplement)return '';
   return '<details class="supplement-ingredients"><summary>Label ingredients</summary><ul>'+f.ingredients.map(r=>'<li><span>'+uiEsc(r.label)+(r.key?'':' <small>label only</small>')+'</span><strong>'+Nutrition.format(r.amount*quantity/f.serving_g)+' '+uiEsc(r.unit)+'</strong></li>').join('')+'</ul></details>';
@@ -2409,6 +2427,7 @@ const browserStore = (() => {
 const store = AccountStorage.create(browserStore);
 const diaryPanels = DiaryPanels.create(browserStore);
 __INJECT_USABILITY_UI__
+__INJECT_DIARY_UX__
 __INJECT_RESULT_METHOD_UI__
 __INJECT_EVIDENCE_UI__
 __INJECT_INTAKE_UI__
@@ -2659,7 +2678,7 @@ function renderFoodComparison(foods) {
     return `<div class="cmp-col">
       ${renderBloom(f, { mini: true })}
       <h3>${f.name}</h3>
-      <div class="meta">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · leucine ${m.leu.toFixed(1)} g · score <b style="color:${complete ? "var(--c-bcaa)" : "var(--c-limit)"}">${Math.round(m.score * 100)}%</b></div>
+      <div class="meta">${f.protein_g_per_100g==null?"—":f.protein_g_per_100g.toFixed(0)} g protein /100 g · leucine ${m.leu.toFixed(1)} g · score <b style="color:${complete ? "var(--c-bcaa)" : "var(--c-limit)"}">${Math.round(m.score * 100)}%</b></div>
       ${cov}
     </div>`;
   }).join("");
@@ -2771,7 +2790,7 @@ function attachFoodTypeahead(wrap) {
     idx = 0;
     dd.innerHTML = items.map((f, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${i === 0}">
       <span><span class="nm">${f.name}</span>${stateTagHTML(f)}${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
-      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${CAT_LABEL[f.category] || ""}${practicalPortions(f).length ? ` · ${practicalPortions(f)[0][0]} ≈ ${practicalPortions(f)[0][1]} g` : ""}</span></button>`).join("");
+      <span class="sub">${f.protein_g_per_100g==null?"—":f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${CAT_LABEL[f.category] || ""}${practicalPortions(f).length ? ` · ${practicalPortions(f)[0][0]} ≈ ${practicalPortions(f)[0][1]} g` : ""}</span></button>`).join("");
     dd.hidden = false;
     dd.querySelectorAll("button").forEach(b => b.addEventListener("mousedown", ev => { ev.preventDefault(); pick(items[+b.dataset.i]); }));
   };
@@ -2961,7 +2980,7 @@ function navigateApp(act) {
     btn.setAttribute("aria-label", desktopApp ? "Expand navigation" : "Menu");
     const active = document.body.dataset.view === "examples" ? "examples" : document.body.dataset.view === "compare" ? "comparefoods" : document.body.dataset.view === "account" ? "account" : document.body.dataset.view === "atlas" ? "atlas" : document.body.dataset.view === "history" ? "history" : document.body.dataset.view === "meals" ? "meals" : document.body.dataset.view === "faq" ? "faq" : "diary";
     for (const nav of [sidebar, mobileNav, more]) nav.querySelectorAll("[data-act], [data-section]").forEach(b => { if((b.dataset.act || b.dataset.section) === (b.dataset.section === "atlas" && active === "comparefoods" ? "atlas" : active)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
-    moreToggle.classList.toggle("is-current", ["atlas", "comparefoods", "history", "faq"].includes(active));
+    moreToggle.classList.toggle("is-current", ["atlas", "comparefoods", "account", "examples", "faq"].includes(active));
   }
   pop.id = "mobileMenu";
   btn.addEventListener("click", e => {
@@ -3539,7 +3558,7 @@ function historyCSV(chrono) {
   });
   return lines.join("\n");
 }
-let uiHistoryMonth="";
+let uiHistoryMonth="", uiHistoryPeriod="7", uiHistoryFoodOnly=false;
 function renderHistoryPage({focus = true} = {}) {
   const page = document.getElementById("historyPage");
   const log = loadLog();
@@ -3558,7 +3577,10 @@ function renderHistoryPage({focus = true} = {}) {
   const countLabel=`${allLogged.length} logged ${allLogged.length===1?'day':'days'} across ${loggedMonths.size} ${loggedMonths.size===1?'month':'months'}`;
   const months=[...new Set(allDays.map(x=>x.d.date.slice(0,7)))].sort().reverse();
   if(!months.includes(uiHistoryMonth))uiHistoryMonth=latestLoggedMonth||months[0]||todayISO().slice(0,7);
-  const days=allDays.filter(x=>x.d.date.startsWith(uiHistoryMonth));
+  const selection=DiaryUX.range(log.days,{period:uiHistoryPeriod,month:uiHistoryMonth,end:todayISO(),foodOnly:uiHistoryFoodOnly,lookup:foodByName});
+  const days=selection.days.map(x=>({...x,...dayIntake(x.d)}));
+  const periodLabel=uiHistoryPeriod==='all'?'All saved dates':shortDate(selection.start)+' – '+fmt(selection.end);
+  const filterLabel=uiHistoryFoodOnly?'Food only':'Food + supplements';
   const logged = days.filter(x => x.d.entries.length);
   const chrono = days.slice().sort((a, b) => a.d.date.localeCompare(b.d.date));
   const chartDays = chrono.filter(x => x.d.entries.length);
@@ -3577,7 +3599,7 @@ function renderHistoryPage({focus = true} = {}) {
       <div><h1 id="historyTitle" tabindex="-1">Progress</h1><p class="sub">Your diary over time. Every saved month stays available.</p></div>
       ${logged.length ? `<button type="button" class="history-export" id="histCsv" aria-label="Download CSV" title="Download CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/></svg><span class="history-export-text">Download CSV</span></button>` : ""}
     </div>
-    <div class="history-month"><label for="historyMonth">Month</label><select id="historyMonth">${months.map(m=>`<option value="${m}"${m===uiHistoryMonth?' selected':''}>${new Date(m+'-02T12:00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'})}</option>`).join('')}</select><span>${syncPending ? "Loading saved days…" : countLabel}</span></div>
+    <div class="ux-history-filters"><label>Period<select id="historyPeriod">${[['7','Last 7 days'],['30','Last 30 days'],['month','Choose month'],['all','All time']].map(([k,l])=>`<option value="${k}"${uiHistoryPeriod===k?' selected':''}>${l}</option>`).join('')}</select></label><label ${uiHistoryPeriod==='month'?'':'hidden'}>Month<select id="historyMonth">${months.map(m=>`<option value="${m}"${m===uiHistoryMonth?' selected':''}>${new Date(m+'-02T12:00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'})}</option>`).join('')}</select></label><label>Include<select id="historyFoodFilter"><option value="all">Food + supplements</option><option value="food"${uiHistoryFoodOnly?' selected':''}>Food only</option></select></label></div><p class="ux-period-label">${esc(periodLabel)} · ${filterLabel} · ${logged.length} logged ${logged.length===1?'day':'days'}</p><p class="ux-history-total">${syncPending?"Loading saved days…":"All saved history: "+countLabel}</p>
     ${syncPending?'<p class="history-sync-status" role="status">Loading your saved diary from your account…</p>':syncFailed?'<p class="history-sync-status" role="status">Could not load your latest diary. Only days available on this device are shown. <button type="button" class="linkish" id="historyRetrySync">Retry sync</button></p>':''}
     ${logged.length ? `
     <dl class="history-overview" aria-label="Your overview">
@@ -3585,12 +3607,12 @@ function renderHistoryPage({focus = true} = {}) {
       <div class="history-stat"><dt>Days logged</dt><dd>${logged.length}</dd><p>with food entries</p></div>
       <div class="history-stat"><dt>Targets met</dt><dd>${hit}<small> / ${logged.length}</small></dd><p>daily protein goal</p></div>
     </dl>
-    <p class="weekly-insight"><b>Your latest week in this month</b><span>${Math.round(weekAverage)} g protein per logged day · ${recentWeek.length} of 7 days logged · week ending ${esc(fmt(weekEnd))}</span></p>
+
     <section class="history-trends" aria-labelledby="histTrendsTitle">
       <div class="history-section-head"><div><h2 id="histTrendsTitle">Your trends</h2><p>${chartDays.length} logged ${chartDays.length===1?'day':'days'} · oldest to newest</p></div>
         <label class="history-metric"><span>Metric</span><select id="histMetric">${metrics.map(([k,l])=>`<option value="${k}"${_histMetric===k?' selected':''}>${l}</option>`).join("")}</select></label>
       </div>${chartDays.length>7?'<p class="hist-chart-note">All logged days are included. Swipe or scroll sideways to see earlier dates.</p>':''}<div id="histChart"></div>
-    </section>` : syncPending||syncFailed ? '' : allLogged.length ? `<div class="history-empty"><h2>No food logged in this month</h2><p>Your ${allLogged.length} logged ${allLogged.length===1?'day is':'days are'} available in the other months above.</p><button type="button" class="history-export" id="historyLatestMonth">View latest logged month</button></div>` : `<div class="history-empty"><h2>Your progress starts with a meal</h2><p>Add food to your diary to see your daily totals and trends here.</p><button type="button" class="history-export" id="historyStart">Open food diary</button></div>`}
+    </section>` : syncPending||syncFailed ? '' : allLogged.length ? `<div class="history-empty"><h2>No entries in this period</h2><p>Your ${allLogged.length} logged ${allLogged.length===1?'day is':'days are'} available in All time.</p><button type="button" class="history-export" id="historyLatestMonth">View all saved days</button></div>` : `<div class="history-empty"><h2>Your progress starts with a meal</h2><p>Add food to your diary to see your daily totals and trends here.</p><button type="button" class="history-export" id="historyStart">Open food diary</button></div>`}
     <div class="history-section-head"><div><h2>Your days</h2><p>Newest first · open a day to view or edit</p></div></div>
     <div class="history-day-grid">${newestFirst.map(x => {
       const percent = Math.round(x.prot / dayTarget(x) * 100);
@@ -3609,10 +3631,12 @@ function renderHistoryPage({focus = true} = {}) {
       </article>`;
     }).join("")}</div>
     ${logged.length ? evidenceExportControls() : ""}
-    ${logged.length ? `<details class="history-export-notes"><summary>About your data &amp; CSV download</summary><p>The overview uses days with food entries. Each day is compared with its saved protein target, or your current target if none was saved. Trends show one point per logged day; gaps between dates are not empty days.</p><p>CSV includes all saved days, with each food and day total, with macros, amino acids, vitamins and minerals. Units appear in the column headings (ug = micrograms). Status columns flag partial, trace or unknown nutrient amounts; blank amounts mean no numeric data, not zero.</p></details>` : ""}`;
+    ${logged.length ? `<details class="history-export-notes"><summary>About your data &amp; CSV download</summary><p>The overview uses days with food entries. Each day is compared with its saved protein target, or your current target if none was saved. Trends show one point per logged day; gaps between dates are not empty days.</p><p>CSV includes the selected period and food filter, with each food and day total, with macros, amino acids, vitamins and minerals. Units appear in the column headings (ug = micrograms). Status columns flag partial, trace or unknown nutrient amounts; blank amounts mean no numeric data, not zero.</p></details>` : ""}`;
+  page.querySelector("#historyPeriod").onchange=e=>{uiHistoryPeriod=e.target.value;renderHistoryPage({focus:false});};
+  page.querySelector("#historyFoodFilter").onchange=e=>{uiHistoryFoodOnly=e.target.value==='food';renderHistoryPage({focus:false});};
   page.querySelector("#historyMonth").onchange=e=>{uiHistoryMonth=e.target.value;renderHistoryPage();};
   page.querySelector('#historyRetrySync')?.addEventListener('click',()=>{if(authedUser) syncOnLogin(authedUser.id,_accountEpoch);});
-  page.querySelector('#historyLatestMonth')?.addEventListener('click',()=>{uiHistoryMonth=latestLoggedMonth;renderHistoryPage();});
+  page.querySelector('#historyLatestMonth')?.addEventListener('click',()=>{uiHistoryPeriod="all";renderHistoryPage();});
   function openDay(index) {
     if (!overlay.hidden) closeDetail(false);
     const l = loadLog(); l.active = index; saveLog(l);
@@ -3662,8 +3686,8 @@ function renderHistoryPage({focus = true} = {}) {
     renderChart();
     page.querySelector('#histMetric').addEventListener('change',e=>{_histMetric=e.target.value;renderChart();});
   }
-  bindEvidenceExports(page,()=>evidenceDiarySnapshot(allDays.map(x=>x.d)),'aminodata-diary-'+todayISO());
-  page.querySelector('#histCsv')?.addEventListener('click',()=>downloadCSV('aminodata-diary-'+todayISO()+'.csv',historyCSV(allDays)));
+  bindEvidenceExports(page,()=>evidenceDiarySnapshot(days.map(x=>x.d)),'aminodata-diary-'+todayISO());
+  page.querySelector('#histCsv')?.addEventListener('click',()=>downloadCSV('aminodata-diary-'+todayISO()+'.csv',historyCSV(days)));
   if(focus) page.querySelector('#historyTitle').focus();
 }
 
@@ -3826,7 +3850,7 @@ function renderMealsPage({ preserve = false, openIndex = null, removedIndex = nu
         const hits = rankFoods(q, 8, DIARY_FOODS);
         if (!hits.length) { dd.hidden = false; dd.innerHTML = '<span class="sm-hint">No matches.</span>'; return; }
         dd.hidden = false;
-        dd.innerHTML = hits.map(f => `<button type="button" data-name="${esc(f.name)}">${esc(f.name)}<small>${f.protein_g_per_100g.toFixed(0)} g protein /100 g${practicalPortions(f).length ? ` · ${practicalPortions(f)[0][0]} ≈ ${practicalPortions(f)[0][1]} g` : ""}</small></button>`).join("");
+        dd.innerHTML = hits.map(f => `<button type="button" data-name="${esc(f.name)}">${esc(f.name)}<small>${f.protein_g_per_100g==null?"—":f.protein_g_per_100g.toFixed(0)} g protein /100 g${practicalPortions(f).length ? ` · ${practicalPortions(f)[0][0]} ≈ ${practicalPortions(f)[0][1]} g` : ""}</small></button>`).join("");
         dd.querySelectorAll("button").forEach(x => x.addEventListener("click", () => {
           const f = foodByName(x.dataset.name);
           if (!f) return;
@@ -3928,7 +3952,7 @@ function applyAccountSession(session) {
     _lastPushed = "";
     _syncReadyOwner = null;
     _historySyncError = false;
-    uiHistoryMonth = "";
+    uiHistoryMonth = ""; uiHistoryPeriod="7"; uiHistoryFoodOnly=false;
     document.getElementById("historyPage").innerHTML = "";
     intakeSyncUser = null;
     uiResetAccountState();
@@ -4517,12 +4541,14 @@ window.addEventListener("popstate", () => {
   const short = label => label.replace("Methionine + Cysteine", "Met + Cys").replace("Phenylalanine + Tyrosine", "Phe + Tyr");
   const clamp = (v, lo, hi, d) => { v = +v; return v > 0 ? Math.max(lo, Math.min(hi, v)) : d; };
   let last = null, sharedNotice = false, lastSugg = [], recommendationFocus = "";
-  const editor = $("mealEditor");
+  const editor = $("mealEditor"), pickerDialog = $("foodPickerDialog");
+  let draftMeal=null;
+  const expandedEntries=new Set();
   const expandedMeals = new Map();
   let editingMeal = null, savingMeal = null, pickerMode="recent";
   window.__v2ResetAccount = () => {
     editingMeal = null; savingMeal = null; sharedNotice = false; last = null; lastSugg = []; recommendationFocus = "";
-    expandedMeals.clear(); hideDD(); clearFoodSelection(); food.value = ""; grams.value = "100";
+    expandedMeals.clear(); expandedEntries.clear(); draftMeal=null; pickerDialog.close(); hideDD(); clearFoodSelection(); food.value = ""; grams.value = "100";
     $("diaryFoodSource").value = "all";
     $("dayMeta").hidden = true;
     currentMeal = store.getItem("aa_meal") || "breakfast";
@@ -4531,16 +4557,16 @@ window.addEventListener("popstate", () => {
   const html = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   window.__v2RevealMeal = m => expandedMeals.set(mealKey(m), true);
   function openMeal(m) {
-    if (editingMeal !== m) { clearFoodSelection(); food.value = ""; }
-    currentMeal = m; store.setItem("aa_meal", m); editingMeal = m;
-    expandedMeals.set(mealKey(m), true); hideDD(); err.hidden = true;
-    pickerMode="recent";render();
+    if(draftMeal!==m){clearFoodSelection();food.value="";pickerMode="recent";}
+    draftMeal=m; currentMeal=m;store.setItem("aa_meal",m);editingMeal=m;
+    expandedMeals.set(mealKey(m),true);err.hidden=true;render();
+    if(!pickerDialog.open)pickerDialog.showModal();
+    $("mealEditorClose").focus({preventScroll:true});
   }
-  window.__v2OpenMeal = openMeal;
-  $("mealEditorClose").addEventListener("click", () => {
-    const m = editingMeal; editingMeal = null; hideDD(); render();
-    list.querySelector(`[data-add-meal="${m}"]`).focus();
-  });
+  window.__v2OpenMeal=openMeal;
+  function closePicker(){const m=editingMeal;editingMeal=null;pickerDialog.close();const toast=$("diaryToast");if(toast)$("siteNotices").appendChild(toast);hideDD();list.querySelector(`[data-add-meal="${m}"]`)?.focus();}
+  $("mealEditorClose").onclick=closePicker;
+  pickerDialog.addEventListener('cancel',e=>{e.preventDefault();closePicker();});
   /* A searchable picker re-adds a whole saved meal to the meal being edited;
      it stays usable at thirty meals where a row of chips would not. */
   function renderSavedMealRow() {
@@ -4594,18 +4620,21 @@ window.addEventListener("popstate", () => {
 
   function renderQuickPicker(){
     const tabs=$("foodPickerTabs"),panel=$("quickFoodPanel");
-    tabs.innerHTML=['recent','saved','search'].map(k=>`<button type="button" data-picker="${k}" aria-pressed="${pickerMode===k}">${{recent:'Recent foods',saved:'Saved meals',search:'Search foods'}[k]}</button>`).join('');
-    tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{pickerMode=b.dataset.picker;renderQuickPicker();if(pickerMode==='search')food.focus();});
-    $("v2Form").hidden=pickerMode!=='search';$("savedMealRow").hidden=true;panel.hidden=pickerMode==='search';
-    if(pickerMode==='recent'){
-      const seen=new Set(),recent=[];
-      loadLog().days.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(d=>d.entries.slice().reverse().forEach(e=>{if(!seen.has(e.food?.scanId||e.name)){seen.add(e.food?.scanId||e.name);recent.push(e);}}));
-      panel.innerHTML=recent.length?'<p class="picker-help">Choose a food, then check your portion.</p>'+recent.slice(0,8).map((e,i)=>`<button type="button" class="quick-food" data-recent="${i}"><span>${html(uiFoodName(e.name))}<small>Last portion: ${html(quantityText(e))}</small></span><span aria-hidden="true">＋</span></button>`).join(''):'<p class="picker-help">Your recent foods will appear here. Choose Search foods to add your first meal.</p>';
-      panel.querySelectorAll('[data-recent]').forEach(b=>b.onclick=()=>{const e=recent[+b.dataset.recent];pick(foodByName(e.name, e));grams.value=e.g;previewPortion();});
-    }else if(pickerMode==='saved'){
-      const meals=loadSavedMeals();panel.innerHTML=meals.length?'<p class="picker-help">Add a whole meal to '+MEAL_LABEL[editingMeal]+'.</p>'+meals.map((m,i)=>`<button type="button" class="quick-food" data-quick-meal="${i}"><span>${html(m.name)}<small>${m.items.length} foods · ${Math.round(mealItemsIntake(m.items).prot)} g protein</small></span><span aria-hidden="true">＋</span></button>`).join(''):'<p class="picker-help">No saved meals yet. Save a meal using the star beside its name.</p>';
+    tabs.innerHTML=['recent','favourites','saved'].map(k=>`<button type="button" data-picker="${k}" aria-pressed="${pickerMode===k}">${{recent:'Recent',favourites:'Favourites',saved:'Saved meals'}[k]}</button>`).join('');
+    tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{pickerMode=b.dataset.picker;clearFoodSelection();food.value='';hideDD();renderQuickPicker();});
+    $("v2Form").hidden=false;$("savedMealRow").hidden=true;panel.hidden=!!selectedFood;tabs.hidden=!!selectedFood;
+    if(selectedFood)return;
+    const query=food.value.trim().toLowerCase();
+    if(pickerMode==='saved'){
+      const meals=loadSavedMeals().filter(m=>!query||m.name.toLowerCase().includes(query)||m.items.some(e=>e.name.toLowerCase().includes(query)));
+      panel.innerHTML='<p class="picker-help">Add a whole meal to '+MEAL_LABEL[editingMeal]+'.</p>'+meals.map((m,i)=>`<button type="button" class="quick-food" data-quick-meal="${i}"><span>${html(m.name)}<small>${m.items.length} foods · ${Math.round(mealItemsIntake(m.items).prot)} g protein</small></span><span aria-hidden="true">＋</span></button>`).join('')+(meals.length?'':'<p class="picker-help">No matching saved meals. Save a meal using the star in your diary.</p>');
       panel.querySelectorAll('[data-quick-meal]').forEach(b=>b.onclick=()=>{const m=meals[+b.dataset.quickMeal];uiMutateDay(()=>m.items.forEach(e=>addToDay(e.name,e.g,editingMeal,e.unit,e.food)),m.name+' added.');render();});
+      return;
     }
+    const recent=pickerMode==='favourites'?uxFavourites():DiaryUX.recent(loadLog().days,foodByName);
+    const items=recent.filter(e=>!query||e.name.toLowerCase().includes(query)).slice(0,10);
+    panel.innerHTML=items.length?items.map((e,i)=>`<button type="button" class="quick-food" data-recent="${i}"><span>${html(uiFoodName(e.name))}<small>${html(quantityText(e))} · ${pickerMode==='favourites'?'saved portion':'last used'}</small></span><span aria-hidden="true">＋</span></button>`).join(''):`<p class="picker-help">${pickerMode==='favourites'?'Star a food to find it here next time. Favourites are saved on this device.':'Search above to add a food. Your recent foods will appear here.'}</p>`;
+    panel.querySelectorAll('[data-recent]').forEach(b=>b.onclick=()=>{const e=items[+b.dataset.recent];pick(foodByName(e.name,e),e);});
   }
 
   /* ----- share link: the day, weight and target live in the URL hash ----- */
@@ -4736,43 +4765,52 @@ window.addEventListener("popstate", () => {
   }
   function previewPortion() {
     if (!selectedFood) return;
-    const unit = portionUnits(selectedFood).find(u => u[0] === $("v2Unit").value);
+    const unit = portionUnits(selectedFood,selectedUnit).find(u => u[0] === $("v2Unit").value);
     const amount = Math.min(2000, clamp(grams.value, unit ? 0.01 : 0.1, 2000, 100) * (unit ? unit[1] : 1));
     $("mealPortionPreview").innerHTML = `<strong>${selectedFood.protein_g_per_100g == null ? "Protein unavailable" : (selectedFood.protein_g_per_100g * amount / 100).toFixed(1)+" g protein"}</strong>${selectedFood.kcal == null ? "Calories unavailable" : Math.round(selectedFood.kcal * amount / 100) + " kcal"}${unit ? " · " + Math.round(amount) + " g · household measures are approximate" : ""}`;
   }
-  function pick(f) {
-    pickerMode="search";renderQuickPicker();hideDD(); selectedFood = f; food.value = f.name; err.hidden = true;
-    const units = portionUnits(f);
+  function pick(f, previousEntry) {
+    hideDD(); selectedFood = f; food.value = f.name; err.hidden = true;
+    const units = portionUnits(f,previousEntry?.unit);
     $("v2Unit").innerHTML = '<option value="">'+html(quantityUnit(f))+'</option>' + units.map(u => `<option value="${html(u[0])}">${html(portionUnitLabel(u))}</option>`).join("");
-    selectedUnit = ""; $("v2Unit").value = "";
-    grams.min = "0.1"; grams.max = "2000"; grams.value = String(f.serving_g || 100);
+    const preferred = previousEntry ? units.find(u=>u[0]===previousEntry.unit) : preferredPortionUnit(f);
+    selectedUnit = preferred?.[0] || ""; $("v2Unit").value = selectedUnit;
+    grams.min = preferred ? "0.01" : "0.1"; grams.max = String(2000/(preferred?.[1]||1));
+    grams.value = String(previousEntry ? +(previousEntry.g/(preferred?.[1]||1)).toFixed(2) : preferred ? 1 : f.serving_g || 100);
     $("mealPortion").hidden = false; $("mealAddConfirm").disabled = false;
     $("mealSearchHint").textContent = "Selected. Check your portion below, then add it to your meal.";
     $("mealPackPortion").hidden=!!f.supplement;
-    previewPortion(); grams.focus(); grams.select();
+    renderPortionShortcuts(); previewPortion(); renderQuickPicker(); food.blur(); $("mealAddConfirm").focus({preventScroll:true});
   }
-  $("mealPackPortion").onclick=e=>{if(!selectedFood)return;window.__openPackPortion(selectedFood,+grams.value*(portionUnits(selectedFood).find(u=>u[0]===$("v2Unit").value)?.[1]||1),g=>{selectedUnit="";$("v2Unit").value="";grams.min="0.1";grams.max="2000";grams.value=g;previewPortion();},e.currentTarget);};
+  function renderPortionShortcuts() {
+    const u=portionUnits(selectedFood,selectedUnit).find(u=>u[0]===selectedUnit),box=$("mealPortionShortcuts");
+    box.hidden=!u;
+    box.innerHTML=u?[0.5,1,2,3].map(n=>`<button type="button" data-portion-count="${n}">${n} × ${html((u[2]||u[0]).replace(/\s*\([^)]*\)/g,""))}</button>`).join(''):'';
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{grams.value=b.dataset.portionCount;previewPortion();});
+  }
+  $("mealPackPortion").onclick=e=>{if(!selectedFood)return;window.__openPackPortion(selectedFood,+grams.value*(portionUnits(selectedFood,selectedUnit).find(u=>u[0]===$("v2Unit").value)?.[1]||1),g=>{selectedUnit="";$("v2Unit").value="";grams.min="0.1";grams.max="2000";grams.value=g;renderPortionShortcuts();previewPortion();},e.currentTarget);};
   grams.addEventListener("input", previewPortion);
   $("v2Unit").addEventListener("change", () => {
     if (!selectedFood) return;
-    const units = portionUnits(selectedFood);
+    const units = portionUnits(selectedFood,selectedUnit);
     const previous = units.find(u => u[0] === selectedUnit);
     const amount = clamp(grams.value, 0.01, 2000, 100) * (previous ? previous[1] : 1);
     selectedUnit = $("v2Unit").value;
     const unit = units.find(u => u[0] === selectedUnit);
     grams.value = String(+(amount / (unit ? unit[1] : 1)).toFixed(2));
     grams.min = unit ? "0.01" : "0.1"; grams.max = String(2000 / (unit ? unit[1] : 1));
-    previewPortion();
+    renderPortionShortcuts(); previewPortion();
   });
   function showDD() {
     const q = food.value.trim();
-    if (q.length < 2) return hideDD();
-    ddItems = diaryMatches(q, 8);
+    if (q.length < 2) {hideDD();renderQuickPicker();return;}
+    renderQuickPicker(); if(pickerMode==='saved'||pickerMode==='favourites'){hideDD();return;}
+    ddItems = diaryMatches(q, 12); $("quickFoodPanel").hidden=true;
     if (!ddItems.length) { hideDD(); $("mealSearchHint").textContent = "No foods found. Try another name or change the source."; return; }
     ddIdx = 0;
     dd.innerHTML = ddItems.map((f, i) => `<button type="button" role="option" id="diary-option-${i}" data-i="${i}" aria-selected="${i === 0}">
-      <span><span class="nm">${html(f.name)}</span>${stateTagHTML(f)}${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
-      <span class="sub">${f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span></button>`).join("");
+      <span><span class="nm">${html(uiFoodName(f.name))}</span>${stateTagHTML(f)}${f.tier === "featured" ? '<span class="tag">Featured</span>' : ""}</span>
+      <span class="sub">${f.protein_g_per_100g==null?"—":f.protein_g_per_100g.toFixed(0)} g protein /100 g · ${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}</span></button>`).join("");
     dd.hidden = false; food.setAttribute("aria-expanded", "true"); food.setAttribute("aria-activedescendant", "diary-option-0");
     dd.querySelectorAll("button").forEach(b => b.addEventListener("click", () => pick(ddItems[+b.dataset.i])));
   }
@@ -4810,12 +4848,12 @@ window.addEventListener("popstate", () => {
   $("v2Form").addEventListener("submit", e => {
     e.preventDefault();
     if (!selectedFood || !editingMeal) { err.hidden = false; food.focus(); return; }
-    const unit = portionUnits(selectedFood).find(u => u[0] === $("v2Unit").value);
+    const unit = portionUnits(selectedFood,selectedUnit).find(u => u[0] === $("v2Unit").value);
     const amount = Math.min(2000, clamp(grams.value, unit ? 0.01 : 0.1, 2000, 100) * (unit ? unit[1] : 1));
-    if (!addToDay(selectedFood.name, amount, editingMeal, unit ? unit[0] : undefined, selectedFood.scanVersion ? selectedFood : undefined)) return;
+    let added=false;uiMutateDay(()=>{added=addToDay(selectedFood.name, amount, editingMeal, unit ? unit[0] : undefined, selectedFood.scanVersion ? selectedFood : undefined);},uiFoodName(selectedFood.name)+" added.");if(!added)return;
     const addedName = selectedFood.name;
     food.value = ""; grams.value = "100"; err.hidden = true; clearFoodSelection();
-    hideDD(); render(); food.focus();
+    hideDD(); render(); if(matchMedia("(pointer:fine)").matches)food.focus();
     $("mealSearchHint").textContent = addedName + " added. Search for another food or choose Done.";
   });
 
@@ -4904,15 +4942,19 @@ window.addEventListener("popstate", () => {
   function render() {
     diaryPanels.capture(result);
     diaryPanels.capture($("diarySummary"));
+    list.querySelectorAll(".ux-entry").forEach(el=>{if(el.open)expandedEntries.add(el.dataset.entry);else expandedEntries.delete(el.dataset.entry);});
     renderDayChrome();
     const day = loadDay();
     $("diarySummary").innerHTML=uiSummary(day);
     diaryPanels.bind($("diarySummary"));
     $("diarySummary").querySelector("[data-edit-targets]").onclick=openAccountPage;
-    $("diarySuggestions").innerHTML="";
+    diaryPanels.capture($("diarySuggestions"));
+    if(!day.length)$("diarySuggestions").innerHTML="";
     // Keep the single search form and its listeners when rebuilding the meal cards.
     editor.hidden = true;
-    list.before(editor);
+    // The editor stays in its dialog while meal rows refresh.
+    diaryPanels.capture($("diaryPriorities"));
+    if(!day.length)$("diaryPriorities").innerHTML=uxEmptyPriorities();
     const rowHtml = (e, i) => {
       const f = foodByName(e.name, e);
       const name = html(e.name);
@@ -4922,10 +4964,10 @@ window.addEventListener("popstate", () => {
       const unitUI = units.length
         ? `<select class="unit-sel" data-i="${i}" aria-label="Unit for ${name}"><option value="">g</option>${units.map(u => `<option value="${html(u[0])}"${e.unit === u[0] ? " selected" : ""}>${html(portionUnitLabel(u))}</option>`).join("")}</select>${u ? `<small class="unit-g">≈ ${Math.round(e.g)} g</small>` : ""}`
         : " "+html(quantityUnit(f));
-      return `<div class="v2-item"><div class="food-info"><span class="nm">${name}</span><span class="food-nutrition-source">${f.portionEstimate&&FoodScan.packPortion(f.portionEstimate.packGrams,f.portionEstimate.beforePercent,f.portionEstimate.afterPercent)===e.g?'Estimated portion · ':''}${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
+      return `<details class="ux-entry" data-entry="${html(mealKey(e.meal)+":"+i)}" ${expandedEntries.has(mealKey(e.meal)+":"+i)?"open":""}><summary><span class="ux-entry-name">${html(uiFoodName(e.name))}<small>${html(quantityText(e))}</small></span><span class="ux-entry-macros">${f.supplement?f.ingredients.filter(r=>r.key).slice(0,1).map(r=>Nutrition.format(r.amount*e.g/f.serving_g)+" "+html(r.unit)+" "+html(r.label)).join("")||"Supplement":(f.protein_g_per_100g==null?"—":Math.round(f.protein_g_per_100g*e.g/100)+" g protein")+"<small>"+(f.kcal==null?"—":Math.round(f.kcal*e.g/100))+" kcal</small>"}</span><span class="ux-row-edit" aria-hidden="true">✎</span></summary><div class="v2-item"><div class="food-info"><span class="nm">${name}</span><span class="food-nutrition-source">${f.portionEstimate&&FoodScan.packPortion(f.portionEstimate.packGrams,f.portionEstimate.beforePercent,f.portionEstimate.afterPercent)===e.g?'Estimated portion · ':''}${f.scanVersion?html(f.source)+' · checked by you':f.nutritionSource?.dataset==='CoFID'?'UK CoFID':f.nutritionSource?'USDA':'Published profile'}${Nutrition.hasAminoAcids(f)?'':' · amino acid profile unavailable'}</span>
         </div><div class="qty"><span class="portion-label">Portion</span><input type="number" min="0.1" max="2000" step="any" value="${qty}" data-i="${i}" aria-label="Amount of ${name}">${unitUI}${f.supplement?'':`<button type="button" class="linkish food-pack-button" data-pack-item="${i}">% of pack</button>`}</div>
         <div class="food-macros">${f.supplement ? f.ingredients.slice(0,2).map(r=>`<span>${html(r.label)} <strong>${Nutrition.format(r.amount*e.g/f.serving_g)} ${html(r.unit)}</strong></span>`).join("") : `<strong>${f.protein_g_per_100g == null ? "Protein unavailable" : (f.protein_g_per_100g * e.g / 100).toFixed(1)+" g protein"}</strong><span>${f.kcal == null ? "Calories unavailable" : Math.round(f.kcal * e.g / 100) + " kcal"}</span>`}</div>
-        <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button>${supplementIngredients(f,e.g)}${uiFoodEvidence(f,e)}</div>`;
+        <button type="button" class="rm" data-i="${i}" aria-label="Remove ${name}">✕</button>${supplementIngredients(f,e.g)}${uiFoodEvidence(f,e)}${!f.supplement?`<button type="button" class="linkish ux-favourite" data-favourite="${i}">${uxFavourites().some(x=>DiaryUX.identity(x)===DiaryUX.identity(e))?"★ Remove favourite":"☆ Favourite food"}</button>`:""}</div></details>`;
     };
     list.innerHTML = MEALS.filter(([mk])=>mk!=="other"||day.some(e=>e.meal==="other")).map(([mk, ml]) => {
       const idxs = day.map((e, i) => [e, i]).filter(([e]) => e.meal === mk);
@@ -4959,6 +5001,7 @@ window.addEventListener("popstate", () => {
         </div>
       </div>`;
     }).join("");
+    list.querySelectorAll("[data-favourite]").forEach(b=>b.onclick=()=>{const added=uxToggleFavourite(day[+b.dataset.favourite]);b.textContent=added?"★ Remove favourite":"☆ Favourite food";});
     list.querySelectorAll('[data-repeat-meal]').forEach(b=>b.onclick=()=>{
       const meal=b.dataset.repeatMeal,previous=uiPreviousMeal(meal);if(!previous)return;
       uiMutateDay(()=>previous.entries.filter(e=>e.meal===meal).forEach(e=>addToDay(e.name,e.g,meal,e.unit,e.food)),MEAL_LABEL[meal]+' repeated.');render();
@@ -5001,7 +5044,7 @@ window.addEventListener("popstate", () => {
       const u = portionUnits(foodByName(d[i].name, d[i]),d[i].unit).find(x => x[0] === d[i].unit);
       const q = clamp(ev.target.value, 0.01, 2000, u ? 1 : 100);
       d[i].g = u ? Math.min(2000, Math.round(q * u[1] * 10) / 10) : q;
-      saveDay(d); render();
+      uiMutateDay(()=>saveDay(d),"Portion updated."); render();
       list.querySelector(`.v2-item input[data-i="${i}"]`).focus();
     }));
     list.querySelectorAll(".unit-sel").forEach(sel => sel.addEventListener("change", ev => {
@@ -5015,8 +5058,7 @@ window.addEventListener("popstate", () => {
     }));
     if (editingMeal) {
       const panel = $("meal-panel-" + editingMeal);
-      panel.appendChild(editor); editor.hidden = false;
-      $("supplementSearchEntry").hidden = editingMeal === "snacks";
+      editor.hidden = false;
       $("mealEditorLabel").textContent = "Add to " + MEAL_LABEL[editingMeal];
       $("mealAddConfirm").textContent = "Add to " + MEAL_LABEL[editingMeal];
       const empty = panel.querySelector(".meal-empty"); if (empty) empty.hidden = true;
@@ -5147,7 +5189,14 @@ window.addEventListener("popstate", () => {
       ${uiResultMethod(day,weight,protThrive,"daily",!!stamped)}
       </div></details>
       </div>`;
-    $("diarySuggestions").innerHTML=uiSuggestions(recommendation);
+    diaryPanels.capture($("diaryPriorities"));
+    $("diaryPriorities").innerHTML=uxPriorities(recommendation,day);
+    diaryPanels.bind($("diaryPriorities"));
+    $("diaryPriorities").querySelector('[data-open-nutrition]').onclick=()=>result.scrollIntoView({behavior:'smooth',block:'start'});
+    diaryPanels.capture($("diarySuggestions"));
+    $("diarySuggestions").innerHTML='<details class="ux-suggestions" data-diary-section="meal-suggestions"><summary><span><b>Ideas for your next meal</b><small>Foods that help with your recorded gaps</small></span><span aria-hidden="true">＋</span></summary>'+uiSuggestions(recommendation)+'</details>';
+    diaryPanels.bind($("diarySuggestions"));
+    $("diaryPriorities").querySelectorAll('[data-priority-focus]').forEach(b=>b.onclick=()=>{recommendationFocus=b.dataset.priorityFocus;render();const el=$("diarySuggestions").firstElementChild;el.open=true;el.scrollIntoView({behavior:'smooth',block:'start'});});
     const focusSelect=$("diarySuggestions").querySelector("[data-recommendation-focus]");
     if(focusSelect)focusSelect.onchange=e=>{recommendationFocus=e.target.value;render();$("diarySuggestions").querySelector("[data-recommendation-focus]").focus({preventScroll:true});};
     diaryPanels.bind(result);

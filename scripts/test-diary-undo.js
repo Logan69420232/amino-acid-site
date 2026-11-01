@@ -4,7 +4,7 @@ function harness(){
  const elements={'[role="status"]':{},'[data-undo]':{},'[data-dismiss]':{}};
  const toast={hidden:true,querySelector:s=>elements[s]};
  let mounted=false;
- const ctx=vm.createContext({store:{owner:'A',getItem:()=>null},document:{querySelectorAll:()=>[],getElementById:()=>mounted?toast:null,createElement:()=>toast,body:{appendChild:()=>{mounted=true;}}},window:{__v2Render:()=>{}},loadLog:()=>structuredClone(log),activeLogDay:()=>structuredClone(log.days[log.active]),saveLog:l=>{log=structuredClone(l);writes++;}});
+ const ctx=vm.createContext({store:{owner:'A',getItem:()=>null},document:{querySelectorAll:()=>[],getElementById:id=>id==='diaryToast'&&mounted?toast:null,createElement:()=>toast,body:{appendChild:()=>{mounted=true;}}},window:{__v2Render:()=>{}},loadLog:()=>structuredClone(log),activeLogDay:()=>structuredClone(log.days[log.active]),saveLog:l=>{log=structuredClone(l);writes++;}});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../usability-ui.js'),'utf8'),ctx);
  return {ctx,run:c=>vm.runInContext(c,ctx),undo:()=>elements['[data-undo]'].onclick(),get log(){return log},get writes(){return writes}};
 }

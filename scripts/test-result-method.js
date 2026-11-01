@@ -25,8 +25,8 @@ test('food labels are escaped and saved targets are explicitly identified',()=>{
  const markup=c.uiResultMethod([entry],60,90,'daily',true);assert.match(markup,/&lt;img/);assert.doesNotMatch(markup,/<img|<script>/);assert.match(markup,/saved body weight and protein goal/);
 });
 test('older-day overview and explanation use saved targets rather than today’s profile',()=>{
- const c=setup();Object.assign(c,{activeLogDay:()=>({date:'2020-01-01',w:60,t:90}),todayISO:()=> '2026-10-25',getWeight:()=>75,getThriveG:()=>120,mealItemsIntake:()=>({prot:45,miss:0}),macroDisplay:(_t,k)=>k==='prot'?45:0,uiSaveState:{text:'Saved',kind:'local'}});
+ const c=setup();Object.assign(c,{IntakeTargets:{calorieTarget:()=>null},getIntakeProfile:()=>({}),activeLogDay:()=>({date:'2020-01-01',w:60,t:90}),todayISO:()=> '2026-10-25',getWeight:()=>75,getThriveG:()=>120,mealItemsIntake:()=>({prot:45,miss:0}),macroDisplay:(_t,k)=>k==='prot'?45:0,uiSaveState:{text:'Saved',kind:'local'}});
  const start=usability.indexOf('function uiSummary('),end=usability.indexOf('function uiAvoidedFoods');vm.runInContext(usability.slice(start,end),c);
- const markup=c.uiSummary([]);assert.match(markup,/\/ 90 g/);assert.match(markup,/saved body weight is 60 kg/);assert.match(markup,/50%/);assert.doesNotMatch(markup,/120 g/);
- c.activeLogDay=()=>({date:'2026-10-25',w:60,t:90});assert.match(c.uiSummary([]),/\/ 120 g/);
+ const markup=c.uiSummary([]);assert.match(markup,/of 90 g/);assert.match(markup,/saved body weight is 60 kg/);assert.match(markup,/50%/);assert.doesNotMatch(markup,/120 g/);
+ c.activeLogDay=()=>({date:'2026-10-25',w:60,t:90});assert.match(c.uiSummary([]),/of 120 g/);
 });
