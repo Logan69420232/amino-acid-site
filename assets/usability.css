@@ -95,3 +95,6 @@ body[data-view="examples"] main.wrap > :not(#examplesPage),body[data-view="examp
 .example-food-top>div{min-width:0;flex:1}.example-food-top .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .example-nutrients{padding:16px 0;border-bottom:1px solid #e4dfea}.example-nutrients>summary{cursor:pointer;font-weight:600;min-height:28px}
 .evidence-caution{border-left:3px solid #a0712d;background:#fff9ed;padding:12px;color:#624516}
+
+/* Keep common portion choices visible beside the quantity control. */
+.portion-shortcuts{display:flex;flex-wrap:wrap;gap:8px;grid-column:1/-1;width:100%}.portion-shortcuts[hidden]{display:none}.portion-shortcuts button{border:1px solid #dcd2e6;border-radius:10px;background:#faf7fd;color:#51327b;padding:10px 14px;font:600 14px var(--font-sans, sans-serif);min-height:44px;max-width:100%;overflow-wrap:anywhere}.portion-shortcuts button:hover{background:#eee6f5}.portion-shortcuts button:focus-visible{outline:2px solid #715193;outline-offset:2px}

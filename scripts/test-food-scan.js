@@ -55,9 +55,9 @@ test('recent picker puts latest confirmed snapshot first without changing diary 
  const source=fs.readFileSync(require('node:path').join(__dirname,'../index.template.html'),'utf8');
  const nodes=Object.fromEntries(['foodPickerTabs','quickFoodPanel','v2Form','savedMealRow'].map(id=>[id,{innerHTML:'',querySelectorAll:()=>[]}]));
  const log={days:[{date:'2026-10-24',entries:[{name:'Magnesium',g:3,food:{scanId:'mag'}},...Array.from({length:9},(_,i)=>({name:'Food '+i,g:100})),{name:'Magnesium',g:1,food:{scanId:'mag'}}]}]},before=JSON.stringify(log);
- const ctx=vm.createContext({$:(id)=>nodes[id],pickerMode:'recent',loadLog:()=>log,html:s=>s,uiFoodName:s=>s,quantityText:e=>e.g+' capsules'});
+ const ctx=vm.createContext({$:(id)=>nodes[id],pickerMode:'recent',selectedFood:null,food:{value:''},DiaryUX:require('../lib/diary-ux'),foodByName:(n,e)=>e.food||{name:n},loadLog:()=>log,html:s=>s,uiFoodName:s=>s,quantityText:e=>e.g+' capsules'});
  vm.runInContext(source.slice(source.indexOf('  function renderQuickPicker('),source.indexOf('  /* ----- share link:',source.indexOf('  function renderQuickPicker('))),ctx);ctx.renderQuickPicker();
- assert.match(nodes.quickFoodPanel.innerHTML,/data-recent="0"><span>Magnesium<small>Last portion: 1 capsules/);assert.equal(JSON.stringify(log),before);
+ assert.match(nodes.quickFoodPanel.innerHTML,/data-recent="0"><span>Magnesium<small>1 capsules · last used/);assert.equal(JSON.stringify(log),before);
 });
 test('pack weight accepts explicit mass, never counts, volumes or ambiguous multipacks',()=>{
  assert.equal(F.packWeight('2.5 kg'),2500);assert.equal(F.packWeight('750g'),750);assert.equal(F.packWeight('1,5 kilograms'),1500);
@@ -73,4 +73,20 @@ test('pack estimates survive validated snapshots without storing arbitrary metad
  const f=F.makeFood(draft(),'test-pack-123');f.portionEstimate={packGrams:2000,beforePercent:60,afterPercent:35,extra:'discard'};
  assert.deepEqual(F.snapshot(f).portionEstimate,{packGrams:2000,beforePercent:60,afterPercent:35});
  assert.equal(F.snapshot({...f,portionEstimate:{packGrams:2000,beforePercent:20,afterPercent:30}}).portionEstimate,undefined);
+});
+
+test('common portion defaults use source weights and avoid whole packs',()=>{
+ const source=fs.readFileSync(require('node:path').join(__dirname,'../index.template.html'),'utf8');
+ const ctx=vm.createContext({Nutrition:N,foodByName:()=>null});
+ vm.runInContext(source.slice(source.indexOf('const ITEM_UNITS ='),source.indexOf('function supplementIngredients(')),ctx);
+ const bread={name:'Bread, seeded (UK)',portions:[['loaf',800,'loaf'],['slice-source',36,'slice']]};
+ assert.equal(ctx.preferredPortionUnit(bread)[0],'slice-source');assert.equal(ctx.preferredPortionUnit(bread)[1],36);
+ assert.equal(ctx.preferredPortionUnit({name:'Bread, seeded (UK)'})[1],40);
+ assert.equal(ctx.preferredPortionUnit({name:'Chopped tomatoes',portions:[['pack',400,'package']]}),null);
+ assert.equal(ctx.preferredPortionUnit({name:'Iron',supplement:true}),null);
+ for(const name of ['Breaded chicken','Bagel','Bread pudding','Bread crumbs'])assert.equal(ctx.preferredPortionUnit({name}),null);
+ assert.equal(ctx.portionUnits({name:'Bagel'},'slices')[0][1],40);
+ assert.equal(ctx.preferredPortionUnit({name:'Bagel',portions:[['whole',98,'bagel'] ]})[1],98);
+ ctx.foodByName=()=>bread;assert.match(ctx.quantityText({name:bread.name,g:72,unit:'slice-source'}),/^2 slice.*72 g/);
+ assert.equal(ctx.quantityText({name:bread.name,g:72}),'72 g');
 });
